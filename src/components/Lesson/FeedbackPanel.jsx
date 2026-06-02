@@ -5,6 +5,8 @@ import useAiStore from '../../store/aiStore';
 import { judgeAnswer } from '../../lib/judge-answer';
 import { playSoundEffect, SOUND_EFFECT_TYPES } from '../../lib/sound-effects';
 import heartImg from '../../assets/icons/ui/heart.png';
+import correctFeedbackImg from '../../assets/icons/sd/sd2_corrent.png';
+import wrongFeedbackImg from '../../assets/icons/sd/sd2_wrong.png';
 
 export default function FeedbackPanel({ feedbackState, question, userAnswer, correctAnswer, hint, onContinue, onOverturn, isReview }) {
   const panelRef = useRef(null);
@@ -76,24 +78,21 @@ export default function FeedbackPanel({ feedbackState, question, userAnswer, cor
   const showRejectedReason = appealStatus === 'rejected' && appealReason;
 
   // Determine header content
-  let emoji, titleText, subText;
+  let titleText, subText;
   if (isOverturned) {
-    emoji = '🤗';
     titleText = 'AI 确认正确！';
     subText = <span className="inline-flex items-center gap-1 flex-wrap">你的翻译也是对的，<img src={heartImg} alt="heart" width={16} height={16} style={{ objectFit: 'contain', verticalAlign: 'middle' }} /> 已为你补回</span>;
   } else if (isCorrect) {
-    emoji = '🎉';
     titleText = 'よくできました！';
     subText = '完全正确！继续加油';
   } else if (isReviewWrong) {
-    emoji = '💪';
     titleText = '没有扣心心～';
     subText = '巩固练习不扣心心，下次一定！';
   } else {
-    emoji = '😅';
     titleText = '惜しい！';
     subText = null;
   }
+  const feedbackCharacterImg = isCorrect ? correctFeedbackImg : wrongFeedbackImg;
 
   return (
     <div
@@ -104,78 +103,90 @@ export default function FeedbackPanel({ feedbackState, question, userAnswer, cor
         borderTop: `3px solid ${isCorrect ? '#86EFAC' : isReviewWrong ? '#FCD34D' : '#FCA5A5'}`,
       }}
     >
+      <img
+        src={feedbackCharacterImg}
+        alt=""
+        aria-hidden="true"
+        className="pointer-events-none absolute left-0 z-10 select-none object-contain"
+        style={{
+          top: 'calc(clamp(132px, 34vw, 176px) / -2)',
+          width: 'clamp(132px, 34vw, 176px)',
+        }}
+      />
+
       {/* Header row */}
-      <div className="flex items-start gap-3 mb-4">
-        <span className="text-3xl">{emoji}</span>
-        <div className="flex-1 min-w-0">
-          <h3
-            className="font-extrabold text-lg leading-tight"
-            style={{ color: isCorrect ? '#15803D' : isReviewWrong ? '#92400E' : '#B91C1C' }}
-          >
-            {titleText}
-          </h3>
-          {subText && (
-            <p className="text-sm font-medium mt-0.5" style={{ color: isCorrect ? '#16A34A' : isReviewWrong ? '#B45309' : '#DC2626' }}>
-              {subText}
-            </p>
-          )}
-          {/* Wrong state: show correct answer */}
-          {!isCorrect && correctAnswer && (
-            <p className="text-sm font-medium mt-0.5" style={{ color: isReviewWrong ? '#92400E' : '#DC2626' }}>
-              正解：<span className="jp font-bold text-base">{correctAnswer}</span>
-            </p>
-          )}
-          {/* Hint */}
-          {!isCorrect && hint && (
-            <p className="text-xs text-[#9CA3AF] mt-0.5">{hint}</p>
-          )}
-          {/* Rejected reason */}
-          {showRejectedReason && (
-            <div
-              className="mt-2 px-3 py-2 rounded-xl text-sm"
-              style={{ background: '#FEE2E2', color: '#991B1B', fontWeight: 600 }}
+      <div className="relative z-20 ml-[34%] min-h-[64px] mb-2">
+        <div className="flex items-start gap-2">
+          <div className="flex-1 min-w-0">
+            <h3
+              className="font-extrabold text-lg leading-tight"
+              style={{ color: isCorrect ? '#15803D' : isReviewWrong ? '#92400E' : '#B91C1C' }}
             >
-              {appealReason}
-            </div>
+              {titleText}
+            </h3>
+            {subText && (
+              <p className="text-sm font-medium mt-0.5" style={{ color: isCorrect ? '#16A34A' : isReviewWrong ? '#B45309' : '#DC2626' }}>
+                {subText}
+              </p>
+            )}
+            {/* Wrong state: show correct answer */}
+            {!isCorrect && correctAnswer && (
+              <p className="text-sm font-medium mt-0.5" style={{ color: isReviewWrong ? '#92400E' : '#DC2626' }}>
+                正解：<span className="jp font-bold text-base">{correctAnswer}</span>
+              </p>
+            )}
+            {/* Hint */}
+            {!isCorrect && hint && (
+              <p className="text-xs text-[#9CA3AF] mt-0.5">{hint}</p>
+            )}
+            {/* Rejected reason */}
+            {showRejectedReason && (
+              <div
+                className="mt-2 px-3 py-2 rounded-xl text-sm"
+                style={{ background: '#FEE2E2', color: '#991B1B', fontWeight: 600 }}
+              >
+                {appealReason}
+              </div>
+            )}
+            {/* Appeal error */}
+            {appealError && (
+              <p className="text-xs mt-1" style={{ color: '#EF4444' }}>{appealError}</p>
+            )}
+          </div>
+          {/* 误判? button — only for wrong sentence-translate with AI ready */}
+          {showAppealBtn && (
+            <button
+              onClick={handleAppeal}
+              style={{
+                flexShrink: 0,
+                padding: '5px 12px',
+                borderRadius: 20,
+                border: '1.5px solid #FCA5A5',
+                background: '#FFF1F2',
+                color: '#B91C1C',
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              误判?
+            </button>
           )}
-          {/* Appeal error */}
-          {appealError && (
-            <p className="text-xs mt-1" style={{ color: '#EF4444' }}>{appealError}</p>
+          {/* Loading spinner */}
+          {appealStatus === 'loading' && (
+            <div
+              style={{
+                flexShrink: 0,
+                width: 22, height: 22,
+                border: '2.5px solid #FCA5A5',
+                borderTopColor: '#EF4444',
+                borderRadius: '50%',
+                animation: 'spin 0.8s linear infinite',
+              }}
+            />
           )}
         </div>
-        {/* 误判? button — only for wrong sentence-translate with AI ready */}
-        {showAppealBtn && (
-          <button
-            onClick={handleAppeal}
-            style={{
-              flexShrink: 0,
-              padding: '5px 12px',
-              borderRadius: 20,
-              border: '1.5px solid #FCA5A5',
-              background: '#FFF1F2',
-              color: '#B91C1C',
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            误判?
-          </button>
-        )}
-        {/* Loading spinner */}
-        {appealStatus === 'loading' && (
-          <div
-            style={{
-              flexShrink: 0,
-              width: 22, height: 22,
-              border: '2.5px solid #FCA5A5',
-              borderTopColor: '#EF4444',
-              borderRadius: '50%',
-              animation: 'spin 0.8s linear infinite',
-            }}
-          />
-        )}
       </div>
 
       {/* Continue button */}
