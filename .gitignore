@@ -23,14 +23,17 @@ dist-ssr
 !.env.*.example
 
 # Android build outputs and signing material
-/*.apk
-/*.apk.idsig
-/*.aab
-/*.apks
+*.apk
+*.aab
+*.apks
+*.idsig
+*.credentials.txt
 /src-tauri/target/
 /src-tauri/gen/android/.gradle/
 /src-tauri/gen/android/build/
 /src-tauri/gen/android/app/build/
+/android-release/
+/android-signing/
 *.jks
 *.keystore
 *.p12
