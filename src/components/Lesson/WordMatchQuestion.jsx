@@ -164,7 +164,7 @@ export default function WordMatchQuestion({ question, onComplete, onWrongMatch, 
     'match-card w-full' + (rightSelected === rightColPos ? ' match-card--selected' : '');
 
   return (
-    <div ref={cardRef} className="flex flex-col h-full select-none">
+    <div ref={cardRef} className="flex h-full flex-col px-2 pb-2 select-none">
 
       {/* Prompt */}
       <p className="text-xs font-bold text-[#9CA3AF] uppercase tracking-widest mb-4">

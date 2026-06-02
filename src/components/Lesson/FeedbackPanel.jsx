@@ -51,7 +51,6 @@ export default function FeedbackPanel({ feedbackState, question, userAnswer, cor
       const result = await judgeAnswer(aiConfig, question, userAnswer ?? []);
       if (result.correct) {
         setAppealStatus('overturned');
-        playSoundEffect(SOUND_EFFECT_TYPES.ANSWER_CORRECT);
         onOverturn?.(); // fix correctCount + restore heart in stores
       } else {
         setAppealStatus('rejected');

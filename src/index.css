@@ -417,3 +417,19 @@ rt {
   80% { transform: translateY(-6px) scale(1.015); }
   90% { transform: translateY(0) scale(0.995); }
 }
+
+/* ── Lesson battle: continuous character idle motion ── */
+.battle-combat-hop {
+  animation: battle-combat-hop 1000ms ease-out infinite;
+  transform-origin: center bottom;
+  will-change: transform;
+}
+
+.battle-combat-hop--enemy {
+  animation-delay: -350ms;
+}
+
+@keyframes battle-combat-hop {
+  0%, 14.285%, 100% { transform: translateY(0) scale(1); }
+  7.142% { transform: translateY(-6px) scale(1.01); }
+}

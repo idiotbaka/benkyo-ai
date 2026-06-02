@@ -236,7 +236,8 @@ const useGameStore = create(
 
       // Called when AI overturns a wrong answer on sentence-translate:
       // fixes correctCount so star calculation treats it as correct,
-      // and restores the heart deducted for that wrong answer.
+      // restores the heart deducted for that wrong answer, and updates
+      // the visible feedback state so the lesson UI reacts as correct.
       overturnWrongAnswer() {
         const { lesson } = get();
         if (!lesson) return;
@@ -246,6 +247,7 @@ const useGameStore = create(
             ...lesson,
             correctCount: lesson.correctCount + 1,
             hearts: lesson.hearts + 1,
+            feedbackState: 'correct',
           },
         });
       },
