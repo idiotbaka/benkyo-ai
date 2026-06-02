@@ -1,0 +1,761 @@
+import { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useGSAP } from '@gsap/react';
+import gsap from 'gsap';
+import { generateText } from 'ai';
+import useAiStore, { PROVIDER_PRESETS } from '../store/aiStore';
+import useTtsStore, { TTS_PROVIDER_PRESETS } from '../store/ttsStore';
+import { getModel } from '../lib/ai-providers';
+import { getAiErrorContent, logAiGeneratedContent } from '../lib/ai-debug';
+import { requestTtsAudioBlob } from '../lib/tts';
+import settingImg from '../assets/icons/ui/setting.png';
+
+gsap.registerPlugin(useGSAP);
+
+const PROVIDER_OPTIONS = Object.entries(PROVIDER_PRESETS).map(([id, info]) => ({
+  id,
+  label: info.label,
+  defaultBaseUrl: info.baseUrl,
+  requiresBaseUrl: info.requiresBaseUrl,
+}));
+
+const THINKING_DEPTH_OPTIONS = [
+  {
+    id: 'deep',
+    icon: '🧠',
+    label: '深度思考',
+    desc: '最高质量，AI 充分推理后生成，等待时间最长',
+  },
+  {
+    id: 'standard',
+    icon: '⚖️',
+    label: '标准',
+    desc: '质量与速度均衡，适合日常使用',
+  },
+  {
+    id: 'fast',
+    icon: '⚡',
+    label: '快速',
+    desc: '最短等待，思考步骤精简，速度优先',
+  },
+];
+
+const TTS_PROVIDER_OPTIONS = Object.entries(TTS_PROVIDER_PRESETS).map(([id, info]) => ({
+  id,
+  label: info.label,
+  defaultBaseUrl: info.baseUrl,
+}));
+
+export default function SettingsPage() {
+  const navigate = useNavigate();
+  const savedConfig = useAiStore(s => s.getConfig)();
+  const setConfig = useAiStore(s => s.setConfig);
+  const thinkingDepth = useAiStore(s => s.thinkingDepth);
+  const setThinkingDepthStore = useAiStore(s => s.setThinkingDepth);
+  const savedTtsConfig = useTtsStore(s => s.getConfig)();
+  const setTtsConfigStore = useTtsStore(s => s.setConfig);
+
+  const [provider, setProvider] = useState(savedConfig.provider || 'openai');
+  const [apiKey, setApiKey] = useState(savedConfig.apiKey || '');
+  const [modelId, setModelId] = useState(savedConfig.modelId || '');
+  const [baseUrl, setBaseUrl] = useState(savedConfig.baseUrl || '');
+  const [showKey, setShowKey] = useState(false);
+  const [ttsProvider, setTtsProvider] = useState(savedTtsConfig.provider || 'aliyun-cosyvoice');
+  const [ttsBaseUrl, setTtsBaseUrl] = useState(savedTtsConfig.baseUrl || TTS_PROVIDER_PRESETS['aliyun-cosyvoice'].baseUrl);
+  const [ttsModelId, setTtsModelId] = useState(savedTtsConfig.modelId || 'cosyvoice-v3-flash');
+  const [ttsApiKey, setTtsApiKey] = useState(savedTtsConfig.apiKey || '');
+  const [ttsVoice, setTtsVoice] = useState(savedTtsConfig.voice || 'loongriko_v3');
+  const [showTtsKey, setShowTtsKey] = useState(false);
+
+  const [testStatus, setTestStatus] = useState(null); // null | 'loading' | 'ok' | 'error'
+  const [testMessage, setTestMessage] = useState('');
+  const [saveFlash, setSaveFlash] = useState(false);
+  const [ttsTestStatus, setTtsTestStatus] = useState(null); // null | 'loading' | 'ok' | 'error'
+  const [ttsTestMessage, setTtsTestMessage] = useState('');
+  const [ttsSaveFlash, setTtsSaveFlash] = useState(false);
+
+  const pageRef = useRef(null);
+  const backBtnRef = useRef(null);
+  const ttsAudioRef = useRef(null);
+  const ttsAudioUrlRef = useRef(null);
+
+  useGSAP(() => {
+    gsap.set(pageRef.current, { opacity: 0, y: 16 });
+  });
+  useGSAP(() => {
+    gsap.to(pageRef.current, { opacity: 1, y: 0, duration: 0.35, ease: 'back.out(1.7)' });
+  }, []);
+
+  const currentPreset = PROVIDER_PRESETS[provider];
+
+  function handleTtsProviderChange(newProvider) {
+    setTtsProvider(newProvider);
+    const preset = TTS_PROVIDER_PRESETS[newProvider];
+    if (preset?.baseUrl) setTtsBaseUrl(preset.baseUrl);
+    setTtsTestStatus(null);
+    setTtsTestMessage('');
+  }
+
+  // When provider changes, auto-fill baseUrl with the preset default (if not already custom-set)
+  function handleProviderChange(newProvider) {
+    setProvider(newProvider);
+    const preset = PROVIDER_PRESETS[newProvider];
+    // Only auto-fill if user hasn't typed a custom value
+    setBaseUrl(preset.baseUrl);
+    setTestStatus(null);
+    setTestMessage('');
+  }
+
+  async function handleTest() {
+    setTestStatus('loading');
+    setTestMessage('');
+    try {
+      const effectiveBaseUrl = baseUrl.trim() || currentPreset?.baseUrl || '';
+      if (provider === 'openai-compatible' && !effectiveBaseUrl) {
+        setTestStatus('error');
+        setTestMessage('自定义兼容端点必须填写 Base URL');
+        return;
+      }
+      if (!apiKey.trim()) {
+        setTestStatus('error');
+        setTestMessage('请先填写 API 密钥');
+        return;
+      }
+      if (!modelId.trim()) {
+        setTestStatus('error');
+        setTestMessage('请先填写模型 ID');
+        return;
+      }
+
+      const model = getModel({
+        provider,
+        apiKey: apiKey.trim(),
+        modelId: modelId.trim(),
+        baseUrl: effectiveBaseUrl || undefined,
+      });
+
+      let text = '';
+      try {
+        const result = await generateText({
+          model,
+          prompt: '请回复"OK"，不要说任何其他内容。',
+          maxOutputTokens: 16,
+          temperature: 0,
+          abortSignal: AbortSignal.timeout(20_000),
+          maxRetries: 0,
+        });
+        text = result.text;
+        logAiGeneratedContent({
+          phase: 'settings-test',
+          mode: 'generateText',
+          status: 'success',
+          content: text,
+        });
+      } catch (error) {
+        logAiGeneratedContent({
+          phase: 'settings-test',
+          mode: 'generateText',
+          status: 'failure',
+          content: getAiErrorContent(error, text),
+          error,
+        });
+        throw error;
+      }
+
+      if (text && text.trim().length > 0) {
+        setTestStatus('ok');
+        setTestMessage(`模型已生效，返回内容：${text.trim().slice(0, 60)}`);
+      } else {
+        setTestStatus('error');
+        setTestMessage('模型返回内容为空，请检查配置');
+      }
+    } catch (err) {
+      setTestStatus('error');
+      const msg = err?.message || String(err);
+      if (msg.includes('API key') || msg.includes('api_key') || msg.includes('Unauthorized') || msg.includes('401')) {
+        setTestMessage('API 密钥无效，请检查后重试');
+      } else if (msg.includes('timeout') || err?.name === 'TimeoutError') {
+        setTestMessage('请求超时，请检查网络或 Base URL');
+      } else if (msg.includes('model') || msg.includes('404')) {
+        setTestMessage('模型 ID 不存在，请确认模型名称');
+      } else {
+        setTestMessage(`连接失败：${msg.slice(0, 80)}`);
+      }
+    }
+  }
+
+  function handleSave() {
+    setConfig({
+      provider,
+      apiKey: apiKey.trim(),
+      modelId: modelId.trim(),
+      baseUrl: baseUrl.trim(),
+    });
+    setSaveFlash(true);
+    setTimeout(() => setSaveFlash(false), 1500);
+  }
+
+  async function handleTtsTest() {
+    setTtsTestStatus('loading');
+    setTtsTestMessage('');
+
+    const endpoint = ttsBaseUrl.trim();
+    const apiKeyTrimmed = ttsApiKey.trim();
+    const modelIdTrimmed = ttsModelId.trim();
+    const voiceTrimmed = ttsVoice.trim();
+
+    if (!endpoint) {
+      setTtsTestStatus('error');
+      setTtsTestMessage('请先填写 Base URL');
+      return;
+    }
+    if (!apiKeyTrimmed) {
+      setTtsTestStatus('error');
+      setTtsTestMessage('请先填写 TTS API 密钥');
+      return;
+    }
+    if (!modelIdTrimmed) {
+      setTtsTestStatus('error');
+      setTtsTestMessage('请先填写 TTS 模型 ID');
+      return;
+    }
+    if (!voiceTrimmed) {
+      setTtsTestStatus('error');
+      setTtsTestMessage('请先填写音色 Voice');
+      return;
+    }
+
+    try {
+      const audioBlob = await requestTtsAudioBlob('こんにちは！', {
+        provider: ttsProvider,
+        baseUrl: endpoint,
+        modelId: modelIdTrimmed,
+        apiKey: apiKeyTrimmed,
+        voice: voiceTrimmed,
+        format: 'mp3',
+        sampleRate: 24000,
+        rate: 1.0,
+        bitRate: 64,
+      });
+
+      if (ttsAudioRef.current) {
+        ttsAudioRef.current.pause();
+        ttsAudioRef.current = null;
+      }
+      if (ttsAudioUrlRef.current) {
+        URL.revokeObjectURL(ttsAudioUrlRef.current);
+        ttsAudioUrlRef.current = null;
+      }
+
+      const audioUrl = URL.createObjectURL(audioBlob);
+      ttsAudioUrlRef.current = audioUrl;
+
+      const audio = new Audio(audioUrl);
+      ttsAudioRef.current = audio;
+      await audio.play();
+
+      setTtsTestStatus('ok');
+      setTtsTestMessage('试音成功，已播放「こんにちは！」');
+    } catch (err) {
+      setTtsTestStatus('error');
+      const msg = err?.message || String(err);
+      if (msg.includes('401') || msg.toLowerCase().includes('unauthorized')) {
+        setTtsTestMessage('TTS API 密钥无效，请检查后重试');
+      } else if (msg.includes('timeout')) {
+        setTtsTestMessage('TTS 请求超时，请检查网络或 Base URL');
+      } else {
+        setTtsTestMessage(`试音失败：${msg.slice(0, 80)}`);
+      }
+    }
+  }
+
+  function handleTtsSave() {
+    setTtsConfigStore({
+      provider: ttsProvider,
+      baseUrl: ttsBaseUrl.trim(),
+      modelId: ttsModelId.trim(),
+      apiKey: ttsApiKey.trim(),
+      voice: ttsVoice.trim(),
+    });
+    setTtsSaveFlash(true);
+    setTimeout(() => setTtsSaveFlash(false), 1500);
+  }
+
+  const showRequiredHint = provider === 'openai-compatible';
+
+  return (
+    <div style={{ height: '100vh', overflowY: 'auto', background: '#F5F3FF' }}>
+      {/* Header */}
+      <div style={{
+        background: 'linear-gradient(155deg, var(--tp) 0%, var(--tp-from) 100%)',
+        padding: '48px 20px 20px',
+        position: 'relative',
+      }}>
+        <button
+          ref={backBtnRef}
+          onClick={() => {
+            gsap.timeline()
+              .to(backBtnRef.current, { scale: 0.88, duration: 0.08, ease: 'power2.in' })
+              .to(backBtnRef.current, { scale: 1, duration: 0.18, ease: 'back.out(2.5)' })
+              .call(() => navigate(-1));
+          }}
+          style={{
+            position: 'absolute', top: 16, left: 16,
+            background: 'rgba(255,255,255,0.18)',
+            borderRadius: 12, padding: '6px 14px',
+            color: 'white', fontSize: 13, fontWeight: 700,
+            backdropFilter: 'blur(4px)',
+            border: 'none', cursor: 'pointer',
+          }}
+        >
+          ← 返回
+        </button>
+        <h1 style={{ color: 'white', fontSize: 20, fontWeight: 800, textAlign: 'center', margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+          <img src={settingImg} alt="设置" width={22} height={22} style={{ objectFit: 'contain' }} /> 设置
+        </h1>
+      </div>
+
+      {/* Content */}
+      <div ref={pageRef} style={{ padding: '20px 16px 40px' }}>
+
+        {/* AI Model Section */}
+        <div style={{ marginBottom: 8 }}>
+          <h2 style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
+            配置 AI 模型（LLM）
+          </h2>
+        </div>
+
+        <div className="bg-white rounded-2xl" style={{ padding: '20px 16px', boxShadow: '0 4px 24px rgba(91,79,233,0.10)', marginBottom: 16 }}>
+
+          {/* Provider */}
+          <div style={{ marginBottom: 18 }}>
+            <label style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', display: 'block', marginBottom: 8 }}>
+              模型提供商
+            </label>
+            <div style={{
+              position: 'relative',
+              background: '#F9FAFB',
+              borderRadius: 12,
+              border: '1.5px solid #E5E7EB',
+            }}>
+              <select
+                value={provider}
+                onChange={e => handleProviderChange(e.target.value)}
+                style={{
+                  width: '100%', padding: '11px 14px',
+                  background: 'transparent', border: 'none', outline: 'none',
+                  fontSize: 14, fontWeight: 600, color: '#1E1B4B',
+                  cursor: 'pointer', appearance: 'none',
+                }}
+              >
+                {PROVIDER_OPTIONS.map(opt => (
+                  <option key={opt.id} value={opt.id}>{opt.label}</option>
+                ))}
+              </select>
+              <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: 12, color: '#9CA3AF' }}>▼</span>
+            </div>
+          </div>
+
+          {/* Base URL */}
+          <div style={{ marginBottom: 18 }}>
+            <label style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', display: 'block', marginBottom: 8 }}>
+              Base URL
+              {showRequiredHint && <span style={{ color: '#EF4444', marginLeft: 4 }}>*必填</span>}
+              {!showRequiredHint && <span style={{ color: '#9CA3AF', marginLeft: 4, fontWeight: 500 }}>（可覆盖默认地址）</span>}
+            </label>
+            <input
+              type="text"
+              value={baseUrl}
+              onChange={e => setBaseUrl(e.target.value)}
+              placeholder={currentPreset?.baseUrl || '例如 https://api.openai.com/v1'}
+              style={{
+                width: '100%', padding: '11px 14px',
+                background: '#F9FAFB', border: '1.5px solid #E5E7EB',
+                borderRadius: 12, outline: 'none',
+                fontSize: 13, color: '#1E1B4B',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          {/* Model ID */}
+          <div style={{ marginBottom: 18 }}>
+            <label style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', display: 'block', marginBottom: 8 }}>
+              模型 ID
+            </label>
+            <input
+              type="text"
+              value={modelId}
+              onChange={e => setModelId(e.target.value)}
+              placeholder={getModelIdPlaceholder(provider)}
+              style={{
+                width: '100%', padding: '11px 14px',
+                background: '#F9FAFB', border: '1.5px solid #E5E7EB',
+                borderRadius: 12, outline: 'none',
+                fontSize: 13, color: '#1E1B4B',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          {/* API Key */}
+          <div style={{ marginBottom: 24 }}>
+            <label style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', display: 'block', marginBottom: 8 }}>
+              API 密钥
+            </label>
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showKey ? 'text' : 'password'}
+                value={apiKey}
+                onChange={e => setApiKey(e.target.value)}
+                placeholder="sk-..."
+                autoComplete="off"
+                style={{
+                  width: '100%', padding: '11px 44px 11px 14px',
+                  background: '#F9FAFB', border: '1.5px solid #E5E7EB',
+                  borderRadius: 12, outline: 'none',
+                  fontSize: 13, color: '#1E1B4B',
+                  boxSizing: 'border-box',
+                }}
+              />
+              <button
+                onClick={() => setShowKey(v => !v)}
+                style={{
+                  position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontSize: 16, color: '#9CA3AF', padding: 2,
+                }}
+              >
+                {showKey ? '🙈' : '👁️'}
+              </button>
+            </div>
+          </div>
+
+          {/* Test Button */}
+          <button
+            onClick={handleTest}
+            disabled={testStatus === 'loading'}
+            className="btn-press"
+            style={{
+              width: '100%', padding: '12px 0', marginBottom: 10,
+              borderRadius: 14, border: 'none',
+              background: testStatus === 'loading' ? '#E5E7EB' : 'linear-gradient(135deg, var(--tp-from), var(--tp))',
+              color: testStatus === 'loading' ? '#9CA3AF' : 'white',
+              fontSize: 14, fontWeight: 800,
+              cursor: testStatus === 'loading' ? 'not-allowed' : 'pointer',
+              transition: 'background 0.2s',
+            }}
+          >
+            {testStatus === 'loading' ? '⏳ 测试中...' : '🔌 测试模型是否生效'}
+          </button>
+
+          {/* Test Result */}
+          {testStatus && testStatus !== 'loading' && (
+            <div style={{
+              padding: '10px 14px',
+              borderRadius: 12,
+              background: testStatus === 'ok' ? '#F0FDF4' : '#FEF2F2',
+              border: `1.5px solid ${testStatus === 'ok' ? '#BBF7D0' : '#FECACA'}`,
+              marginBottom: 14,
+            }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: testStatus === 'ok' ? '#15803D' : '#DC2626' }}>
+                {testStatus === 'ok' ? '✅ ' : '❌ '}{testMessage}
+              </span>
+            </div>
+          )}
+
+          {/* Save Button */}
+          <button
+            onClick={handleSave}
+            className="btn-press"
+            style={{
+              width: '100%', padding: '12px 0',
+              borderRadius: 14, border: 'none',
+              background: saveFlash ? '#22C55E' : '#1E1B4B',
+              color: 'white',
+              fontSize: 14, fontWeight: 800,
+              cursor: 'pointer',
+              transition: 'background 0.3s',
+            }}
+          >
+            {saveFlash ? '✅ 已保存！' : '💾 保存 LLM 配置'}
+          </button>
+        </div>
+
+        {/* TTS Section */}
+        <div style={{ marginBottom: 8, marginTop: 4 }}>
+          <h2 style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
+            配置音频模型（TTS）
+          </h2>
+        </div>
+
+        <div className="bg-white rounded-2xl" style={{ padding: '20px 16px', boxShadow: '0 4px 24px rgba(91,79,233,0.10)', marginBottom: 16 }}>
+
+          {/* TTS Provider */}
+          <div style={{ marginBottom: 18 }}>
+            <label style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', display: 'block', marginBottom: 8 }}>
+              音频提供商
+            </label>
+            <div style={{
+              position: 'relative',
+              background: '#F9FAFB',
+              borderRadius: 12,
+              border: '1.5px solid #E5E7EB',
+            }}>
+              <select
+                value={ttsProvider}
+                onChange={e => handleTtsProviderChange(e.target.value)}
+                style={{
+                  width: '100%', padding: '11px 14px',
+                  background: 'transparent', border: 'none', outline: 'none',
+                  fontSize: 14, fontWeight: 600, color: '#1E1B4B',
+                  cursor: 'pointer', appearance: 'none',
+                }}
+              >
+                {TTS_PROVIDER_OPTIONS.map(opt => (
+                  <option key={opt.id} value={opt.id}>{opt.label}</option>
+                ))}
+              </select>
+              <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: 12, color: '#9CA3AF' }}>▼</span>
+            </div>
+          </div>
+
+          {/* TTS Base URL */}
+          <div style={{ marginBottom: 18 }}>
+            <label style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', display: 'block', marginBottom: 8 }}>
+              Base URL
+            </label>
+            <input
+              type="text"
+              value={ttsBaseUrl}
+              onChange={e => setTtsBaseUrl(e.target.value)}
+              placeholder={TTS_PROVIDER_PRESETS[ttsProvider]?.baseUrl || ''}
+              style={{
+                width: '100%', padding: '11px 14px',
+                background: '#F9FAFB', border: '1.5px solid #E5E7EB',
+                borderRadius: 12, outline: 'none',
+                fontSize: 13, color: '#1E1B4B',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          {/* TTS Model ID */}
+          <div style={{ marginBottom: 18 }}>
+            <label style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', display: 'block', marginBottom: 8 }}>
+              模型 ID
+            </label>
+            <input
+              type="text"
+              value={ttsModelId}
+              onChange={e => setTtsModelId(e.target.value)}
+              placeholder="cosyvoice-v3-flash"
+              style={{
+                width: '100%', padding: '11px 14px',
+                background: '#F9FAFB', border: '1.5px solid #E5E7EB',
+                borderRadius: 12, outline: 'none',
+                fontSize: 13, color: '#1E1B4B',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          {/* TTS API Key */}
+          <div style={{ marginBottom: 18 }}>
+            <label style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', display: 'block', marginBottom: 8 }}>
+              TTS API 密钥
+            </label>
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showTtsKey ? 'text' : 'password'}
+                value={ttsApiKey}
+                onChange={e => setTtsApiKey(e.target.value)}
+                placeholder="sk-..."
+                autoComplete="off"
+                style={{
+                  width: '100%', padding: '11px 44px 11px 14px',
+                  background: '#F9FAFB', border: '1.5px solid #E5E7EB',
+                  borderRadius: 12, outline: 'none',
+                  fontSize: 13, color: '#1E1B4B',
+                  boxSizing: 'border-box',
+                }}
+              />
+              <button
+                onClick={() => setShowTtsKey(v => !v)}
+                style={{
+                  position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontSize: 16, color: '#9CA3AF', padding: 2,
+                }}
+              >
+                {showTtsKey ? '🙈' : '👁️'}
+              </button>
+            </div>
+          </div>
+
+          {/* Voice */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', display: 'block', marginBottom: 8 }}>
+              音色 Voice
+            </label>
+            <input
+              type="text"
+              value={ttsVoice}
+              onChange={e => setTtsVoice(e.target.value)}
+              placeholder="loongriko_v3"
+              style={{
+                width: '100%', padding: '11px 14px',
+                background: '#F9FAFB', border: '1.5px solid #E5E7EB',
+                borderRadius: 12, outline: 'none',
+                fontSize: 13, color: '#1E1B4B',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          <p style={{ fontSize: 11, color: '#6B7280', margin: '0 0 14px 0', lineHeight: 1.55 }}>
+            默认试音参数：format=mp3（设备兼容最佳），sample_rate=24000（语音清晰且体积适中），rate=1.0，bit_rate=64。
+          </p>
+
+          {/* TTS Test Button */}
+          <button
+            onClick={handleTtsTest}
+            disabled={ttsTestStatus === 'loading'}
+            className="btn-press"
+            style={{
+              width: '100%', padding: '12px 0', marginBottom: 10,
+              borderRadius: 14, border: 'none',
+              background: ttsTestStatus === 'loading' ? '#E5E7EB' : 'linear-gradient(135deg, var(--tp-from), var(--tp))',
+              color: ttsTestStatus === 'loading' ? '#9CA3AF' : 'white',
+              fontSize: 14, fontWeight: 800,
+              cursor: ttsTestStatus === 'loading' ? 'not-allowed' : 'pointer',
+              transition: 'background 0.2s',
+            }}
+          >
+            {ttsTestStatus === 'loading' ? '⏳ 试音中...' : '🔊 测试音色（こんにちは！）'}
+          </button>
+
+          {/* TTS Test Result */}
+          {ttsTestStatus && ttsTestStatus !== 'loading' && (
+            <div style={{
+              padding: '10px 14px',
+              borderRadius: 12,
+              background: ttsTestStatus === 'ok' ? '#F0FDF4' : '#FEF2F2',
+              border: `1.5px solid ${ttsTestStatus === 'ok' ? '#BBF7D0' : '#FECACA'}`,
+              marginBottom: 14,
+            }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: ttsTestStatus === 'ok' ? '#15803D' : '#DC2626' }}>
+                {ttsTestStatus === 'ok' ? '✅ ' : '❌ '}{ttsTestMessage}
+              </span>
+            </div>
+          )}
+
+          {/* TTS Save Button */}
+          <button
+            onClick={handleTtsSave}
+            className="btn-press"
+            style={{
+              width: '100%', padding: '12px 0',
+              borderRadius: 14, border: 'none',
+              background: ttsSaveFlash ? '#22C55E' : '#1E1B4B',
+              color: 'white',
+              fontSize: 14, fontWeight: 800,
+              cursor: 'pointer',
+              transition: 'background 0.3s',
+            }}
+          >
+            {ttsSaveFlash ? '✅ 已保存！' : '💾 保存 TTS 配置'}
+          </button>
+        </div>
+
+        {/* Thinking Depth Section */}
+        <div style={{ marginBottom: 8, marginTop: 4 }}>
+          <h2 style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
+            思考深度
+          </h2>
+        </div>
+
+        <div className="bg-white rounded-2xl" style={{ padding: '14px 12px', boxShadow: '0 4px 24px rgba(91,79,233,0.10)', marginBottom: 16 }}>
+          {THINKING_DEPTH_OPTIONS.map((opt, i) => (
+            <button
+              key={opt.id}
+              className="btn-press"
+              onClick={() => setThinkingDepthStore(opt.id)}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                padding: '11px 12px',
+                marginBottom: i < THINKING_DEPTH_OPTIONS.length - 1 ? 6 : 0,
+                borderRadius: 12,
+                border: `2px solid ${thinkingDepth === opt.id ? 'var(--tp)' : '#E5E7EB'}`,
+                background: thinkingDepth === opt.id ? '#F0EEFF' : '#F9FAFB',
+                cursor: 'pointer', textAlign: 'left',
+                transition: 'border-color 0.15s, background 0.15s',
+              }}
+            >
+              <span style={{ fontSize: 22, lineHeight: 1, flexShrink: 0 }}>{opt.icon}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: thinkingDepth === opt.id ? 'var(--tp)' : '#1E1B4B' }}>
+                    {opt.label}
+                  </span>
+                  {opt.id === 'deep' && (
+                    <span style={{ fontSize: 10, fontWeight: 700, background: 'var(--tp-lite)', color: 'var(--tp)', padding: '1px 7px', borderRadius: 20 }}>
+                      默认
+                    </span>
+                  )}
+                </div>
+                <p style={{ fontSize: 12, color: '#6B7280', margin: 0, lineHeight: 1.5 }}>{opt.desc}</p>
+              </div>
+              <div style={{
+                width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
+                border: `2.5px solid ${thinkingDepth === opt.id ? 'var(--tp)' : '#D1D5DB'}`,
+                background: thinkingDepth === opt.id ? 'var(--tp)' : 'transparent',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                {thinkingDepth === opt.id && <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'white' }} />}
+              </div>
+            </button>
+          ))}
+
+          {thinkingDepth === 'deep' && (
+            <div style={{ background: '#FEF3C7', border: '1.5px solid #FCD34D', borderRadius: 10, padding: '10px 12px', marginTop: 10 }}>
+              <p style={{ fontSize: 12, color: '#92400E', margin: 0, lineHeight: 1.6 }}>
+                ⏳ 深度思考模式下，AI 推理过程较长，生成课程通常需要 <strong>3 分钟以上</strong>。若希望加快生成，可切换为「标准」或「快速」模式。
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Tips */}
+        <div style={{
+          background: '#FFFBEB', border: '1.5px solid #FDE68A',
+          borderRadius: 16, padding: '14px 16px',
+        }}>
+          <p style={{ fontSize: 12, fontWeight: 700, color: '#92400E', marginBottom: 6 }}>💡 提示</p>
+          <p style={{ fontSize: 12, color: '#78350F', lineHeight: 1.6, margin: 0 }}>
+            API 密钥仅保存在本地设备，不会上传至任何服务器。配置完成后即可使用 AI 生成课程内容。
+          </p>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
+function getModelIdPlaceholder(provider) {
+  const map = {
+    openai: 'gpt-4o',
+    anthropic: 'claude-3-5-sonnet-20241022',
+    google: 'gemini-2.0-flash',
+    deepseek: 'deepseek-chat',
+    'aliyun-bailian': 'qwen-plus',
+    moonshot: 'moonshot-v1-8k',
+    zhipu: 'glm-4-flash',
+    volcengine: 'doubao-pro-4k',
+    'baidu-qianfan': 'ernie-4.0-8k',
+    'tencent-hunyuan': 'hunyuan-turbos-latest',
+    minimax: 'minimax-text-01',
+    'openai-compatible': 'your-model-id',
+  };
+  return map[provider] || '模型 ID';
+}
