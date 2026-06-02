@@ -12,8 +12,8 @@ export default function BackpackSheet({ onClose }) {
   const inventory   = useUserStore(s => s.inventory);
   const hearts      = useUserStore(s => s.hearts);
   const xpBoost     = useUserStore(s => s.xpBoost);
-  const useCake     = useUserStore(s => s.useCake);
-  const useXpCard   = useUserStore(s => s.useXpCard);
+  const consumeCake    = useUserStore(s => s.useCake);
+  const activateXpCard = useUserStore(s => s.useXpCard);
 
   // Activation modal: null | 2 | 3
   const [activationMultiplier, setActivationMultiplier] = useState(null);
@@ -56,13 +56,13 @@ export default function BackpackSheet({ onClose }) {
   const handleUse = (item) => {
     if (isDisabled(item)) return;
     if (item.multiplier) {
-      const ok = useXpCard(item.multiplier);
+      const ok = activateXpCard(item.multiplier);
       if (ok) setActivationMultiplier(item.multiplier);
       else triggerFlash(item.id, 'full');
       return;
     }
     if (item.id === 'cake') {
-      const ok = useCake();
+      const ok = consumeCake();
       triggerFlash(item.id, ok ? 'used' : 'full');
     }
   };

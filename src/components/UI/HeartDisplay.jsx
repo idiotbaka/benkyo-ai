@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import useUserStore, { MAX_HEARTS, REGEN_MS } from '../../store/userStore';
+import useUserStore, { MAX_HEARTS } from '../../store/userStore';
 import heartImg from '../../assets/icons/ui/heart.png';
 import heartYellowImg from '../../assets/icons/ui/heart_yellow.png';
 

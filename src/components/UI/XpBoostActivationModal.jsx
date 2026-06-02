@@ -134,20 +134,27 @@ export default function XpBoostActivationModal({ multiplier, onDismiss }) {
       }}
     >
       {/* Expanding rings (behind everything) */}
-      {[ring1Ref, ring2Ref, ring3Ref].map((ref, i) => (
-        <div
-          key={i}
-          ref={ref}
-          style={{
-            position: 'absolute',
-            width: 180 + i * 20,
-            height: 180 + i * 20,
-            borderRadius: '50%',
-            border: `${2 - i * 0.5}px solid ${ringColor}`,
-            opacity: 0,
-          }}
-        />
-      ))}
+      <div
+        ref={ring1Ref}
+        style={{
+          position: 'absolute', width: 180, height: 180,
+          borderRadius: '50%', border: `2px solid ${ringColor}`, opacity: 0,
+        }}
+      />
+      <div
+        ref={ring2Ref}
+        style={{
+          position: 'absolute', width: 200, height: 200,
+          borderRadius: '50%', border: `1.5px solid ${ringColor}`, opacity: 0,
+        }}
+      />
+      <div
+        ref={ring3Ref}
+        style={{
+          position: 'absolute', width: 220, height: 220,
+          borderRadius: '50%', border: `1px solid ${ringColor}`, opacity: 0,
+        }}
+      />
 
       {/* Particle container */}
       <div

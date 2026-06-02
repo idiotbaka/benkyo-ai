@@ -7,6 +7,8 @@ import exp3Img from '../../assets/icons/item/exp3.png';
 
 gsap.registerPlugin(useGSAP);
 
+const BOOST_DURATION_MS = 15 * 60 * 1000;
+
 /**
  * XpBoostWidget — Draggable floating badge showing active XP boost and countdown.
  * Rendered globally in App.jsx so it persists across all pages.
@@ -15,7 +17,8 @@ export default function XpBoostWidget() {
   const xpBoost     = useUserStore(s => s.xpBoost);
   const syncXpBoost = useUserStore(s => s.syncXpBoost);
 
-  const [, tick] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
+  const [isDragging, setIsDragging] = useState(false);
   // Initial position: top-right corner, away from nav bar
   const [pos, setPos] = useState(() => ({
     x: (typeof window !== 'undefined' ? window.innerWidth : 375) - 152,
@@ -32,7 +35,7 @@ export default function XpBoostWidget() {
     if (!xpBoost) return;
     const id = setInterval(() => {
       syncXpBoost();
-      tick(n => n + 1);
+      setNow(Date.now());
     }, 1000);
     return () => clearInterval(id);
   }, [!!xpBoost, syncXpBoost]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -66,6 +69,7 @@ export default function XpBoostWidget() {
       sx: e.clientX, sy: e.clientY,
       px: pos.x,     py: pos.y,
     };
+    setIsDragging(true);
     e.currentTarget.setPointerCapture(e.pointerId);
   };
 
@@ -84,16 +88,19 @@ export default function XpBoostWidget() {
     });
   };
 
-  const handlePointerUp = () => { drag.current.active = false; };
+  const handlePointerUp = () => {
+    drag.current.active = false;
+    setIsDragging(false);
+  };
 
   if (!xpBoost) return null;
 
-  const remaining  = Math.max(0, xpBoost.expiresAt - Date.now());
+  const remaining  = Math.max(0, Math.min(BOOST_DURATION_MS, xpBoost.expiresAt - now));
   const min        = Math.floor(remaining / 60000);
   const sec        = Math.floor((remaining % 60000) / 1000);
   const countdown  = `${min}:${sec.toString().padStart(2, '0')}`;
   const isDouble   = xpBoost.multiplier === 2;
-  const pct        = remaining / (15 * 60 * 1000); // progress fraction 0→1
+  const pct        = remaining / BOOST_DURATION_MS; // progress fraction 0→1
 
   return (
     <div
@@ -101,11 +108,12 @@ export default function XpBoostWidget() {
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
       style={{
         position: 'fixed',
         left: pos.x, top: pos.y,
         zIndex: 150,
-        cursor: drag.current.active ? 'grabbing' : 'grab',
+        cursor: isDragging ? 'grabbing' : 'grab',
         touchAction: 'none',
         userSelect: 'none',
       }}
