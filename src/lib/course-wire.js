@@ -4,7 +4,7 @@ export const COMPACT_JSON_OUTPUT_RULE =
   '输出要求：只输出一个合法 JSON 对象；不要 Markdown 或代码块；允许正常 JSON 排版空格和换行。';
 
 export const SENTENCE_TRANSLATE_OPTIONS_RULE =
-  'sentence-translate 的 options 必须按词卡数量完整包含 answers：answers 中同一个中文词语每出现一次，options 中也必须至少出现一次。重复词语不得去重。例如 answers 为 ["我","让","妹妹","叫醒了","我"] 时，options 中必须提供两个 "我" 词卡。';
+  'sentence-translate 的 answers 必须按自然中文译文的阅读顺序排列，例如「昨日、映画を見た。」为 ["昨天","看了","电影"]。options 必须按词卡数量完整包含 answers：answers 中同一个中文词语每出现一次，options 中也必须至少出现一次。重复词语不得去重。例如 answers 为 ["我","让","妹妹","叫醒了","我"] 时，options 中必须提供两个 "我" 词卡。';
 
 export const SCAFFOLD_WIRE_FORMAT = `使用带 key 的 JSON 传输格式：
 {"chapter":{"subtitle":"...","description":"...","icon":"...","color":"#5B4FE9"},"levels":[{"title":"...","topic":"...","grammar":["..."],"icon":"..."}]}

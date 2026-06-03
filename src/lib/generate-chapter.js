@@ -21,14 +21,9 @@ import {
  */
 function applyThinkingOpts(aiConfig, callOptions) {
   const {
-    disableThinkingOptions = false,
     thinkingDepth: callThinkingDepth,
     ...options
   } = callOptions;
-
-  if (disableThinkingOptions) {
-    return options;
-  }
 
   const { providerOptions } =
     buildThinkingOptions(aiConfig, callThinkingDepth ?? aiConfig.thinkingDepth);
@@ -875,7 +870,9 @@ ${grammarRuleText}
 题目要求：
 - 【极其重要】所有题目的场景、人名、词汇必须与关卡标题「${level1.title}」（${level1.topic}）的主题高度契合，营造沉浸感
 - word-fill：4 个选项，答案唯一正确，干扰项有迷惑性，parts 中用 "___" 标记空格
-- sentence-translate：给出一句日语，让学习者点击【中文词语】拼出中文翻译。sentence 字段填日语原句，options 和 answers 字段必须全部是【中文词语】（不得出现日语），options 为中文词（含干扰词），answers 为正确中文词按序排列
+- sentence-translate：给出一句日语，让学习者点击【中文词语】拼出中文翻译。sentence 字段填日语原句，options 和 answers 字段必须全部是【中文词语】（不得出现日语），options 为中文词（含干扰词）
+- sentence-translate 的 answers 必须按自然中文译文顺序排列，并与 translation 保持一致；例如「昨日、映画を見た。」为 ["昨天","看了","电影"]
+- sentence-translate 的 options 必须按词卡数量完整包含 answers：answers 中同一个中文词语每出现一次，options 中也必须至少出现一次。重复词语不得去重。例如 answers 为 ["我","让","妹妹","叫醒了","我"] 时，options 中必须提供两个 "我" 词卡。
 - word-match：每道固定 4 对，pairs 中每对含 jp/cn/ruby 三个字段
 - ruby 字段为汉字→假名的映射对象，如 {"私":"わたし"}
 
@@ -942,6 +939,8 @@ ${prevSummary}
 - 难度递进：比前序关卡有所提升，聚焦当前关卡语法要点，可有机复用前序已学词汇
 - word-fill：4 个选项，答案唯一正确，干扰项有迷惑性，parts 中用 "___" 标记空格
 - sentence-translate：给出一句日语，让学习者点击【中文词语】拼出中文翻译。sentence 字段填日语原句，options 和 answers 字段必须全部是【中文词语】（不得出现日语），options 含干扰词
+- sentence-translate 的 answers 必须按自然中文译文顺序排列，并与 translation 保持一致；例如「昨日、映画を見た。」为 ["昨天","看了","电影"]
+- sentence-translate 的 options 必须按词卡数量完整包含 answers：answers 中同一个中文词语每出现一次，options 中也必须至少出现一次。重复词语不得去重。例如 answers 为 ["我","让","妹妹","叫醒了","我"] 时，options 中必须提供两个 "我" 词卡。
 - word-match：每道固定 4 对，pairs 中每对含 jp/cn/ruby 三个字段
 - ruby 字段为汉字→假名的映射对象，如 {"私":"わたし"}
 
@@ -1111,7 +1110,6 @@ ${RECOMMENDATIONS_WIRE_FORMAT}
 
 ${COMPACT_JSON_OUTPUT_RULE}`,
     temperature: 0.6,
-    disableThinkingOptions: true,
     abortSignal: sig,
     maxRetries: 1,
   }, {
