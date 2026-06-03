@@ -15,6 +15,7 @@ import LessonFailed from './LessonFailed';
 import ReviveSheet from './ReviveSheet';
 import CoinBurst from '../UI/CoinBurst';
 import { stopJapaneseSpeech } from '../../lib/japanese-speech-player';
+import coinImg from '../../assets/icons/item/coin.png';
 
 gsap.registerPlugin(useGSAP);
 
@@ -27,8 +28,12 @@ export default function LessonScreen() {
   const inventory = useUserStore(s => s.inventory);
   const coins     = useUserStore(s => s.coins);
   const enemyHpRef = useRef(null);
+  const coinTargetRef = useRef(null);
+  const lessonKeyRef = useRef('');
   const matchBattleTimerRef = useRef(null);
   const [matchBattleState, setMatchBattleState] = useState(null);
+  const [coinDisplay, setCoinDisplay] = useState({ lessonKey: '', value: 0 });
+  const activeLessonKey = lesson ? `${lesson.chapterId}-${lesson.levelId}` : '';
 
   const handleExit = () => {
     stopJapaneseSpeech();
@@ -53,6 +58,30 @@ export default function LessonScreen() {
 
   useEffect(() => () => {
     clearTimeout(matchBattleTimerRef.current);
+  }, []);
+
+  useEffect(() => {
+    lessonKeyRef.current = activeLessonKey;
+  }, [activeLessonKey]);
+
+  const handleCoinCollect = useCallback((amount) => {
+    const gained = Number(amount) || 0;
+    if (gained <= 0) return;
+    setCoinDisplay(prev => {
+      const lessonKey = lessonKeyRef.current;
+      const value = prev.lessonKey === lessonKey ? prev.value : 0;
+      return { lessonKey, value: value + gained };
+    });
+
+    const target = coinTargetRef.current;
+    if (!target) return;
+
+    gsap.killTweensOf(target);
+    gsap.timeline()
+      .to(target, { scale: 1.12, duration: 0.08, ease: 'power2.out' })
+      .to(target, { x: -2, duration: 0.04, ease: 'power1.inOut' })
+      .to(target, { x: 2, duration: 0.04, repeat: 2, yoyo: true, ease: 'power1.inOut' })
+      .to(target, { x: 0, scale: 1, duration: 0.12, ease: 'back.out(2)' });
   }, []);
 
   // Animate enemy HP depletion as soon as the current answer is settled.
@@ -94,11 +123,12 @@ export default function LessonScreen() {
   const currentLevel = chapters
     .find(chapter => chapter.id === lesson.chapterId)
     ?.levels.find(level => level.id === lesson.levelId);
+  const displayLessonCoins = coinDisplay.lessonKey === activeLessonKey ? coinDisplay.value : 0;
 
   return (
     <div className="flex flex-col h-full relative bg-[#F5F3FF]">
       {/* Coin burst animation overlay — lives outside overflow:hidden areas */}
-      <CoinBurst trigger={lesson?.coinPop} />
+      <CoinBurst trigger={lesson?.coinPop} targetRef={coinTargetRef} onCollect={handleCoinCollect} />
       {/* ── Top bar ── */}
       <div className="flex items-center gap-3 border-b border-[#E5E0FF] bg-white/80 px-4 py-2 backdrop-blur-sm">
         {/* Exit button */}
@@ -114,7 +144,16 @@ export default function LessonScreen() {
         <h1 className="min-w-0 flex-1 truncate text-center text-sm font-extrabold text-[#312E81]">
           {currentLevel?.title ?? '闯关练习'}
         </h1>
-        <div className="h-8 w-8 shrink-0" aria-hidden="true" />
+        <div
+          ref={coinTargetRef}
+          className="flex h-8 w-[76px] shrink-0 items-center justify-end gap-1 rounded-full bg-[#FFFBEB] px-2.5 ring-1 ring-[#FDE68A]"
+          aria-label={`本关已获得 ${displayLessonCoins} 金币`}
+        >
+          <img src={coinImg} alt="金币" width={18} height={18} style={{ objectFit: 'contain' }} />
+          <span className="min-w-[1.4em] text-right text-sm font-extrabold tabular-nums text-[#D97706]">
+            {displayLessonCoins}
+          </span>
+        </div>
       </div>
 
       {/* ── Main question area ── */}

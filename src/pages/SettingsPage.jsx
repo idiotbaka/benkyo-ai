@@ -741,7 +741,7 @@ export default function SettingsPage() {
           {thinkingDepth === 'deep' && (
             <div style={{ background: '#FEF3C7', border: '1.5px solid #FCD34D', borderRadius: 10, padding: '10px 12px', marginTop: 10 }}>
               <p style={{ fontSize: 12, color: '#92400E', margin: 0, lineHeight: 1.6 }}>
-                ⏳ 深度思考模式下，AI 推理过程较长，生成课程通常需要 <strong>3 分钟左右</strong>，具体取决于模型的速率。若希望加快生成，可切换为「标准」或「快速」模式。
+                ⏳ 深度思考模式下，AI 推理过程较长，生成章节可能需要 1~3 分钟，取决于模型的首字延迟和TPS。若希望加快生成，可切换为「标准」或「快速」模式。
               </p>
             </div>
           )}

@@ -3,6 +3,7 @@ import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import { MAX_HEARTS } from '../../store/userStore';
 import heartImg from '../../assets/icons/ui/heart.png';
+import heartYellowImg from '../../assets/icons/ui/heart_yellow.png';
 import playerIdleImg from '../../assets/icons/sd/sd2_battle_idle.png';
 import playerAttackImg from '../../assets/icons/sd/sd2_battle_attack.png';
 import playerDamagedImg from '../../assets/icons/sd/sd2_battle_damaged.png';
@@ -28,15 +29,18 @@ const BATTLE_IMAGES = {
 };
 
 function HeartRow({ hearts }) {
+  const totalSlots = Math.max(MAX_HEARTS, hearts);
+
   return (
     <div className="flex gap-0.5">
-      {Array.from({ length: MAX_HEARTS }).map((_, i) => {
+      {Array.from({ length: totalSlots }).map((_, i) => {
         const filled = i < hearts;
+        const isTemp = i >= MAX_HEARTS;
 
         return (
           <img
             key={i}
-            src={heartImg}
+            src={isTemp ? heartYellowImg : heartImg}
             alt="heart"
             width={18}
             height={18}

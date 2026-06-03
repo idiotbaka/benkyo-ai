@@ -7,23 +7,41 @@ import coinImg from '../../assets/icons/item/coin.png';
  * Must be placed inside a `position: relative` container (with overflow: visible).
  * Trigger by passing a new `trigger` prop: { amount, uid }.
  */
-export default function CoinBurst({ trigger }) {
+export default function CoinBurst({ trigger, targetRef, onCollect }) {
   const containerRef = useRef(null);
 
   useEffect(() => {
     if (!trigger || !containerRef.current) return;
     const container = containerRef.current;
-    const { amount } = trigger;
-    const count = Math.min(amount, 8);
+    const amount = Number(trigger.amount) || 0;
+    const count = Math.min(Math.max(amount, 0), 8);
+    if (count <= 0) return;
+
+    const coinSize = 28;
+    const containerRect = container.getBoundingClientRect();
+    const targetRect = targetRef?.current?.getBoundingClientRect();
+    const startLeft = containerRect.width / 2 - coinSize / 2;
+    const startTop = containerRect.height * 0.44;
+    const targetOffset = targetRect
+      ? {
+          x: targetRect.left + targetRect.width / 2 - containerRect.left - coinSize / 2 - startLeft,
+          y: targetRect.top + targetRect.height / 2 - containerRect.top - coinSize / 2 - startTop,
+        }
+      : null;
+    let completed = 0;
+    const finishCoin = () => {
+      completed += 1;
+      if (completed === count) onCollect?.(amount);
+    };
 
     for (let i = 0; i < count; i++) {
       const img = document.createElement('img');
       img.src = coinImg;
       img.style.cssText = `
         position: absolute;
-        left: calc(50% - 14px);
-        top: 44%;
-        width: 28px; height: 28px;
+        left: ${startLeft}px;
+        top: ${startTop}px;
+        width: ${coinSize}px; height: ${coinSize}px;
         object-fit: contain;
         pointer-events: none;
         will-change: transform, opacity;
@@ -58,19 +76,22 @@ export default function CoinBurst({ trigger }) {
           ease: 'back.out(2.0)',
         }
       )
-      // Phase 2: arc past peak, fall with gravity, fade out
+      // Phase 2: fly toward the top-right coin counter, then fade out there.
       .to(img, {
-        x: peakX,
-        y: peakY + 60,
-        scale: 0.7,
+        x: targetOffset ? targetOffset.x + (Math.random() - 0.5) * 10 : peakX,
+        y: targetOffset ? targetOffset.y + (Math.random() - 0.5) * 8 : peakY + 60,
+        scale: targetOffset ? 0.45 : 0.7,
         rotation: rot,
         opacity: 0,
-        duration: 0.40,
-        ease: 'power2.in',
-        onComplete: () => img.remove(),
+        duration: targetOffset ? 0.52 : 0.40,
+        ease: targetOffset ? 'power2.inOut' : 'power2.in',
+        onComplete: () => {
+          img.remove();
+          finishCoin();
+        },
       });
     }
-  }, [trigger?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [trigger, targetRef, onCollect]);
 
   return (
     <div

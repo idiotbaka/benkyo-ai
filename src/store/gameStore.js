@@ -8,6 +8,9 @@ export const XP_PER_LEVEL = 200;
 export const BASE_XP = 60;
 export const computeLevel = (totalXp) => Math.floor(totalXp / XP_PER_LEVEL) + 1;
 
+let coinPopSeq = 0;
+const createCoinPop = (amount) => ({ amount, uid: `${Date.now()}-${coinPopSeq += 1}` });
+
 const findLevel = (chapterId, levelId) => {
   const chapters = useCourseStore.getState().chapters;
   const chapter = chapters.find(c => c.id === chapterId);
@@ -102,7 +105,7 @@ const useGameStore = create(
           if (isCorrect && question.type !== 'word-match') {
             useUserStore.getState().addCoins(5);
             newCoinsEarned += 5;
-            coinPop = { amount: 5, uid: Date.now() };
+            coinPop = createCoinPop(5);
           }
           set({
             lesson: {
@@ -127,7 +130,7 @@ const useGameStore = create(
         if (isCorrect && question.type !== 'word-match') {
           useUserStore.getState().addCoins(5);
           newCoinsEarned += 5;
-          coinPop = { amount: 5, uid: Date.now() };
+          coinPop = createCoinPop(5);
         }
 
         set({
@@ -296,7 +299,7 @@ const useGameStore = create(
           lesson: {
             ...lesson,
             coinsEarned: lesson.coinsEarned + 1,
-            coinPop: { amount: 1, uid: Date.now() },
+            coinPop: createCoinPop(1),
           },
         });
       },
