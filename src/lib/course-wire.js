@@ -23,6 +23,7 @@ ${SENTENCE_TRANSLATE_OPTIONS_RULE}
 export const RECOMMENDATIONS_WIRE_FORMAT = `使用带 key 的 JSON 传输格式：
 {"recommendations":[{"title":"第N章：...","topic":"...","description":"..."}]}
 recommendations 必须包含 4 个推荐方向。title 必须使用上文指定的下一章节编号，严格采用「第N章：副标题」格式。
+description 必须简洁，每条控制在 50 个字以内。
 单行示例：{"recommendations":[{"title":"第2章：和妹妹上学的路上","topic":"延续家人日常场景，补充并列和递进关系的接续词","description":"承接上一章的午后对话，在上学路上自然扩展表达"},{"title":"第2章：放学后的便利店","topic":"延续日常剧情，补充因果和转折关系的相关表达","description":"维持人物和故事连续性，在新场景中巩固同类语法"},{"title":"第2章：雨天共撑一把伞","topic":"延续同行场景，根据已学进度补充尚未覆盖的接续表达","description":"在连续剧情中增加更自然的句子衔接"},{"title":"第2章：周末的新约定","topic":"若接续词已足够掌握，则自然过渡到计划和邀请表达","description":"避免重复堆叠同类语法，并保持剧情连贯"}]}`;
 
 export const GRAMMAR_OBJECT_JSON_FORMAT = `Use this keyed JSON grammar format:
