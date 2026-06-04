@@ -302,8 +302,14 @@ export default function SettingsPage() {
       {/* Header */}
       <div style={{
         background: 'linear-gradient(155deg, var(--tp) 0%, var(--tp-from) 100%)',
-        padding: '48px 20px 20px',
-        position: 'relative',
+        padding: '14px 16px 16px',
+        position: 'sticky',
+        top: 0,
+        zIndex: 30,
+        display: 'grid',
+        gridTemplateColumns: '80px 1fr 80px',
+        alignItems: 'center',
+        columnGap: 8,
       }}>
         <button
           ref={backBtnRef}
@@ -314,12 +320,12 @@ export default function SettingsPage() {
               .call(() => navigate(-1));
           }}
           style={{
-            position: 'absolute', top: 16, left: 16,
             background: 'rgba(255,255,255,0.18)',
             borderRadius: 12, padding: '6px 14px',
             color: 'white', fontSize: 13, fontWeight: 700,
             backdropFilter: 'blur(4px)',
             border: 'none', cursor: 'pointer',
+            justifySelf: 'start',
           }}
         >
           ← 返回
@@ -327,6 +333,7 @@ export default function SettingsPage() {
         <h1 style={{ color: 'white', fontSize: 20, fontWeight: 800, textAlign: 'center', margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
           <img src={settingImg} alt="设置" width={22} height={22} style={{ objectFit: 'contain' }} /> 设置
         </h1>
+        <div aria-hidden="true" />
       </div>
 
       {/* Content */}
