@@ -152,7 +152,7 @@ function SelectPhase({ recommendations, selectedIdx, customTopic, onSelectCard, 
         type="text"
         value={customTopic}
         onChange={(e) => onCustomInput(e.target.value)}
-        placeholder="输入你想学习的章节内容…"
+        placeholder="输入你自定义的章节名称或内容…"
         style={{
           width: '100%',
           padding: '12px 14px',
