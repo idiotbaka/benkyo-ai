@@ -316,6 +316,15 @@ function buildCurriculumPaceRequirements(pace) {
 - 不要采用“每关新增一批语法”的编排。可以更换场景、词汇和题目难度，但要让学习者有足够练习时间。`;
 }
 
+const SCAFFOLD_COPY_REQUIREMENTS = `【章节文案结构，必须严格遵守】
+- chapter.title、chapter.subtitle、chapter.description、levels[].title、levels[].topic 必须全部使用中文；不要使用日文标题、英文标题或中日混写标题。
+- 本章必须创建一个明确的故事，并让全部关卡围绕同一故事自然推进。
+- chapter.title 是章节故事标题，只写故事名或场景名，不要包含任何语法点、知识点、课程说明或冒号；程序会自动补成「第N章：故事标题」。
+- chapter.subtitle 是一句中文课程知识介绍，说明本章要学习的语法或表达，例如「学习连接动作和时间顺序的表达」。
+- chapter.description 是中文章节故事简介，介绍人物、场景和本章剧情，不要复述 subtitle。
+- levels[].title 是中文关卡剧情标题；levels[].topic 是中文关卡学习场景说明，可提到本关练习的表达方向。
+- 禁止让 title 与 subtitle 相同或近似。`;
+
 // ─── Normalize helpers (handle field name variations across different AI models) ─
 
 // 将标题中的中文章节数字统一转为阿拉伯数字（「第一章」→「第1章」）
@@ -324,11 +333,39 @@ function normalizeChapterNum(title) {
   return title.replace(/第([一二三四五六七八九十]+)章/, (_, n) => `第${ZH_NUMS[n] ?? n}章`);
 }
 
-function formatRecommendedChapterTitle(title, chapterNum, fallback = '章节推荐') {
-  const subtitle = (typeof title === 'string' ? title : '')
+function stripChapterPrefix(value) {
+  return String(value ?? '')
     .trim()
     .replace(/^第(?:\d+|[一二三四五六七八九十百零两]+)章\s*[：:·\-—]?\s*/, '')
     .trim();
+}
+
+function normalizeStoryTitleText(value) {
+  const text = stripChapterPrefix(value);
+  return text
+    .split(/[：:]/)[0]
+    .replace(/[「」『』【】]/g, '')
+    .trim();
+}
+
+function normalizeChapterCopy(scaffold, chapterNum) {
+  const subtitle = String(scaffold.subtitle ?? '').trim() || '学习本章核心日语表达';
+  const firstLevelTitle = normalizeStoryTitleText(scaffold.levels?.[0]?.title);
+  const rawStoryTitle = normalizeStoryTitleText(scaffold.title);
+  const storyTitle = rawStoryTitle && rawStoryTitle !== subtitle
+    ? rawStoryTitle
+    : firstLevelTitle || '新的学习故事';
+
+  return {
+    ...scaffold,
+    title: `第${chapterNum}章：${storyTitle}`,
+    subtitle,
+    description: String(scaffold.description ?? '').trim() || `${storyTitle}的故事即将展开。`,
+  };
+}
+
+function formatRecommendedChapterTitle(title, chapterNum, fallback = '章节推荐') {
+  const subtitle = stripChapterPrefix(title);
   return `第${chapterNum}章：${subtitle || fallback}`;
 }
 
@@ -453,7 +490,10 @@ function validateScaffoldPace(scaffold, pacePlan) {
 
 function parseScaffold(raw, pacePlan, decodeOptions) {
   return validateScaffoldPace(
-    normalizeScaffold(decodeScaffoldWire(raw, decodeOptions)),
+    normalizeChapterCopy(
+      normalizeScaffold(decodeScaffoldWire(raw, decodeOptions)),
+      decodeOptions?.chapterNum ?? 1
+    ),
     pacePlan
   );
 }
@@ -478,7 +518,8 @@ async function generateValidatedScaffold(
     ...callOptions,
     prompt: `${callOptions.prompt}
 
-【重新生成】上一份课程骨架违反了教学节奏约束。请重新检查关卡数量、不同新语法总数、跨关卡复习次数和终关综合复习后，输出完整的新 JSON。`,
+【重新生成】上一份课程骨架违反了教学节奏约束。请重新检查关卡数量、不同新语法总数、跨关卡复习次数和终关综合复习后，输出完整的新 JSON。
+【同时检查章节文案】chapter.title 必须是中文故事标题，chapter.subtitle 必须是一句话中文课程知识介绍，chapter.description 必须是中文故事简介，三者不得相同或互相复述。`,
     temperature: 0.1,
   }, {
     ...progressOptions,
@@ -735,13 +776,14 @@ async function generateScaffold(aiConfig, userAnswers, signal, onProgress) {
 ${userContext}`,
     prompt: `请为主题「${userAnswers.topic}」设计第一章节课程骨架。
 要求：难度循序渐进，第一关紧扣主题，后续围绕同一批新语法进行巩固和自然延伸。
+${SCAFFOLD_COPY_REQUIREMENTS}
 【重要】关卡的标题（title）和主题（topic）必须与学习者的风格偏好高度一致。若学习者的补充需求中有特定风格要求（如 GALGAME 风格、旅行场景等），每个关卡标题和主题都应鲜明体现该风格，使整章课程具有沉浸感和一致性。
 
 ${paceRequirements}
 
 ${SCAFFOLD_WIRE_FORMAT}
 
-现在请为主题「${userAnswers.topic}」生成真实内容。${COMPACT_JSON_OUTPUT_RULE}`,
+现在请为主题「${userAnswers.topic}」生成真实中文内容。${COMPACT_JSON_OUTPUT_RULE}`,
     temperature: 0.3,
     abortSignal: signal,
     maxRetries: 1,
@@ -1025,13 +1067,14 @@ ${chaptersContext}
 - 结合最近 20 章语法判断学习进度：相关语法类别尚未充分覆盖时继续接续；已经足够掌握时自然过渡到下一类语法，不要重复堆叠
 - 不重复已学内容，自然衔接上一章节难度
 - 关卡标题和主题紧密契合本章节内容
+${SCAFFOLD_COPY_REQUIREMENTS}
 【重要】若学习者的补充需求中有特定风格要求（如 GALGAME 风格、旅行场景等），每个关卡标题和主题都应鲜明体现该风格。
 
 ${paceRequirements}
 
 ${SCAFFOLD_WIRE_FORMAT}
 
-现在请为章节「${selectedTopic.title}」生成真实内容。${COMPACT_JSON_OUTPUT_RULE}`,
+现在请为章节「${selectedTopic.title}」生成真实中文内容。${COMPACT_JSON_OUTPUT_RULE}`,
     temperature: 0.3,
     abortSignal: signal,
     maxRetries: 1,
@@ -1041,9 +1084,8 @@ ${SCAFFOLD_WIRE_FORMAT}
     expectedChars: EXPECTED_JSON_CHARS.scaffold,
     onProgress,
   }, pacePlan, { chapterId, chapterNum });
-  // 强制校正 ID 和标题格式
+  // 强制校正 ID，标题文案由 normalizeChapterCopy 统一处理
   scaffold.id = chapterId;
-  scaffold.title = `第${chapterNum}章：${scaffold.subtitle}`;
   scaffold.levels = scaffold.levels.map((lv, idx) => ({
     ...lv,
     id: `${chapterId}-lv${idx + 1}`,
@@ -1087,7 +1129,8 @@ export async function generateChapterRecommendations(aiConfig, { recentChapters,
     output: 'no-schema',
     system: `你是专业的日语互动课程顾问。根据学习者的已学内容和水平，规划具有剧情连续性、语法递进合理的下一章节候选方向。${userCtx ? `\n学习者信息：\n${userCtx}` : ''}`,
     prompt: `【下一章节编号】
-必须推荐第 ${nextChapterNum} 章。四个候选标题都必须严格使用「第${nextChapterNum}章：副标题」格式；它们是同一个下一章节的四种备选方向，不是连续四章。
+必须推荐第 ${nextChapterNum} 章。四个候选标题都必须严格使用「第${nextChapterNum}章：中文故事标题」格式；它们是同一个下一章节的四种备选方向，不是连续四章。
+标题必须是中文故事场景名，不要包含语法点、知识点或课程说明。
 
 【最近 20 个已学章节，最近学习的在后】
 
@@ -1104,7 +1147,7 @@ ${chaptersContext}
 4. 四个候选可以采用不同的后续场景、补充重点或自然过渡方案，但都应与上一章保持合理衔接。
 5. 不要重复已经教授过的具体语法点。若学习者有个性化需求，优先维持其偏好和故事风格。
 6. 这是轻量推荐任务，用户此时在等待你的推荐结果，请快速得出结论，不要推理过久或长篇分析。
-7. topic 要明确说明拟补充的语法类别或表达方向；description 要简述它如何承接上一章，以及为何适合当前进度，每条 description 控制在 50 个字以内。
+7. title、topic、description 都必须使用中文。title 写故事标题；topic 明确说明拟补充的语法类别或表达方向；description 简述它如何承接上一章，以及为何适合当前进度，每条 description 控制在 50 个字以内。
 
 ${RECOMMENDATIONS_WIRE_FORMAT}
 
@@ -1157,10 +1200,6 @@ export async function generateFirstChapter(aiConfig, userAnswers, { onProgress, 
     sig,
     createChapterProgressHandler(onProgress, 0)
   );
-  // 统一格式：若 title 仅为「第N章」（无主题名），追加 subtitle
-  if (!/[：:]/.test(scaffold.title)) {
-    scaffold.title = `${scaffold.title}：${scaffold.subtitle}`;
-  }
 
   const grammarSections = await generateGrammarSections(
     aiConfig,

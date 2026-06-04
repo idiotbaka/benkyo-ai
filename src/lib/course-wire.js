@@ -7,11 +7,12 @@ export const SENTENCE_TRANSLATE_OPTIONS_RULE =
   'sentence-translate 的 answers 必须按自然中文译文的阅读顺序排列，例如「昨日、映画を見た。」为 ["昨天","看了","电影"]。options 必须按词卡数量完整包含 answers：answers 中同一个中文词语每出现一次，options 中也必须至少出现一次。重复词语不得去重。例如 answers 为 ["我","让","妹妹","叫醒了","我"] 时，options 中必须提供两个 "我" 词卡。';
 
 export const SCAFFOLD_WIRE_FORMAT = `使用带 key 的 JSON 传输格式：
-{"chapter":{"subtitle":"...","description":"...","icon":"...","color":"#5B4FE9"},"levels":[{"title":"...","topic":"...","grammar":["..."],"icon":"..."}]}
+{"chapter":{"title":"...","subtitle":"...","description":"...","icon":"...","color":"#5B4FE9"},"levels":[{"title":"...","topic":"...","grammar":["..."],"icon":"..."}]}
 levels 数量必须严格服从上文的教学节奏要求。id、章节序号、关卡序号、locked、gradient 由程序补全，不要输出。
 grammar 数组中的每一项必须是一个可单独讲解的语法点，不要把多个语法点合并成一个字符串。新语法数量和复习组合方式必须服从上文的教学节奏要求。
+chapter.title 是中文章节故事标题，不要包含语法点或知识点；chapter.subtitle 是一句中文课程知识介绍；chapter.description 是中文章节故事简介。
 示例仅展示格式，真实输出的 levels 数量必须服从上文要求。
-单行示例：{"chapter":{"subtitle":"基础自我介绍","description":"本章帮助学习者掌握日语自我介绍。","icon":"👋","color":"#5B4FE9"},"levels":[{"title":"第一关","topic":"「は」と「です」","grammar":["〜は〜です","〜は〜ではありません"],"icon":"📖"},{"title":"第二关","topic":"数字と年齢","grammar":["〜は〜です"],"icon":"🔢"}]}`;
+单行示例：{"chapter":{"title":"便利店初遇","subtitle":"学习基础判断句和自我介绍表达","description":"你在便利店遇到一位超可爱的店员，从打招呼开始认识彼此。","icon":"👋","color":"#5B4FE9"},"levels":[{"title":"遇见店员","topic":"初次见面时介绍自己","grammar":["〜は〜です","〜は〜ではありません"],"icon":"📖"},{"title":"交换名字","topic":"确认姓名和身份","grammar":["〜は〜です"],"icon":"🔢"}]}`;
 
 export const QUESTIONS_WIRE_FORMAT = `使用带 key 的 JSON 传输格式：
 {"wf":[{"parts":["...","___","..."],"options":["..."],"answers":["..."],"translation":"...","hint":"...","ruby":{"汉字":"假名"}}],"st":[{"sentence":"...","options":["中文词语"],"answers":["中文词语"],"translation":"...","hint":"...","ruby":{"汉字":"假名"}}],"wm":[{"pairs":[{"jp":"...","cn":"...","ruby":{"汉字":"假名"}}]}]}
@@ -22,7 +23,7 @@ ${SENTENCE_TRANSLATE_OPTIONS_RULE}
 
 export const RECOMMENDATIONS_WIRE_FORMAT = `使用带 key 的 JSON 传输格式：
 {"recommendations":[{"title":"第N章：...","topic":"...","description":"..."}]}
-recommendations 必须包含 4 个推荐方向。title 必须使用上文指定的下一章节编号，严格采用「第N章：副标题」格式。
+recommendations 必须包含 4 个推荐方向。title 必须使用上文指定的下一章节编号，严格采用「第N章：中文故事标题」格式，不要在 title 中写语法点或知识点。
 description 必须简洁，每条控制在 50 个字以内。
 单行示例：{"recommendations":[{"title":"第2章：和妹妹上学的路上","topic":"延续家人日常场景，补充并列和递进关系的接续词","description":"承接上一章的午后对话，在上学路上自然扩展表达"},{"title":"第2章：放学后的便利店","topic":"延续日常剧情，补充因果和转折关系的相关表达","description":"维持人物和故事连续性，在新场景中巩固同类语法"},{"title":"第2章：雨天共撑一把伞","topic":"延续同行场景，根据已学进度补充尚未覆盖的接续表达","description":"在连续剧情中增加更自然的句子衔接"},{"title":"第2章：周末的新约定","topic":"若接续词已足够掌握，则自然过渡到计划和邀请表达","description":"避免重复堆叠同类语法，并保持剧情连贯"}]}`;
 
