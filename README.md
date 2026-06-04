@@ -70,14 +70,14 @@ npm run tauri:build
 ### Android APK（需配置 Android SDK + NDK）
 
 ```bash
-# 初始化 Android 项目（仅首次）
-npx tauri android init
+# 构建（按架构分包，首次）
+npm run android:release -- -CreateKeystore -KeystorePath .\android-signing\benkyo-ai-release.jks -KeyAlias benkyo-ai
 
-# 构建（按架构分包）
-npx tauri android build --apk --split-per-abi
+# 后续构建
+npm run android:release -- -KeystorePath .\android-signing\benkyo-ai-release.jks -KeyAlias benkyo-ai
 ```
 
-> Android 构建前置条件：Rust + Android Studio (SDK API 36 + NDK 30)，Windows 需开启开发者模式。
+> Android 构建前置条件：Rust + Android Studio (SDK API 36 + NDK 30)，Windows 需开启开发者模式。详细步骤见 [scripts/README-android.md](scripts/README-android.md)。
 
 ---
 
