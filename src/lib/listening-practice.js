@@ -28,6 +28,10 @@ export function buildListeningPracticeQuestions(chapters, count = LISTENING_QUES
   }));
 }
 
+export function getListeningPracticeQuestionCount(chapters) {
+  return collectListeningQuestionCandidates(chapters).length;
+}
+
 function collectListeningQuestionCandidates(chapters) {
   const seen = new Set();
   const candidates = [];

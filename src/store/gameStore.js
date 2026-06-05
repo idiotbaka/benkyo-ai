@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import useUserStore from './userStore';
 import useCourseStore from './courseStore';
 import useVocabStore from './vocabStore';
+import useWrongQuestionStore, { getWrongQuestionId } from './wrongQuestionStore';
 
 export const XP_PER_LEVEL = 200;
 export const BASE_XP = 60;
@@ -15,6 +16,31 @@ const findLevel = (chapterId, levelId) => {
   const chapters = useCourseStore.getState().chapters;
   const chapter = chapters.find(c => c.id === chapterId);
   return chapter?.levels.find(l => l.id === levelId) ?? null;
+};
+
+const shouldTrackWrongQuestion = (lesson, question) => (
+  Boolean(lesson && question?.type && !lesson.isPractice && !question._isReview)
+);
+
+const addWrongQuestionFromLesson = (lesson, question) => {
+  if (!shouldTrackWrongQuestion(lesson, question)) return;
+  useWrongQuestionStore.getState().addWrongQuestion({
+    chapterId: lesson.chapterId,
+    levelId: lesson.levelId,
+    question,
+  });
+};
+
+const removeWrongQuestionFromLesson = (lesson, question) => {
+  if (lesson?.practiceType === 'wrong-review' && question?._wrongQuestionId) {
+    useWrongQuestionStore.getState().removeWrongQuestion(question._wrongQuestionId);
+    return;
+  }
+
+  if (!shouldTrackWrongQuestion(lesson, question)) return;
+  useWrongQuestionStore.getState().removeWrongQuestion(
+    getWrongQuestionId(lesson.chapterId, lesson.levelId, question)
+  );
 };
 
 const useGameStore = create(
@@ -81,7 +107,7 @@ const useGameStore = create(
         });
       },
 
-      startPracticeLesson({ levelId, title, questions, returnPath = '/vocab' }) {
+      startPracticeLesson({ levelId, title, questions, returnPath = '/vocab', practiceType = null }) {
         if (!Array.isArray(questions) || questions.length === 0) return;
 
         useUserStore.getState().syncHearts();
@@ -94,6 +120,7 @@ const useGameStore = create(
             title,
             returnPath,
             isPractice: true,
+            practiceType,
             questions,
             currentIndex: 0,
             hearts: currentHearts,
@@ -156,7 +183,14 @@ const useGameStore = create(
         }
 
         const newHearts = isCorrect ? lesson.hearts : Math.max(0, lesson.hearts - 1);
-        if (!isCorrect) useUserStore.getState().deductHeart();
+        if (isCorrect) {
+          if (lesson.practiceType === 'wrong-review') {
+            removeWrongQuestionFromLesson(lesson, question);
+          }
+        } else {
+          addWrongQuestionFromLesson(lesson, question);
+          useUserStore.getState().deductHeart();
+        }
 
         // Award 5 coins immediately for correct non-word-match answers
         let newCoinsEarned = lesson.coinsEarned;
@@ -281,6 +315,8 @@ const useGameStore = create(
       overturnWrongAnswer() {
         const { lesson } = get();
         if (!lesson) return;
+        const question = lesson.questions[lesson.currentIndex];
+        removeWrongQuestionFromLesson(lesson, question);
         useUserStore.getState().restoreHeart();
         set({
           lesson: {
@@ -310,6 +346,8 @@ const useGameStore = create(
       deductHeart() {
         const { lesson, totalXp } = get();
         if (!lesson || lesson.hearts <= 0) return;
+        const question = lesson.questions[lesson.currentIndex];
+        addWrongQuestionFromLesson(lesson, question);
         const newHearts = Math.max(0, lesson.hearts - 1);
         useUserStore.getState().deductHeart();
 

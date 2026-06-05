@@ -9,6 +9,10 @@ export function buildCourseReviewPracticeQuestions(chapters, count = COURSE_REVI
   }));
 }
 
+export function getCourseReviewPracticeQuestionCount(chapters) {
+  return collectQuestionCandidates(chapters).length;
+}
+
 function collectQuestionCandidates(chapters) {
   const candidates = [];
 

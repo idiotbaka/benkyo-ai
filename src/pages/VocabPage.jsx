@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
@@ -9,10 +9,12 @@ import useGameStore from '../store/gameStore';
 import useUserStore from '../store/userStore';
 import useListeningPracticeStore from '../store/listeningPracticeStore';
 import useWordReviewPracticeStore from '../store/wordReviewPracticeStore';
+import useWrongQuestionStore from '../store/wrongQuestionStore';
 import { getTtsConfigError } from '../lib/tts';
-import { buildListeningPracticeQuestions } from '../lib/listening-practice';
-import { buildCourseReviewPracticeQuestions } from '../lib/course-review-practice';
-import { buildWordReviewPracticeQuestions } from '../lib/word-review-practice';
+import { buildListeningPracticeQuestions, getListeningPracticeQuestionCount } from '../lib/listening-practice';
+import { buildCourseReviewPracticeQuestions, getCourseReviewPracticeQuestionCount } from '../lib/course-review-practice';
+import { buildWordReviewPracticeQuestions, getWordReviewPracticeQuestionCount } from '../lib/word-review-practice';
+import { buildWrongReviewPracticeQuestions } from '../lib/wrong-review-practice';
 import { useIcon } from '../lib/icons';
 
 gsap.registerPlugin(useGSAP);
@@ -47,6 +49,7 @@ const PRACTICE_ENTRIES = [
 export default function VocabPage() {
   const words = useVocabStore(s => s.words);
   const chapters = useCourseStore(s => s.chapters);
+  const wrongQuestions = useWrongQuestionStore(s => s.questions);
   const startListeningPractice = useListeningPracticeStore(s => s.start);
   const startWordReviewPractice = useWordReviewPracticeStore(s => s.start);
   const startPracticeLesson = useGameStore(s => s.startPracticeLesson);
@@ -55,6 +58,12 @@ export default function VocabPage() {
   const headerRef = useRef(null);
   const contentRef = useRef(null);
   const [notice, setNotice] = useState(null);
+  const wrongQuestionCount = wrongQuestions.length;
+  const practiceQuestionCounts = useMemo(() => ({
+    listening: getListeningPracticeQuestionCount(chapters),
+    courseReview: getCourseReviewPracticeQuestionCount(chapters),
+    wordReview: getWordReviewPracticeQuestionCount(chapters),
+  }), [chapters]);
 
   useGSAP(() => {
     const cards = contentRef.current?.querySelectorAll('[data-practice-card]');
@@ -140,6 +149,29 @@ export default function VocabPage() {
     navigate('/practice/word-review');
   };
 
+  const handleWrongReviewPractice = () => {
+    const questions = buildWrongReviewPracticeQuestions(wrongQuestions);
+    if (questions.length === 0) {
+      setNotice('wrong-too-few');
+      return;
+    }
+
+    useUserStore.getState().syncHearts();
+    if (useUserStore.getState().hearts === 0) {
+      setNotice('no-hearts');
+      return;
+    }
+
+    startPracticeLesson({
+      levelId: 'wrong-review',
+      title: '错题重练',
+      questions,
+      returnPath: '/vocab',
+      practiceType: 'wrong-review',
+    });
+    navigate('/practice/wrong-review');
+  };
+
   return (
     <div
       data-ui-click-sfx
@@ -159,7 +191,7 @@ export default function VocabPage() {
             {PRACTICE_ENTRIES.map(entry => (
               <PracticeEntry
                 key={entry.id}
-                entry={entry}
+                entry={withPracticeEntryBadge(entry, practiceQuestionCounts, wrongQuestionCount)}
                 onClick={
                   entry.id === 'listening'
                     ? handleListeningPractice
@@ -167,6 +199,8 @@ export default function VocabPage() {
                     ? handleCourseReviewPractice
                     : entry.id === 'word-review'
                     ? handleWordReviewPractice
+                    : entry.id === 'mistakes'
+                    ? handleWrongReviewPractice
                     : undefined
                 }
               />
@@ -205,6 +239,12 @@ export default function VocabPage() {
           onClose={() => setNotice(null)}
         />
       )}
+      {notice === 'wrong-too-few' && (
+        <PracticeNoticeSheet
+          type="wrong-too-few"
+          onClose={() => setNotice(null)}
+        />
+      )}
       {notice === 'no-hearts' && (
         <PracticeNoticeSheet
           type="no-hearts"
@@ -221,7 +261,8 @@ function PracticeNoticeSheet({ type, onClose, onGoSettings }) {
   const sdFallImg = useIcon('sd/sd_fall.png');
   const sdNoBooksImg = useIcon('sd/sd_no_books.png');
   const isTts = type === 'tts';
-  const isTooFew = type === 'too-few';
+  const isWrongTooFew = type === 'wrong-too-few';
+  const isTooFew = type === 'too-few' || isWrongTooFew;
 
   useGSAP(() => {
     gsap.set(overlayRef.current, { opacity: 0 });
@@ -268,7 +309,7 @@ function PracticeNoticeSheet({ type, onClose, onGoSettings }) {
             style={{ objectFit: 'contain', margin: '0 auto 6px' }}
           />
           <h2 style={{ fontSize: 18, fontWeight: 900, color: '#1E1B4B', marginBottom: 8 }}>
-            {isTts ? '尚未配置音频模型' : isTooFew ? '题库还不够' : '生命值耗尽'}
+            {isTts ? '尚未配置音频模型' : isWrongTooFew ? '错题还不够' : isTooFew ? '题库还不够' : '生命值耗尽'}
           </h2>
           <p style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.6, margin: '0 8px' }}>
             {isTts ? (
@@ -277,7 +318,7 @@ function PracticeNoticeSheet({ type, onClose, onGoSettings }) {
                 请前往 <strong>「我的」→「设置」</strong> 中填写 TTS 配置。
               </>
             ) : isTooFew ? (
-              '当前题库太少啦，多闯几关后再回来吧~'
+              isWrongTooFew ? '当前错题太少啦，以后再回来吧~' : '当前题库太少啦，多闯几关后再回来吧~'
             ) : (
               '心心恢复后再回来练习吧~'
             )}
@@ -337,9 +378,34 @@ function PracticeSection({ title, style, children }) {
   );
 }
 
+function withPracticeEntryBadge(entry, practiceQuestionCounts, wrongQuestionCount) {
+  if (entry.id === 'mistakes') {
+    return {
+      ...entry,
+      badge: `错题 ${wrongQuestionCount}`,
+      badgeTone: wrongQuestionCount > 0 ? 'danger' : 'muted',
+    };
+  }
+
+  const countById = {
+    listening: practiceQuestionCounts.listening,
+    'course-review': practiceQuestionCounts.courseReview,
+    'word-review': practiceQuestionCounts.wordReview,
+  };
+
+  if (!(entry.id in countById)) return entry;
+  const count = countById[entry.id] ?? 0;
+  return {
+    ...entry,
+    badge: `题库 ${count}`,
+    badgeTone: count > 0 ? 'info' : 'muted',
+  };
+}
+
 function PracticeEntry({ entry, iconSrc, onClick }) {
   const resolvedIcon = useIcon(entry.icon);
   const src = iconSrc || resolvedIcon;
+  const badgeStyle = getPracticeBadgeStyle(entry.badgeTone);
 
   if (entry.desc) {
     return (
@@ -374,8 +440,29 @@ function PracticeEntry({ entry, iconSrc, onClick }) {
             textAlign: 'left',
           }}
         >
-          <span style={{ fontSize: 17, fontWeight: 900, color: '#4B5563', whiteSpace: 'nowrap' }}>
-            {entry.label}
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8, maxWidth: '100%' }}>
+            <span style={{ fontSize: 17, fontWeight: 900, color: '#4B5563', whiteSpace: 'nowrap' }}>
+              {entry.label}
+            </span>
+            {entry.badge && (
+              <span
+                style={{
+                  height: 22,
+                  padding: '0 9px',
+                  borderRadius: 999,
+                  border: `1.5px solid ${badgeStyle.border}`,
+                  background: badgeStyle.background,
+                  color: badgeStyle.color,
+                  fontSize: 11,
+                  fontWeight: 900,
+                  lineHeight: '19px',
+                  whiteSpace: 'nowrap',
+                  boxShadow: badgeStyle.shadow,
+                }}
+              >
+                {entry.badge}
+              </span>
+            )}
           </span>
           <span style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', lineHeight: 1.35 }}>
             {entry.desc}
@@ -466,4 +553,31 @@ function PracticeEntry({ entry, iconSrc, onClick }) {
       )}
     </button>
   );
+}
+
+function getPracticeBadgeStyle(tone) {
+  if (tone === 'danger') {
+    return {
+      border: '#FDA4AF',
+      background: '#FFF1F2',
+      color: '#E11D48',
+      shadow: '0 2px 0 #FFE4E6',
+    };
+  }
+
+  if (tone === 'info') {
+    return {
+      border: '#C7D2FE',
+      background: '#EEF2FF',
+      color: '#4F46E5',
+      shadow: '0 2px 0 #E0E7FF',
+    };
+  }
+
+  return {
+    border: '#E5E7EB',
+    background: '#F9FAFB',
+    color: '#9CA3AF',
+    shadow: 'none',
+  };
 }

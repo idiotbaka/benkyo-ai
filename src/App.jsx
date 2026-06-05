@@ -13,6 +13,7 @@ import VocabBookPage from './pages/VocabBookPage';
 import ListeningPracticePage from './pages/ListeningPracticePage';
 import CourseReviewPracticePage from './pages/CourseReviewPracticePage';
 import WordReviewPracticePage from './pages/WordReviewPracticePage';
+import WrongReviewPracticePage from './pages/WrongReviewPracticePage';
 import MainLayout from './components/Layout/MainLayout';
 import useUserStore from './store/userStore';
 import XpBoostWidget from './components/UI/XpBoostWidget';
@@ -66,6 +67,7 @@ export default function App() {
           <Route path="/practice/listening" element={<ListeningPracticePage />} />
           <Route path="/practice/course-review" element={<CourseReviewPracticePage />} />
           <Route path="/practice/word-review" element={<WordReviewPracticePage />} />
+          <Route path="/practice/wrong-review" element={<WrongReviewPracticePage />} />
           <Route path="/grammar/:chapterId" element={<GrammarPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>

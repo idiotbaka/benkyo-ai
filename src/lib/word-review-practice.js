@@ -35,6 +35,10 @@ export function buildWordReviewPracticeQuestions(chapters, count = WORD_REVIEW_Q
   });
 }
 
+export function getWordReviewPracticeQuestionCount(chapters) {
+  return collectWordMatchPairs(chapters).length;
+}
+
 function collectWordMatchPairs(chapters) {
   const seen = new Set();
   const words = [];
