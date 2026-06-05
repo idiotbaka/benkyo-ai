@@ -42,6 +42,24 @@ export const DAILY_TASK_META = {
   },
 };
 
+export const DAILY_TASK_REWARD_POOLS = {
+  small: [
+    { type: 'coins', amount: 200, label: '金币', iconPath: 'item/coin.png' },
+    { type: 'item', itemId: 'cake', amount: 1, label: '蛋糕', iconPath: 'item/cake.png' },
+    { type: 'item', itemId: 'cake', amount: 2, label: '蛋糕', iconPath: 'item/cake.png' },
+  ],
+  medium: [
+    { type: 'coins', amount: 300, label: '金币', iconPath: 'item/coin.png' },
+    { type: 'item', itemId: 'xp2x_15', amount: 1, label: '双倍经验卡', iconPath: 'item/exp2.png' },
+    { type: 'item', itemId: 'xp3x_15', amount: 1, label: '三倍经验卡', iconPath: 'item/exp3.png' },
+  ],
+  large: [
+    { type: 'coins', amount: 400, label: '金币', iconPath: 'item/coin.png' },
+    { type: 'item', itemId: 'xp3x_15', amount: 1, label: '三倍经验卡', iconPath: 'item/exp3.png' },
+    { type: 'item', itemId: 'cake', amount: 5, label: '蛋糕', iconPath: 'item/cake.png' },
+  ],
+};
+
 const TASK_POOLS = {
   small: [
     {
@@ -126,6 +144,14 @@ function toLocalDateKey(date = new Date()) {
 
 function pickOne(items) {
   return items[Math.floor(Math.random() * items.length)];
+}
+
+function createReward(difficulty) {
+  const reward = pickOne(DAILY_TASK_REWARD_POOLS[difficulty] ?? DAILY_TASK_REWARD_POOLS.small);
+  return {
+    ...reward,
+    rewardId: `${difficulty}-${reward.type}-${reward.itemId ?? 'coins'}-${reward.amount}-${Date.now()}`,
+  };
 }
 
 function createDailyTasks(dateKey = toLocalDateKey()) {
@@ -259,6 +285,38 @@ const useDailyTaskStore = create(
         set(state => ({
           toastQueue: state.toastQueue.filter(toast => toast.id !== toastId),
         }));
+      },
+
+      claimTask(taskId) {
+        get().ensureToday();
+
+        const { tasks } = get();
+        const task = tasks.find(item => item.instanceId === taskId);
+        if (!task || !task.completed || task.claimed) return null;
+
+        const reward = createReward(task.difficulty);
+        const claimedAt = Date.now();
+
+        set(state => ({
+          tasks: state.tasks.map(item => (
+            item.instanceId === taskId
+              ? {
+                  ...item,
+                  claimed: true,
+                  claimedAt,
+                  reward,
+                }
+              : item
+          )),
+        }));
+
+        return {
+          taskId,
+          taskTitle: task.title,
+          difficulty: task.difficulty,
+          chestLabel: DAILY_TASK_META[task.difficulty]?.label ?? '宝箱',
+          reward,
+        };
       },
 
       debugCompleteToast(selector = 'small') {

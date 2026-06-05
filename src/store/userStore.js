@@ -90,6 +90,28 @@ const useUserStore = create(
         set(s => ({ coins: s.coins + amount }));
       },
 
+      grantReward(reward) {
+        const amount = Math.max(0, Number(reward?.amount) || 0);
+        if (amount <= 0) return false;
+
+        if (reward.type === 'coins') {
+          set(s => ({ coins: s.coins + amount }));
+          return true;
+        }
+
+        if (reward.type === 'item' && reward.itemId) {
+          set(s => ({
+            inventory: {
+              ...s.inventory,
+              [reward.itemId]: (s.inventory?.[reward.itemId] ?? 0) + amount,
+            },
+          }));
+          return true;
+        }
+
+        return false;
+      },
+
       // Perform daily check-in; returns coins awarded (0 if already done today)
       checkIn() {
         const today = toDateStr();

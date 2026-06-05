@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import useDailyTaskStore, {
   DAILY_TASK_META,
 } from '../../store/dailyTaskStore';
+import useUserStore from '../../store/userStore';
 import { useIcon } from '../../lib/icons';
+import RewardModal from '../UI/RewardModal';
 
 function getMsUntilTomorrow() {
   const now = new Date();
@@ -23,7 +25,10 @@ function formatResetTime(ms) {
 export default function DailyTaskSection() {
   const tasks = useDailyTaskStore(s => s.tasks);
   const ensureToday = useDailyTaskStore(s => s.ensureToday);
+  const claimTask = useDailyTaskStore(s => s.claimTask);
+  const grantReward = useUserStore(s => s.grantReward);
   const [resetMs, setResetMs] = useState(getMsUntilTomorrow);
+  const [rewardModal, setRewardModal] = useState(null);
 
   useEffect(() => {
     ensureToday();
@@ -35,6 +40,16 @@ export default function DailyTaskSection() {
   }, [ensureToday]);
 
   const resetLabel = useMemo(() => formatResetTime(resetMs), [resetMs]);
+
+  const handleClaim = (task) => {
+    if (!task.completed || task.claimed) return;
+
+    const claim = claimTask(task.instanceId);
+    if (!claim?.reward) return;
+
+    grantReward(claim.reward);
+    setRewardModal(claim);
+  };
 
   return (
     <section className="daily-task-panel">
@@ -50,14 +65,24 @@ export default function DailyTaskSection() {
 
       <div className="daily-task-list">
         {tasks.map(task => (
-          <DailyTaskCard key={task.instanceId} task={task} />
+          <DailyTaskCard key={task.instanceId} task={task} onClaim={handleClaim} />
         ))}
       </div>
+
+      {rewardModal && (
+        <RewardModal
+          reward={rewardModal.reward}
+          title="宝箱开启！"
+          subtitle="奖励已发放"
+          sourceLabel={rewardModal.chestLabel}
+          onDismiss={() => setRewardModal(null)}
+        />
+      )}
     </section>
   );
 }
 
-function DailyTaskCard({ task }) {
+function DailyTaskCard({ task, onClaim }) {
   const meta = DAILY_TASK_META[task.difficulty] ?? DAILY_TASK_META.small;
   const closedChest = useIcon(meta.chestClosed);
   const openChest = useIcon(meta.chestOpen);
@@ -65,10 +90,15 @@ function DailyTaskCard({ task }) {
   const progress = Math.min(task.progress ?? 0, task.target);
   const pct = task.target > 0 ? (progress / task.target) * 100 : 0;
   const isReady = task.completed && !task.claimed;
+  const statusLabel = task.claimed ? '已领取' : isReady ? '可领取' : null;
 
   return (
-    <div
-      className="daily-task-card"
+    <button
+      type="button"
+      className={isReady ? 'daily-task-card daily-task-card--ready' : 'daily-task-card'}
+      onClick={() => onClaim(task)}
+      disabled={!isReady}
+      aria-label={isReady ? `领取${task.title}奖励` : task.title}
       style={{
         '--daily-task-accent': meta.color,
         '--daily-task-bg': meta.bg,
@@ -92,9 +122,9 @@ function DailyTaskCard({ task }) {
           >
             {meta.label}
           </span>
-          {isReady && (
-            <span className="daily-task-ready-label">
-              可领取
+          {statusLabel && (
+            <span className={task.claimed ? 'daily-task-claimed-label' : 'daily-task-ready-label'}>
+              {statusLabel}
             </span>
           )}
         </div>
@@ -125,6 +155,6 @@ function DailyTaskCard({ task }) {
           className={isReady ? 'daily-task-chest daily-task-chest--ready' : 'daily-task-chest'}
         />
       </div>
-    </div>
+    </button>
   );
 }

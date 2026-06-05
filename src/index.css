@@ -449,18 +449,23 @@ rt {
 }
 
 .daily-task-card {
+  width: 100%;
   min-height: 76px;
   border-radius: 0;
   border: 0;
   border-top: 1px solid #F3F4F6;
   background: transparent;
   box-shadow: none;
+  color: inherit;
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 10px 0;
   position: relative;
   overflow: visible;
+  text-align: left;
+  font: inherit;
+  cursor: default;
 }
 
 .daily-task-card::before {
@@ -480,6 +485,24 @@ rt {
   padding-bottom: 4px;
 }
 
+.daily-task-card--ready {
+  cursor: pointer;
+}
+
+.daily-task-card--ready:active {
+  transform: scale(0.985);
+}
+
+.daily-task-card:disabled {
+  cursor: default;
+}
+
+.daily-task-card:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--daily-task-accent) 45%, white);
+  outline-offset: 2px;
+  border-radius: 12px;
+}
+
 .daily-task-ready-label {
   flex-shrink: 0;
   min-width: 48px;
@@ -493,6 +516,20 @@ rt {
   line-height: 15px;
   text-align: center;
   box-shadow: 0 1px 0 #FDE68A;
+}
+
+.daily-task-claimed-label {
+  flex-shrink: 0;
+  min-width: 48px;
+  height: 18px;
+  border-radius: 999px;
+  background: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  color: #9CA3AF;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 15px;
+  text-align: center;
 }
 
 .daily-task-progress {
