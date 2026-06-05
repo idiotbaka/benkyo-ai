@@ -1,8 +1,13 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import useVocabStore from '../store/vocabStore';
+import useCourseStore from '../store/courseStore';
+import useTtsStore from '../store/ttsStore';
+import useListeningPracticeStore from '../store/listeningPracticeStore';
+import { getTtsConfigError } from '../lib/tts';
+import { buildListeningPracticeQuestions } from '../lib/listening-practice';
 import { useIcon } from '../lib/icons';
 
 gsap.registerPlugin(useGSAP);
@@ -36,10 +41,13 @@ const PRACTICE_ENTRIES = [
 
 export default function VocabPage() {
   const words = useVocabStore(s => s.words);
+  const chapters = useCourseStore(s => s.chapters);
+  const startListeningPractice = useListeningPracticeStore(s => s.start);
   const navigate = useNavigate();
   const bookImg = useIcon('ui/book.png');
   const headerRef = useRef(null);
   const contentRef = useRef(null);
+  const [notice, setNotice] = useState(null);
 
   useGSAP(() => {
     const cards = contentRef.current?.querySelectorAll('[data-practice-card]');
@@ -75,6 +83,23 @@ export default function VocabPage() {
 
   }, []);
 
+  const handleListeningPractice = () => {
+    const ttsConfig = useTtsStore.getState().getConfig();
+    if (getTtsConfigError(ttsConfig)) {
+      setNotice('tts');
+      return;
+    }
+
+    const questions = buildListeningPracticeQuestions(chapters);
+    if (questions.length === 0) {
+      setNotice('too-few');
+      return;
+    }
+
+    startListeningPractice(questions);
+    navigate('/practice/listening');
+  };
+
   return (
     <div
       data-ui-click-sfx
@@ -92,7 +117,11 @@ export default function VocabPage() {
         <div ref={contentRef}>
           <div style={{ display: 'grid', gap: 18 }}>
             {PRACTICE_ENTRIES.map(entry => (
-              <PracticeEntry key={entry.id} entry={entry} />
+              <PracticeEntry
+                key={entry.id}
+                entry={entry}
+                onClick={entry.id === 'listening' ? handleListeningPractice : undefined}
+              />
             ))}
           </div>
 
@@ -110,6 +139,129 @@ export default function VocabPage() {
             />
           </PracticeSection>
         </div>
+      </div>
+
+      {notice === 'tts' && (
+        <PracticeNoticeSheet
+          type="tts"
+          onClose={() => setNotice(null)}
+          onGoSettings={() => {
+            setNotice(null);
+            navigate('/settings');
+          }}
+        />
+      )}
+      {notice === 'too-few' && (
+        <PracticeNoticeSheet
+          type="too-few"
+          onClose={() => setNotice(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function PracticeNoticeSheet({ type, onClose, onGoSettings }) {
+  const overlayRef = useRef(null);
+  const sheetRef = useRef(null);
+  const sdFallImg = useIcon('sd/sd_fall.png');
+  const sdNoBooksImg = useIcon('sd/sd_no_books.png');
+  const isTts = type === 'tts';
+
+  useGSAP(() => {
+    gsap.set(overlayRef.current, { opacity: 0 });
+    gsap.set(sheetRef.current, { opacity: 0, y: '100%' });
+  });
+
+  useGSAP(() => {
+    gsap.to(overlayRef.current, { opacity: 1, duration: 0.15 });
+    gsap.to(sheetRef.current, { opacity: 1, y: '0%', duration: 0.2, ease: 'power3.out' });
+  }, []);
+
+  return (
+    <div
+      ref={overlayRef}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 60,
+        background: 'rgba(0,0,0,0.45)',
+        backdropFilter: 'blur(3px)',
+        display: 'flex',
+        alignItems: 'flex-end',
+      }}
+      onClick={onClose}
+    >
+      <div
+        ref={sheetRef}
+        style={{
+          width: '100%',
+          background: 'white',
+          borderRadius: '24px 24px 0 0',
+          padding: '0 20px 36px',
+          boxShadow: '0 -8px 40px rgba(0,0,0,0.20)',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div style={{ width: 40, height: 4, borderRadius: 2, background: '#E5E0FF', margin: '12px auto 22px' }} />
+        <div style={{ textAlign: 'center', marginBottom: 20 }}>
+          <img
+            src={isTts ? sdFallImg : sdNoBooksImg}
+            alt=""
+            width={148}
+            height={148}
+            style={{ objectFit: 'contain', margin: '0 auto 6px' }}
+          />
+          <h2 style={{ fontSize: 18, fontWeight: 900, color: '#1E1B4B', marginBottom: 8 }}>
+            {isTts ? '尚未配置音频模型' : '题库还不够'}
+          </h2>
+          <p style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.6, margin: '0 8px' }}>
+            {isTts ? (
+              <>
+                听力练习需要先配置音频模型。<br />
+                请前往 <strong>「我的」→「设置」</strong> 中填写 TTS 配置。
+              </>
+            ) : (
+              '当前题库太少啦，多闯几关后再回来吧~'
+            )}
+          </p>
+        </div>
+        {isTts && (
+          <button
+            onClick={onGoSettings}
+            className="btn-press"
+            style={{
+              width: '100%',
+              padding: '14px',
+              borderRadius: 18,
+              border: 'none',
+              background: 'linear-gradient(135deg, var(--tp-from), var(--tp))',
+              color: 'white',
+              fontSize: 15,
+              fontWeight: 800,
+              cursor: 'pointer',
+              marginBottom: 10,
+            }}
+          >
+            前往设置 →
+          </button>
+        )}
+        <button
+          onClick={onClose}
+          style={{
+            width: '100%',
+            padding: '12px',
+            borderRadius: 18,
+            border: '1.5px solid #E5E7EB',
+            background: 'white',
+            color: '#6B7280',
+            fontSize: 14,
+            fontWeight: 700,
+            cursor: 'pointer',
+          }}
+        >
+          {isTts ? '稍后再说' : '知道啦'}
+        </button>
       </div>
     </div>
   );
@@ -145,6 +297,7 @@ function PracticeEntry({ entry, iconSrc, onClick }) {
         <button
           type="button"
           className="btn-press"
+          onClick={onClick}
           style={{
             width: '100%',
             minHeight: 108,
@@ -158,7 +311,7 @@ function PracticeEntry({ entry, iconSrc, onClick }) {
             alignItems: 'flex-start',
             gap: 6,
             boxShadow: '0 3px 0 #E5E7EB',
-            cursor: 'default',
+            cursor: onClick ? 'pointer' : 'default',
             position: 'relative',
             overflow: 'visible',
             textAlign: 'left',

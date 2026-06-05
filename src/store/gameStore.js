@@ -303,6 +303,22 @@ const useGameStore = create(
           },
         });
       },
+
+      awardPracticeXp(amount) {
+        const xp = Math.max(0, Number(amount) || 0);
+        const { totalXp } = get();
+        const oldLevel = computeLevel(totalXp);
+        const newTotalXp = totalXp + xp;
+        const newLevel = computeLevel(newTotalXp);
+
+        set({ totalXp: newTotalXp });
+        return {
+          totalXp: newTotalXp,
+          oldLevel,
+          newLevel,
+          leveledUp: newLevel > oldLevel,
+        };
+      },
     }),
     {
       name: 'benkyo-ai-progress',

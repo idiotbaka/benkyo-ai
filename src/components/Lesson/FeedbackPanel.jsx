@@ -6,7 +6,18 @@ import { judgeAnswer } from '../../lib/judge-answer';
 import { playSoundEffect, SOUND_EFFECT_TYPES } from '../../lib/sound-effects';
 import { useIcon } from '../../lib/icons';
 
-export default function FeedbackPanel({ feedbackState, question, userAnswer, correctAnswer, hint, onContinue, onOverturn, isReview }) {
+export default function FeedbackPanel({
+  feedbackState,
+  question,
+  userAnswer,
+  correctAnswer,
+  hint,
+  onContinue,
+  onOverturn,
+  isReview,
+  detailText,
+  detailLabel = '中文释义',
+}) {
   const heartImg = useIcon('ui/heart.png');
   const correctFeedbackImg = useIcon('sd/sd2_corrent.png');
   const wrongFeedbackImg = useIcon('sd/sd2_wrong.png');
@@ -133,6 +144,14 @@ export default function FeedbackPanel({ feedbackState, question, userAnswer, cor
             {!isCorrect && correctAnswer && (
               <p className="text-sm font-medium mt-0.5" style={{ color: isReviewWrong ? '#92400E' : '#DC2626' }}>
                 正解：<span className="jp font-bold text-base">{correctAnswer}</span>
+              </p>
+            )}
+            {detailText && (
+              <p
+                className="text-sm font-medium mt-0.5"
+                style={{ color: isCorrect ? '#16A34A' : isReviewWrong ? '#92400E' : '#DC2626' }}
+              >
+                {detailLabel}：<span className="font-bold">{detailText}</span>
               </p>
             )}
             {/* Hint */}
