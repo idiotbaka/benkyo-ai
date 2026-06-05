@@ -8,9 +8,11 @@ import useTtsStore from '../store/ttsStore';
 import useGameStore from '../store/gameStore';
 import useUserStore from '../store/userStore';
 import useListeningPracticeStore from '../store/listeningPracticeStore';
+import useWordReviewPracticeStore from '../store/wordReviewPracticeStore';
 import { getTtsConfigError } from '../lib/tts';
 import { buildListeningPracticeQuestions } from '../lib/listening-practice';
 import { buildCourseReviewPracticeQuestions } from '../lib/course-review-practice';
+import { buildWordReviewPracticeQuestions } from '../lib/word-review-practice';
 import { useIcon } from '../lib/icons';
 
 gsap.registerPlugin(useGSAP);
@@ -46,6 +48,7 @@ export default function VocabPage() {
   const words = useVocabStore(s => s.words);
   const chapters = useCourseStore(s => s.chapters);
   const startListeningPractice = useListeningPracticeStore(s => s.start);
+  const startWordReviewPractice = useWordReviewPracticeStore(s => s.start);
   const startPracticeLesson = useGameStore(s => s.startPracticeLesson);
   const navigate = useNavigate();
   const bookImg = useIcon('ui/book.png');
@@ -126,6 +129,17 @@ export default function VocabPage() {
     navigate('/practice/course-review');
   };
 
+  const handleWordReviewPractice = () => {
+    const questions = buildWordReviewPracticeQuestions(chapters);
+    if (questions.length === 0) {
+      setNotice('too-few');
+      return;
+    }
+
+    startWordReviewPractice(questions);
+    navigate('/practice/word-review');
+  };
+
   return (
     <div
       data-ui-click-sfx
@@ -151,6 +165,8 @@ export default function VocabPage() {
                     ? handleListeningPractice
                     : entry.id === 'course-review'
                     ? handleCourseReviewPractice
+                    : entry.id === 'word-review'
+                    ? handleWordReviewPractice
                     : undefined
                 }
               />

@@ -17,6 +17,7 @@ export default function FeedbackPanel({
   isReview,
   detailText,
   detailLabel = '中文释义',
+  showCorrectAnswerOnCorrect = false,
 }) {
   const heartImg = useIcon('ui/heart.png');
   const correctFeedbackImg = useIcon('sd/sd2_corrent.png');
@@ -141,8 +142,8 @@ export default function FeedbackPanel({
               </p>
             )}
             {/* Wrong state: show correct answer */}
-            {!isCorrect && correctAnswer && (
-              <p className="text-sm font-medium mt-0.5" style={{ color: isReviewWrong ? '#92400E' : '#DC2626' }}>
+            {(!isCorrect || showCorrectAnswerOnCorrect) && correctAnswer && (
+              <p className="text-sm font-medium mt-0.5" style={{ color: isCorrect ? '#16A34A' : isReviewWrong ? '#92400E' : '#DC2626' }}>
                 正解：<span className="jp font-bold text-base">{correctAnswer}</span>
               </p>
             )}

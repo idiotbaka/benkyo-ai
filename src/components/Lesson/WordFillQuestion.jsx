@@ -119,7 +119,7 @@ export default function WordFillQuestion({ question, onAnswer, feedbackState, se
       </div>
 
       {/* Word option grid */}
-      <div className="grid grid-cols-2 gap-3 mt-4">
+      <div className="grid grid-cols-2 gap-3 mt-4" style={{ transform: 'translateY(-8px)' }}>
         {shuffledOptions.map((word, idx) => (
           <button
             key={word}
