@@ -150,7 +150,7 @@ export default function LessonFailed() {
         <div>
           <div className="text-xs text-[#9CA3AF] font-semibold">获得经验</div>
           <div className="font-extrabold text-[#D97706] text-xl">
-            +{finalXp} <span className="text-sm font-bold">XP</span>
+            {finalXp} <span className="text-sm font-bold">XP</span>
           </div>
         </div>
       </div>
@@ -164,7 +164,7 @@ export default function LessonFailed() {
         <img src={coinImg} alt="金币" width={28} height={28} style={{ objectFit: 'contain' }} />
         <div>
           <div className="text-xs text-[#9CA3AF] font-semibold">本关金币</div>
-          <div className="font-extrabold text-[#D97706] text-xl">+{displayCoins}</div>
+          <div className="font-extrabold text-[#D97706] text-xl">{displayCoins}</div>
         </div>
       </div>
 
