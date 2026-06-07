@@ -19,6 +19,8 @@ gsap.registerPlugin(useGSAP);
 const REEL_ITEM_COUNT = 12;
 const REEL_TARGET_INDEX = 9;
 const COLLECTION_GRID_DELAY_MS = 1500;
+const REEL_READY_DELAY_MS = 1000;
+const REEL_ROLL_DURATION = 5;
 
 function buildResultReel(result) {
   return Array.from({ length: REEL_ITEM_COUNT }, (_, index) => {
@@ -27,6 +29,21 @@ function buildResultReel(result) {
       ...item,
       reelKey: `${index}-${item.id}-${Math.random().toString(36).slice(2, 8)}`,
     };
+  });
+}
+
+function preloadImage(src) {
+  if (!src) return Promise.resolve();
+
+  return new Promise((resolve) => {
+    const image = new Image();
+    image.decoding = 'async';
+    image.onload = resolve;
+    image.onerror = resolve;
+    image.src = src;
+    if (typeof image.decode === 'function') {
+      image.decode().then(resolve).catch(resolve);
+    }
   });
 }
 
@@ -53,6 +70,7 @@ export default function OmamoriGacha() {
   const hasAnimatedCollectionRef = useRef(false);
 
   const canAfford = coins >= OMAMORI_GACHA_COST;
+  const isDrawing = phase === 'loading' || phase === 'revealed';
   const [reelItems, setReelItems] = useState([]);
   const [drawKey, setDrawKey] = useState(0);
 
@@ -163,7 +181,7 @@ export default function OmamoriGacha() {
     );
   };
 
-  const handleDraw = () => {
+  const startDraw = () => {
     if (!spendCoins(OMAMORI_GACHA_COST)) {
       showInsufficientCoins();
       return;
@@ -176,7 +194,19 @@ export default function OmamoriGacha() {
     setResult(resultWithState);
     setReelItems(buildResultReel(resultWithState));
     setDrawKey(key => key + 1);
-    setPhase('revealed');
+    setPhase('loading');
+    window.requestAnimationFrame(() => {
+      setPhase('revealed');
+    });
+  };
+
+  const handleDraw = () => {
+    if (isDrawing) return;
+    startDraw();
+  };
+
+  const handleDrawAgain = () => {
+    startDraw();
   };
 
   const closeResult = () => {
@@ -237,6 +267,7 @@ export default function OmamoriGacha() {
           onClick={handleDraw}
           data-sfx={SOUND_EFFECT_TYPES.WORD_SELECTED}
           className="btn-press omamori-draw-button"
+          disabled={isDrawing}
         >
           <span>抽取一次</span>
           <span>
@@ -308,7 +339,7 @@ export default function OmamoriGacha() {
           coinImg={coinImg}
           canDrawAgain={canAfford}
           onClose={closeResult}
-          onDrawAgain={handleDraw}
+          onDrawAgain={handleDrawAgain}
         />
       )}
 
@@ -334,6 +365,7 @@ function GachaResultModal({ result, reelItems, targetIndex, coinImg, canDrawAgai
   const particleRef = useRef(null);
   const btnsRef = useRef(null);
   const [settled, setSettled] = useState(false);
+  const [reelReady, setReelReady] = useState(false);
   const rarity = getOmamoriRarity(result.rarity);
 
   useEffect(() => {
@@ -344,9 +376,15 @@ function GachaResultModal({ result, reelItems, targetIndex, coinImg, canDrawAgai
     const target = reelTargetRef.current;
     const particles = particleRef.current;
     const buttons = btnsRef.current;
+    const imageSrcs = reelItems.map(item => resolveIcon(item.iconPath));
+    let cancelled = false;
+    let rollTl = null;
+    let firstFrame = null;
+    let secondFrame = null;
 
     gsap.set(overlay, { opacity: 0 });
     gsap.set(card, { opacity: 0, y: 54, scale: 0.86, rotate: -1 });
+    gsap.set(viewport, { opacity: 0, y: 8 });
     gsap.set(buttons, { opacity: 0, y: 12 });
 
     const startX = viewport ? Math.min(72, viewport.offsetWidth * 0.24) : 48;
@@ -398,24 +436,41 @@ function GachaResultModal({ result, reelItems, targetIndex, coinImg, canDrawAgai
     const tl = gsap.timeline();
     tl.to(overlay, { opacity: 1, duration: 0.18 });
     tl.to(card, { opacity: 1, y: 0, scale: 1, rotate: 0, duration: 0.44, ease: 'back.out(2)' }, '-=0.03');
-    tl.to(track, {
-      x: endX,
-      duration: 2.15,
-      ease: 'power4.out',
-      onComplete: () => {
-        setSettled(true);
-        burstParticles();
-        const isRare = result.rarity === 'SSR' || result.rarity === 'SR';
-        playSoundEffect(isRare ? SOUND_EFFECT_TYPES.LEVEL_COMPLETE : SOUND_EFFECT_TYPES.ANSWER_CORRECT);
-      },
-    }, '-=0.06');
-    tl.to(buttons, { opacity: 1, y: 0, duration: 0.28, ease: 'back.out(1.8)' }, '-=0.02');
+
+    Promise.all(imageSrcs.map(preloadImage)).then(() => {
+      if (cancelled) return;
+      firstFrame = window.requestAnimationFrame(() => {
+        secondFrame = window.requestAnimationFrame(() => {
+          if (cancelled) return;
+          setReelReady(true);
+          rollTl = gsap.timeline();
+          rollTl.to(viewport, { opacity: 1, y: 0, duration: 0.26, ease: 'power2.out' });
+          rollTl.to({}, { duration: REEL_READY_DELAY_MS / 1000 });
+          rollTl.to(track, {
+            x: endX,
+            duration: REEL_ROLL_DURATION,
+            ease: 'power4.out',
+            onComplete: () => {
+              setSettled(true);
+              burstParticles();
+              const isRare = result.rarity === 'SSR' || result.rarity === 'SR';
+              playSoundEffect(isRare ? SOUND_EFFECT_TYPES.LEVEL_COMPLETE : SOUND_EFFECT_TYPES.ANSWER_CORRECT);
+            },
+          });
+          rollTl.to(buttons, { opacity: 1, y: 0, duration: 0.28, ease: 'back.out(1.8)' }, '-=0.02');
+        });
+      });
+    });
 
     return () => {
+      cancelled = true;
       tl.kill();
+      rollTl?.kill();
+      if (firstFrame !== null) window.cancelAnimationFrame(firstFrame);
+      if (secondFrame !== null) window.cancelAnimationFrame(secondFrame);
       particles.replaceChildren();
     };
-  }, [result.id, result.rarity, resultIcon]);
+  }, [reelItems, resolveIcon, result.id, result.rarity, resultIcon]);
 
   const dismiss = (after) => {
     const tl = gsap.timeline({ onComplete: after });
@@ -433,10 +488,14 @@ function GachaResultModal({ result, reelItems, targetIndex, coinImg, canDrawAgai
       <div ref={cardRef} className="omamori-result-card">
         <div ref={particleRef} className="omamori-result-particles" />
         <div className="omamori-result-card__shine" />
+        <div className={`omamori-result-loading ${reelReady ? 'omamori-result-loading--done' : ''}`} aria-hidden={reelReady}>
+          <span />
+          <strong>抽選窓を準備中</strong>
+        </div>
         <div className={`omamori-result-new-slot ${settled && result.isNew ? 'omamori-result-new-slot--show' : ''}`}>
           <span>New!!</span>
         </div>
-        <div className="omamori-result-label">{settled ? '抽選結果' : '御守抽選中'}</div>
+        <div className="omamori-result-label">{settled ? '抽選結果' : reelReady ? '御守抽選中' : '御守準備中'}</div>
 
         <div className="omamori-result-reel">
           <div className="omamori-result-reel__marker" />
@@ -464,10 +523,10 @@ function GachaResultModal({ result, reelItems, targetIndex, coinImg, canDrawAgai
           </div>
         </div>
 
-        <h2>{settled ? result.name : '運命の御守を選んでいます'}</h2>
-        <p>{settled ? '御守・護身符' : '金色の光が導いています'}</p>
+        <h2>{settled ? result.name : reelReady ? '運命の御守を選んでいます' : '御守を呼び出しています'}</h2>
+        <p>{settled ? '御守・護身符' : reelReady ? '金色の光が導いています' : '抽選札をそろえています'}</p>
         <div className="omamori-result-rate">
-          {settled ? `${result.rarity} 排出率 ${rarity.rate}%` : '横スクロール抽選中'}
+          {settled ? `${result.rarity} 排出率 ${rarity.rate}%` : reelReady ? '横スクロール抽選中' : '画像を準備中'}
         </div>
 
         <div ref={btnsRef} className="omamori-result-actions">

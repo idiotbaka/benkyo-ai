@@ -1671,6 +1671,41 @@ rt {
   z-index: 1;
 }
 
+.omamori-result-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 13px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(255,247,237,0.94));
+  color: var(--rarity-color);
+  opacity: 1;
+  transition: opacity 0.34s ease, visibility 0.34s ease;
+  pointer-events: none;
+}
+
+.omamori-result-loading--done {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.omamori-result-loading span {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  border: 4px solid color-mix(in srgb, var(--rarity-color) 18%, white);
+  border-top-color: var(--rarity-color);
+  animation: omamoriResultLoadingSpin 0.86s linear infinite;
+}
+
+.omamori-result-loading strong {
+  font-size: 13px;
+  font-weight: 900;
+}
+
 .omamori-result-label {
   position: relative;
   z-index: 2;
@@ -1956,6 +1991,10 @@ rt {
 }
 
 @keyframes omamoriRaysSpin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes omamoriResultLoadingSpin {
   to { transform: rotate(360deg); }
 }
 
