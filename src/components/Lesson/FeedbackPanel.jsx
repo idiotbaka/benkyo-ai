@@ -5,12 +5,15 @@ import useAiStore from '../../store/aiStore';
 import { judgeAnswer } from '../../lib/judge-answer';
 import { playSoundEffect, SOUND_EFFECT_TYPES } from '../../lib/sound-effects';
 import { useIcon } from '../../lib/icons';
+import RubyText from '../UI/RubyText';
 
 export default function FeedbackPanel({
   feedbackState,
   question,
   userAnswer,
   correctAnswer,
+  correctAnswerLabel = '正解',
+  correctAnswerRuby,
   hint,
   onContinue,
   onOverturn,
@@ -144,7 +147,7 @@ export default function FeedbackPanel({
             {/* Wrong state: show correct answer */}
             {(!isCorrect || showCorrectAnswerOnCorrect) && correctAnswer && (
               <p className="text-sm font-medium mt-0.5" style={{ color: isCorrect ? '#16A34A' : isReviewWrong ? '#92400E' : '#DC2626' }}>
-                正解：<span className="jp font-bold text-base">{correctAnswer}</span>
+                {correctAnswerLabel}：<span className="jp font-bold text-base"><RubyText text={correctAnswer} rubyMap={correctAnswerRuby || {}} /></span>
               </p>
             )}
             {detailText && (

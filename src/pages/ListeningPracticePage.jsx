@@ -146,9 +146,8 @@ function ListeningPracticeScreen() {
         feedbackState={practice.feedbackState}
         question={q}
         userAnswer={practice.selectedAnswer}
-        correctAnswer={null}
-        detailText={q.translation}
-        detailLabel="中文"
+        correctAnswer={practice.feedbackState === 'wrong' ? q.sentence : null}
+        correctAnswerRuby={q.ruby}
         onContinue={handleContinue}
       />
 

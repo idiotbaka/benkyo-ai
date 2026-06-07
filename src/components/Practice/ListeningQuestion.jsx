@@ -83,6 +83,11 @@ export default function ListeningQuestion({ question, onAnswer, feedbackState })
         <p className="text-sm font-bold text-[#6B7280]">
           听音频，拼出完整日语句子
         </p>
+        {question.translation && (
+          <p className="max-w-full rounded-2xl bg-[#F5F3FF] px-3 py-2 text-sm font-bold leading-relaxed text-[#4B5563]">
+            {question.translation}
+          </p>
+        )}
       </div>
 
       <div className="flex flex-1 flex-col justify-center">
