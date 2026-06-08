@@ -400,7 +400,7 @@ function GenErrorPhase({ error, onRetry, onClose }) {
         >取消</button>
         <button onClick={onRetry} className="btn-press"
           style={{ flex: 2, padding: '14px 0', borderRadius: 14, background: 'var(--tp)', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 15, color: '#fff' }}
-        >重新生成</button>
+        >重试一次</button>
       </div>
     </div>
   );

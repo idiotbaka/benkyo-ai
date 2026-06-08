@@ -221,6 +221,7 @@ export default function CreateCourseSheet({ onClose, onDone }) {
   const sheetRef = useRef(null);
   const contentRef = useRef(null);
   const abortRef = useRef(null);
+  const generationCheckpointRef = useRef(null);
 
   const setChapters = useCourseStore(s => s.setChapters);
   const setLearningProfile = useUserStore(s => s.setLearningProfile);
@@ -311,9 +312,11 @@ export default function CreateCourseSheet({ onClose, onDone }) {
     });
 
     setPhase('generating');
-    setGenStep(0);
-    setGenMsg(GEN_STEPS[0].label);
-    setGenProgress(0);
+    const savedCheckpoint = generationCheckpointRef.current;
+    const resumeStep = savedCheckpoint?.grammarSections ? 2 : savedCheckpoint?.scaffold ? 1 : 0;
+    setGenStep(resumeStep);
+    setGenMsg(GEN_STEPS[resumeStep]?.label || GEN_STEPS[0].label);
+    setGenProgress(savedCheckpoint?.grammarSections ? 2 / 3 : savedCheckpoint?.scaffold ? 1 / 3 : 0);
 
     const controller = new AbortController();
     abortRef.current = controller;
@@ -329,10 +332,18 @@ export default function CreateCourseSheet({ onClose, onDone }) {
             setGenProgress(overallProgress);
             setGenMsg(message || GEN_STEPS[stepIndex]?.label || '');
           },
+          resumeState: savedCheckpoint,
+          onCheckpoint: checkpoint => {
+            generationCheckpointRef.current = {
+              ...(generationCheckpointRef.current ?? {}),
+              ...checkpoint,
+            };
+          },
           signal: controller.signal,
         }
       );
 
+      generationCheckpointRef.current = null;
       setChapters([chapter]);
       doDone();
     } catch (err) {
@@ -349,9 +360,8 @@ export default function CreateCourseSheet({ onClose, onDone }) {
   };
 
   const handleRetry = () => {
-    setPhase('wizard');
-    setStep(TOTAL_STEPS - 1); // back to last question
     setError('');
+    void handleGenerate();
   };
 
   // ── Topic options (dynamic based on level answer, paginated) ───────────────
@@ -801,7 +811,7 @@ function ErrorContent({ error, onRetry, onClose }) {
             fontWeight: 700, fontSize: 15, color: '#fff',
           }}
         >
-          重新生成 →
+          重试一次 →
         </button>
       </div>
     </div>

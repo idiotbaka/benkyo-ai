@@ -292,6 +292,17 @@ function createChapterProgressHandler(onProgress, stepIndex) {
   return handler;
 }
 
+function emitCompletedChapterStep(onProgress, stepIndex, message) {
+  const handler = createChapterProgressHandler(onProgress, stepIndex);
+  handler({
+    phase: CHAPTER_PHASES[stepIndex]?.id,
+    status: 'done',
+    stepProgress: 1,
+    receivedChars: 0,
+    message,
+  });
+}
+
 // ─── Human-readable label maps ─────────────────────────────────────────────────
 
 const LEVEL_LABELS = {
@@ -1199,23 +1210,35 @@ ${COMPACT_JSON_OUTPUT_RULE}`,
  * @param {AbortSignal} [options.signal] - 取消信号
  * @returns {Promise<object>} 完整章节对象（符合 courses.json 结构）
  */
-export async function generateFirstChapter(aiConfig, userAnswers, { onProgress, signal } = {}) {
+export async function generateFirstChapter(aiConfig, userAnswers, { onProgress, signal, resumeState, onCheckpoint } = {}) {
   const sig = signal ?? AbortSignal.timeout(300_000);
 
-  const scaffold = await generateScaffold(
-    aiConfig,
-    userAnswers,
-    sig,
-    createChapterProgressHandler(onProgress, 0)
-  );
+  let scaffold = resumeState?.scaffold;
+  if (scaffold) {
+    emitCompletedChapterStep(onProgress, 0, '🏗️ 规划课程结构 · 已完成');
+  } else {
+    scaffold = await generateScaffold(
+      aiConfig,
+      userAnswers,
+      sig,
+      createChapterProgressHandler(onProgress, 0)
+    );
+    onCheckpoint?.({ scaffold });
+  }
 
-  const grammarSections = await generateGrammarSections(
-    aiConfig,
-    scaffold,
-    userAnswers,
-    sig,
-    createChapterProgressHandler(onProgress, 1)
-  );
+  let grammarSections = resumeState?.grammarSections;
+  if (grammarSections) {
+    emitCompletedChapterStep(onProgress, 1, '📚 生成语法讲解 · 已完成');
+  } else {
+    grammarSections = await generateGrammarSections(
+      aiConfig,
+      scaffold,
+      userAnswers,
+      sig,
+      createChapterProgressHandler(onProgress, 1)
+    );
+    onCheckpoint?.({ scaffold, grammarSections });
+  }
 
   const level1Questions = await generateLevel1Questions(
     aiConfig,
@@ -1249,7 +1272,7 @@ export async function generateFirstChapter(aiConfig, userAnswers, { onProgress, 
  *   userAnswers:   learningProfile（{ level, pace, purpose, style, extra }）
  * @param {{ onProgress?, signal? }} options
  */
-export async function generateNextChapter(aiConfig, context, { onProgress, signal } = {}) {
+export async function generateNextChapter(aiConfig, context, { onProgress, signal, resumeState, onCheckpoint } = {}) {
   const sig = signal ?? AbortSignal.timeout(300_000);
   const { recentChapters, extraNote, userAnswers } = context;
 
@@ -1268,21 +1291,33 @@ export async function generateNextChapter(aiConfig, context, { onProgress, signa
 
   const enrichedUserAnswers = { ...(userAnswers ?? {}), extra: enrichedExtra };
 
-  const scaffold = await generateNextScaffold(
-    aiConfig,
-    context,
-    chapterId,
-    sig,
-    createChapterProgressHandler(onProgress, 0)
-  );
+  let scaffold = resumeState?.scaffold;
+  if (scaffold) {
+    emitCompletedChapterStep(onProgress, 0, '🏗️ 规划课程结构 · 已完成');
+  } else {
+    scaffold = await generateNextScaffold(
+      aiConfig,
+      context,
+      chapterId,
+      sig,
+      createChapterProgressHandler(onProgress, 0)
+    );
+    onCheckpoint?.({ scaffold });
+  }
 
-  const grammarSections = await generateGrammarSections(
-    aiConfig,
-    scaffold,
-    enrichedUserAnswers,
-    sig,
-    createChapterProgressHandler(onProgress, 1)
-  );
+  let grammarSections = resumeState?.grammarSections;
+  if (grammarSections) {
+    emitCompletedChapterStep(onProgress, 1, '📚 生成语法讲解 · 已完成');
+  } else {
+    grammarSections = await generateGrammarSections(
+      aiConfig,
+      scaffold,
+      enrichedUserAnswers,
+      sig,
+      createChapterProgressHandler(onProgress, 1)
+    );
+    onCheckpoint?.({ scaffold, grammarSections });
+  }
 
   const level1Questions = await generateLevel1Questions(
     aiConfig,

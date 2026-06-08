@@ -9,6 +9,7 @@ const INITIAL_STATE = {
   status: 'idle',
   requestId: 0,
   request: null,
+  checkpoint: null,
   stepIndex: 0,
   message: '',
   progress: 0,
@@ -16,6 +17,19 @@ const INITIAL_STATE = {
 };
 
 let _requestSeq = 0;
+
+function getNextChapterId(chapters) {
+  return `ch${(chapters?.length ?? 0) + 1}`;
+}
+
+function getRequestKey({ selectedTopic, extraNote = '', chapterId, baseChapterCount }) {
+  return JSON.stringify({
+    chapterId,
+    baseChapterCount,
+    selectedTopic,
+    extraNote,
+  });
+}
 
 /**
  * 下一章节生成任务的全局运行态。
@@ -47,15 +61,29 @@ const useNextChapterGenStore = create((set, get) => ({
       return false;
     }
 
+    const chapterId = getNextChapterId(chapters);
+    const requestKey = getRequestKey({
+      selectedTopic,
+      extraNote,
+      chapterId,
+      baseChapterCount: chapters.length,
+    });
+
     const requestId = ++_requestSeq;
-    const request = { selectedTopic, extraNote };
+    const existingCheckpoint = get().checkpoint;
+    const request = { selectedTopic, extraNote, chapterId, requestKey, baseChapterCount: chapters.length };
+    const checkpoint = existingCheckpoint?.meta?.requestKey === requestKey
+      ? existingCheckpoint
+      : null;
+    const resumeStep = checkpoint?.data?.grammarSections ? 2 : checkpoint?.data?.scaffold ? 1 : 0;
     set({
       status: 'generating',
       requestId,
       request,
-      stepIndex: 0,
-      message: '🏗️ 规划课程结构',
-      progress: 0,
+      checkpoint,
+      stepIndex: resumeStep,
+      message: resumeStep === 2 ? '📝 生成第一关题目' : resumeStep === 1 ? '📚 生成语法讲解' : '🏗️ 规划课程结构',
+      progress: checkpoint?.data?.grammarSections ? 2 / 3 : checkpoint?.data?.scaffold ? 1 / 3 : 0,
       error: '',
     });
 
@@ -64,6 +92,7 @@ const useNextChapterGenStore = create((set, get) => ({
       request,
       aiConfig,
       chapters,
+      checkpoint,
       learningProfile: useUserStore.getState().learningProfile,
     });
     return true;
@@ -80,7 +109,7 @@ const useNextChapterGenStore = create((set, get) => ({
     set({ ...INITIAL_STATE });
   },
 
-  async _run({ requestId, request, aiConfig, chapters, learningProfile }) {
+  async _run({ requestId, request, aiConfig, chapters, checkpoint, learningProfile }) {
     const keepAwakeToken = acquireKeepScreenAwake('next-chapter-generation');
 
     try {
@@ -99,6 +128,23 @@ const useNextChapterGenStore = create((set, get) => ({
             message: message || '',
           });
         },
+        resumeState: checkpoint?.data,
+        onCheckpoint: nextCheckpoint => {
+          if (get().requestId !== requestId) return;
+          set(state => ({
+            checkpoint: {
+              meta: {
+                requestKey: request.requestKey,
+                chapterId: request.chapterId,
+                baseChapterCount: request.baseChapterCount,
+              },
+              data: {
+                ...(state.checkpoint?.data ?? {}),
+                ...nextCheckpoint,
+              },
+            },
+          }));
+        },
       });
 
       if (get().requestId !== requestId) return;
@@ -113,6 +159,7 @@ const useNextChapterGenStore = create((set, get) => ({
         stepIndex: 2,
         message: '新章节已生成',
         progress: 1,
+        checkpoint: null,
         error: '',
       });
     } catch (err) {
