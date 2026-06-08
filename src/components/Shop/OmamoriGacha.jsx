@@ -255,12 +255,12 @@ export default function OmamoriGacha() {
     <div ref={rootRef} className="omamori-gacha" data-ui-click-sfx>
       {!stageImageReady && (
         <div className="omamori-stage-loading" role="status" aria-live="polite">
-          <span>御守を準備中</span>
+          {/* <span>御守を準備中</span>
           <span className="omamori-lineup-loading__dots" aria-hidden="true">
             <i />
             <i />
             <i />
-          </span>
+          </span> */}
         </div>
       )}
       <section ref={stageRef} className={`omamori-stage omamori-stage--${phase}`}>
