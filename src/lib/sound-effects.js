@@ -23,23 +23,66 @@ const SOUND_EFFECTS = {
   [SOUND_EFFECT_TYPES.LEVEL_COMPLETE]: { src: levelCompleteSrc, volume: 0.9 },
 };
 
-const audioTemplates = new Map();
+const POOL_SIZE = 4;
+const audioPools = new Map();
+let didPrimeAudio = false;
+
+export function primeSoundEffects() {
+  if (didPrimeAudio) return;
+  didPrimeAudio = true;
+  Object.entries(SOUND_EFFECTS).forEach(([type, effect]) => {
+    getAudioPool(type, effect).players.forEach(audio => {
+      try {
+        audio.load();
+      } catch {
+        // Android WebView can throw while the page is backgrounded; playback will retry later.
+      }
+    });
+  });
+}
 
 export function playSoundEffect(type) {
   const effect = SOUND_EFFECTS[type];
   if (!effect) return;
 
-  const audio = getAudioTemplate(type, effect).cloneNode();
-  audio.volume = effect.volume;
-  void audio.play().catch(() => {});
-}
+  const pool = getAudioPool(type, effect);
+  const index = pool.cursor;
+  pool.cursor = (pool.cursor + 1) % pool.players.length;
 
-function getAudioTemplate(type, effect) {
-  if (!audioTemplates.has(type)) {
-    const audio = new Audio(effect.src);
-    audio.preload = 'auto';
-    audioTemplates.set(type, audio);
+  let audio = pool.players[index];
+  if (!audio || audio.error || audio.networkState === HTMLMediaElement.NETWORK_NO_SOURCE) {
+    audio = createAudio(effect);
+    pool.players[index] = audio;
   }
 
-  return audioTemplates.get(type);
+  audio.pause();
+  try {
+    audio.currentTime = 0;
+  } catch {
+    audio = createAudio(effect);
+    pool.players[index] = audio;
+  }
+  audio.volume = effect.volume;
+  void audio.play().catch(() => {
+    pool.players[index] = createAudio(effect);
+  });
+}
+
+function getAudioPool(type, effect) {
+  if (!audioPools.has(type)) {
+    audioPools.set(type, {
+      cursor: 0,
+      players: Array.from({ length: POOL_SIZE }, () => createAudio(effect)),
+    });
+  }
+
+  return audioPools.get(type);
+}
+
+function createAudio(effect) {
+  const audio = new Audio(effect.src);
+  audio.preload = 'auto';
+  audio.volume = effect.volume;
+  audio.setAttribute('playsinline', '');
+  return audio;
 }

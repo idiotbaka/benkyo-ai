@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { playSoundEffect, SOUND_EFFECT_TYPES } from '../../lib/sound-effects';
+import { playSoundEffect, primeSoundEffects, SOUND_EFFECT_TYPES } from '../../lib/sound-effects';
 
 /**
  * Central UI sound router.
@@ -10,6 +10,10 @@ import { playSoundEffect, SOUND_EFFECT_TYPES } from '../../lib/sound-effects';
  */
 export default function SoundEffectProvider() {
   useEffect(() => {
+    const handleFirstInteraction = () => {
+      primeSoundEffects();
+    };
+
     const handleClick = event => {
       if (!(event.target instanceof Element)) return;
 
@@ -26,8 +30,14 @@ export default function SoundEffectProvider() {
       }
     };
 
+    document.addEventListener('pointerdown', handleFirstInteraction, { capture: true, once: true });
+    document.addEventListener('touchstart', handleFirstInteraction, { capture: true, once: true, passive: true });
     document.addEventListener('click', handleClick, true);
-    return () => document.removeEventListener('click', handleClick, true);
+    return () => {
+      document.removeEventListener('pointerdown', handleFirstInteraction, true);
+      document.removeEventListener('touchstart', handleFirstInteraction, true);
+      document.removeEventListener('click', handleClick, true);
+    };
   }, []);
 
   return null;
