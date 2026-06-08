@@ -52,6 +52,11 @@ function ListeningPracticeScreen() {
     nextQuestion();
   };
 
+  const handleSubmitAnswer = useCallback((answerSegments) => {
+    stopJapaneseSpeech();
+    submitAnswer(answerSegments);
+  }, [submitAnswer]);
+
   const handleCoinCollect = useCallback((amount) => {
     const gained = Number(amount) || 0;
     if (gained <= 0) return;
@@ -134,7 +139,7 @@ function ListeningPracticeScreen() {
             <ListeningQuestion
               key={questionInstanceKey}
               question={q}
-              onAnswer={submitAnswer}
+              onAnswer={handleSubmitAnswer}
               feedbackState={practice.feedbackState}
             />
           </div>

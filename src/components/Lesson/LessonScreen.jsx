@@ -49,6 +49,11 @@ export default function LessonScreen() {
     nextQuestion();
   };
 
+  const handleSubmitAnswer = useCallback((answer) => {
+    stopJapaneseSpeech();
+    submitAnswer(answer);
+  }, [submitAnswer]);
+
   const showTemporaryMatchBattleState = useCallback((battleState) => {
     clearTimeout(matchBattleTimerRef.current);
     setMatchBattleState(battleState);
@@ -56,6 +61,18 @@ export default function LessonScreen() {
       setMatchBattleState(null);
     }, 700);
   }, []);
+
+  const handleWrongMatch = useCallback(() => {
+    stopJapaneseSpeech();
+    showTemporaryMatchBattleState('wrong');
+    deductHeart();
+  }, [deductHeart, showTemporaryMatchBattleState]);
+
+  const handlePairMatched = useCallback(() => {
+    stopJapaneseSpeech();
+    showTemporaryMatchBattleState('correct');
+    awardPairCoin();
+  }, [awardPairCoin, showTemporaryMatchBattleState]);
 
   useEffect(() => () => {
     clearTimeout(matchBattleTimerRef.current);
@@ -197,7 +214,7 @@ export default function LessonScreen() {
               <WordFillQuestion
                 key={questionInstanceKey}
                 question={q}
-                onAnswer={submitAnswer}
+                onAnswer={handleSubmitAnswer}
                 feedbackState={lesson.feedbackState}
                 selectedAnswer={lesson.selectedAnswer}
               />
@@ -206,7 +223,7 @@ export default function LessonScreen() {
               <SentenceTranslateQuestion
                 key={questionInstanceKey}
                 question={q}
-                onAnswer={submitAnswer}
+                onAnswer={handleSubmitAnswer}
                 feedbackState={lesson.feedbackState}
               />
             )}
@@ -215,17 +232,10 @@ export default function LessonScreen() {
                 key={questionInstanceKey}
                 question={q}
                 onComplete={() => {
-                  stopJapaneseSpeech();
-                  submitAnswer('matched');
+                  handleSubmitAnswer('matched');
                 }}
-                onWrongMatch={() => {
-                  showTemporaryMatchBattleState('wrong');
-                  deductHeart();
-                }}
-                onPairMatched={() => {
-                  showTemporaryMatchBattleState('correct');
-                  awardPairCoin();
-                }}
+                onWrongMatch={handleWrongMatch}
+                onPairMatched={handlePairMatched}
               />
             )}
           </div>
