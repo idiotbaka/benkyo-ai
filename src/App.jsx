@@ -4,6 +4,7 @@ import { applyTheme } from './lib/theme';
 import HomePage from './pages/HomePage';
 import LessonPage from './pages/LessonPage';
 import GrammarPage from './pages/GrammarPage';
+import LevelKnowledgePage from './pages/LevelKnowledgePage';
 import ProfileSetupPage from './pages/ProfileSetupPage';
 import ProfilePage from './pages/ProfilePage';
 import ShopPage from './pages/ShopPage';
@@ -126,6 +127,7 @@ export default function App() {
           <Route path="/practice/word-review" element={<WordReviewPracticePage />} />
           <Route path="/practice/wrong-review" element={<WrongReviewPracticePage />} />
           <Route path="/grammar/:chapterId" element={<GrammarPage />} />
+          <Route path="/level-knowledge/:chapterId/:levelId" element={<LevelKnowledgePage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Routes>
