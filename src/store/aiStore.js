@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 const THINKING_DEPTHS = new Set(['deep', 'standard', 'fast']);
+const REQUEST_MODES = new Set(['stream', 'object']);
 
 // Default base URLs for providers that have built-in presets
 export const PROVIDER_PRESETS = {
@@ -27,9 +28,16 @@ const useAiStore = create(
       modelId: '',
       baseUrl: '',
       thinkingDepth: 'deep',
+      requestMode: 'stream',
 
-      setConfig({ provider, apiKey, modelId, baseUrl }) {
-        set({ provider, apiKey, modelId, baseUrl });
+      setConfig({ provider, apiKey, modelId, baseUrl, requestMode }) {
+        set({
+          provider,
+          apiKey,
+          modelId,
+          baseUrl,
+          ...(REQUEST_MODES.has(requestMode) ? { requestMode } : {}),
+        });
       },
 
       setThinkingDepth(depth) {
@@ -38,9 +46,22 @@ const useAiStore = create(
         }
       },
 
+      setRequestMode(mode) {
+        if (REQUEST_MODES.has(mode)) {
+          set({ requestMode: mode });
+        }
+      },
+
       getConfig() {
-        const { provider, apiKey, modelId, baseUrl, thinkingDepth } = get();
-        return { provider, apiKey, modelId, baseUrl, thinkingDepth };
+        const { provider, apiKey, modelId, baseUrl, thinkingDepth, requestMode } = get();
+        return {
+          provider,
+          apiKey,
+          modelId,
+          baseUrl,
+          thinkingDepth,
+          requestMode: REQUEST_MODES.has(requestMode) ? requestMode : 'stream',
+        };
       },
     }),
     {

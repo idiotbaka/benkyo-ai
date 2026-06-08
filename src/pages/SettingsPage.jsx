@@ -41,6 +41,11 @@ const THINKING_DEPTH_OPTIONS = [
   },
 ];
 
+const REQUEST_MODE_OPTIONS = [
+  { id: 'stream', label: '流式传输（默认）' },
+  { id: 'object', label: '非流式传输' },
+];
+
 const TTS_PROVIDER_OPTIONS = Object.entries(TTS_PROVIDER_PRESETS).map(([id, info]) => ({
   id,
   label: info.label,
@@ -87,6 +92,7 @@ export default function SettingsPage() {
   const [apiKey, setApiKey] = useState(savedConfig.apiKey || '');
   const [modelId, setModelId] = useState(savedConfig.modelId || '');
   const [baseUrl, setBaseUrl] = useState(savedConfig.baseUrl || '');
+  const [requestMode, setRequestMode] = useState(savedConfig.requestMode || 'stream');
   const [showKey, setShowKey] = useState(false);
   const [ttsProvider, setTtsProvider] = useState(savedTtsProvider);
   const [ttsBaseUrl, setTtsBaseUrl] = useState(savedTtsConfig.baseUrl || savedTtsPreset.baseUrl);
@@ -121,8 +127,9 @@ export default function SettingsPage() {
       apiKey: apiKey.trim(),
       modelId: modelId.trim(),
       baseUrl: baseUrl.trim(),
+      requestMode,
     });
-  }, [provider, apiKey, modelId, baseUrl, setConfig]);
+  }, [provider, apiKey, modelId, baseUrl, requestMode, setConfig]);
 
   useEffect(() => {
     setTtsConfigStore({
@@ -534,6 +541,35 @@ export default function SettingsPage() {
             </div>
           </div>
 
+          {/* API Request Mode */}
+          <div style={{ marginBottom: 24 }}>
+            <label style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', display: 'block', marginBottom: 8 }}>
+              API 请求类型
+            </label>
+            <div style={{
+              position: 'relative',
+              background: '#F9FAFB',
+              borderRadius: 12,
+              border: '1.5px solid #E5E7EB',
+            }}>
+              <select
+                value={requestMode}
+                onChange={e => setRequestMode(e.target.value)}
+                style={{
+                  width: '100%', padding: '11px 14px',
+                  background: 'transparent', border: 'none', outline: 'none',
+                  fontSize: 14, fontWeight: 600, color: '#1E1B4B',
+                  cursor: 'pointer', appearance: 'none',
+                }}
+              >
+                {REQUEST_MODE_OPTIONS.map(opt => (
+                  <option key={opt.id} value={opt.id}>{opt.label}</option>
+                ))}
+              </select>
+              <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: 12, color: '#9CA3AF' }}>▼</span>
+            </div>
+          </div>
+
           {/* Test Button */}
           <button
             onClick={handleTest}
@@ -841,21 +877,26 @@ function getModelIdPlaceholder(provider) {
 }
 
 function getTtsProviderHint(provider) {
+
+  if (provider === 'aliyun-cosyvoice') {
+    return '访问 https://bailian.console.aliyun.com/ 进行开通';
+  }
+
   if (provider === 'aliyun-qwen-tts') {
-    return 'Qwen-TTS 会固定传入 language_type=Japanese；当前只需配置 Base URL、模型 ID、API 密钥和音色 Voice。';
+    return '访问 https://bailian.console.aliyun.com/ 进行开通';
   }
 
   if (provider === 'aliyun-minimax-tts') {
-    return 'MiniMax 会固定传入 voice_setting.language_boost=Japanese；音色 Voice 会作为 voice_setting.voice_id。';
+    return '访问 https://bailian.console.aliyun.com/ 进行开通';
   }
 
   if (provider === 'minimax-official-tts') {
-    return 'MiniMax 官方 API 会固定传入 voice_setting.language_boost=Japanese；音色 Voice 会作为 voice_setting.voice_id。';
+    return '访问 https://platform.minimaxi.com/console/personal-info 进行开通';
   }
 
   if (provider === 'volcengine-doubao-tts') {
-    return '豆包语音会使用 X-Api-Key 和 X-Api-Resource-Id 鉴权；模型 ID 会作为 X-Api-Resource-Id，音色 Voice 会作为 req_params.speaker，并固定 explicit_language=ja。';
+    return '访问 https://www.volcengine.com/product/tts 进行开通';
   }
 
-  return '默认试音参数：format=mp3（设备兼容最佳），sample_rate=24000（语音清晰且体积适中），rate=1.0，bit_rate=64。';
+  return '未配置 TTS 时，APP 基础功能不受影响，但语音输出相关功能无法使用。';
 }

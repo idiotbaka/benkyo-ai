@@ -50,6 +50,10 @@ const CHAPTER_PHASES = [
   { id: 'questions', weight: 0.50 },
 ];
 
+function shouldUseStreamRequest(aiConfig) {
+  return aiConfig?.requestMode !== 'object';
+}
+
 function buildProgressMessage(baseMessage, status, progress) {
   if (status === 'thinking') return `${baseMessage} · 模型正在思考…`;
   if (status === 'generating') return `${baseMessage} · 正在生成完整内容，约 ${Math.round(progress * 100)}%`;
@@ -162,6 +166,20 @@ async function generateJsonWithProgress(aiConfig, callOptions, {
   reporter.start();
 
   try {
+    if (!shouldUseStreamRequest(aiConfig)) {
+      reporter.generating();
+      const { object } = await generateObjectWithDebugLog(aiConfig, {
+        ...callOptions,
+        output: 'no-schema',
+      }, {
+        phase,
+        mode: 'generateObject',
+      });
+      reporter.validating();
+      reporter.done();
+      return object;
+    }
+
     let streamedText = '';
     try {
       const result = streamText(applyThinkingOpts(aiConfig, {
@@ -219,6 +237,15 @@ async function generateJsonObjectWithProgress(aiConfig, callOptions, {
   onProgress,
   mode = 'generateObject',
 }) {
+  if (shouldUseStreamRequest(aiConfig)) {
+    return generateJsonWithProgress(aiConfig, callOptions, {
+      phase,
+      baseMessage,
+      expectedChars,
+      onProgress,
+    });
+  }
+
   const reporter = createProgressReporter({ phase, baseMessage, expectedChars, onProgress });
   reporter.start();
   reporter.generating();
@@ -1124,9 +1151,8 @@ export async function generateChapterRecommendations(aiConfig, { recentChapters,
   const userCtx = userAnswers ? buildUserContext(userAnswers) : '';
   const extraHint = userAnswers?.extra?.trim() ? `\n学习者个性化需求：${userAnswers.extra.trim()}` : '';
 
-  const { object: raw } = await generateObjectWithDebugLog(aiConfig, {
+  const raw = await generateJsonWithProgress(aiConfig, {
     model,
-    output: 'no-schema',
     system: `你是专业的日语互动课程顾问。根据学习者的已学内容和水平，规划具有剧情连续性、语法递进合理的下一章节候选方向。${userCtx ? `\n学习者信息：\n${userCtx}` : ''}`,
     prompt: `【下一章节编号】
 必须推荐第 ${nextChapterNum} 章。四个候选标题都必须严格使用「第${nextChapterNum}章：中文故事标题」格式；它们是同一个下一章节的四种备选方向，不是连续四章。
@@ -1157,7 +1183,8 @@ ${COMPACT_JSON_OUTPUT_RULE}`,
     maxRetries: 1,
   }, {
     phase: 'recommendations',
-    mode: 'generateObject',
+    baseMessage: '🧭 生成章节推荐',
+    expectedChars: EXPECTED_JSON_CHARS.recommendations,
   });
 
   const decoded = decodeRecommendationsWire(raw);
