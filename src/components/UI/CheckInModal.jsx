@@ -3,6 +3,15 @@ import gsap from 'gsap';
 import { useIcon } from '../../lib/icons';
 import { playSoundEffect, SOUND_EFFECT_TYPES } from '../../lib/sound-effects';
 
+let lastCheckInSoundAt = 0;
+
+function playCheckInSoundOnce() {
+  const now = Date.now();
+  if (now - lastCheckInSoundAt < 900) return;
+  lastCheckInSoundAt = now;
+  playSoundEffect(SOUND_EFFECT_TYPES.LEVEL_COMPLETE);
+}
+
 /**
  * CheckInModal — 每日签到成功弹窗
  * Props:
@@ -20,7 +29,7 @@ export default function CheckInModal({ coins, onDismiss }) {
   const btnRef      = useRef(null);
 
   useEffect(() => {
-    playSoundEffect(SOUND_EFFECT_TYPES.LEVEL_COMPLETE);
+    playCheckInSoundOnce();
 
     const overlay  = overlayRef.current;
     const card     = cardRef.current;
@@ -92,7 +101,10 @@ export default function CheckInModal({ coins, onDismiss }) {
 
     tl.to(btn, { opacity: 1, y: 0, duration: 0.3, ease: 'back.out(2)' }, '-=0.3');
 
-    return () => tl.kill();
+    return () => {
+      tl.kill();
+      particle.replaceChildren();
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDismiss = () => {

@@ -474,6 +474,7 @@ export default function ProfilePage() {
           title="签到额外奖励！"
           subtitle="奖励已放入背包"
           sourceLabel="每日签到"
+          playSound={false}
           onDismiss={() => {
             setCheckInItemReward(null);
             queueBadgeUnlocks();

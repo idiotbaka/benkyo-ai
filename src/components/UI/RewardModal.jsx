@@ -10,6 +10,7 @@ export default function RewardModal({
   subtitle = '奖励已放入背包',
   sourceLabel = '奖励',
   zIndex = 140,
+  playSound = true,
   onDismiss,
 }) {
   const rewardIcon = useIcon(reward?.iconPath);
@@ -25,7 +26,9 @@ export default function RewardModal({
   const isCoins = reward?.type === 'coins';
 
   useEffect(() => {
-    playSoundEffect(SOUND_EFFECT_TYPES.LEVEL_COMPLETE);
+    if (playSound) {
+      playSoundEffect(SOUND_EFFECT_TYPES.LEVEL_COMPLETE);
+    }
 
     const overlay = overlayRef.current;
     const card = cardRef.current;
@@ -99,7 +102,7 @@ export default function RewardModal({
       tl.kill();
       particle.replaceChildren();
     };
-  }, [amount, isCoins, rewardIcon]);
+  }, [amount, isCoins, playSound, rewardIcon]);
 
   const handleDismiss = () => {
     const tl = gsap.timeline({ onComplete: onDismiss });
