@@ -71,7 +71,6 @@ export const ITEM_DEFINITIONS = [
     color: '#D97706',
     badgeBg: 'linear-gradient(135deg, #FDE68A, #FBBF24)',
     purchasable: false,
-    usable: false,
   },
   {
     id: 'giftbox2',
@@ -84,7 +83,6 @@ export const ITEM_DEFINITIONS = [
     color: '#7C3AED',
     badgeBg: 'linear-gradient(135deg, #DDD6FE, #A78BFA)',
     purchasable: false,
-    usable: false,
   },
   {
     id: 'giftbox3',
@@ -97,7 +95,6 @@ export const ITEM_DEFINITIONS = [
     color: '#2563EB',
     badgeBg: 'linear-gradient(135deg, #BFDBFE, #60A5FA)',
     purchasable: false,
-    usable: false,
   },
   {
     id: 'cake',

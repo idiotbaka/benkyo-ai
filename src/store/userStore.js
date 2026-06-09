@@ -321,6 +321,20 @@ const useUserStore = create(
         return true;
       },
 
+      useGiftbox(itemId, reward) {
+        if (!['giftbox1', 'giftbox2', 'giftbox3'].includes(itemId)) return false;
+        const { inventory } = get();
+        const count = inventory?.[itemId] ?? 0;
+        if (count <= 0 || !reward) return false;
+        set({
+          inventory: {
+            ...inventory,
+            [itemId]: count - 1,
+          },
+        });
+        return get().grantReward(reward);
+      },
+
       // Restore one heart (used when AI overturns a wrong answer)
       restoreHeart() {
         const { hearts, nextHeartAt } = get();

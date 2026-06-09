@@ -3,7 +3,9 @@ import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import useUserStore, { MAX_HEARTS } from '../../store/userStore';
 import { ITEM_DEFINITIONS } from '../../data/shopItems';
+import { drawGiftboxOpenReward } from '../../lib/giftbox-rewards';
 import XpBoostActivationModal from '../UI/XpBoostActivationModal';
+import RewardModal from '../UI/RewardModal';
 import { useIcon, useIconResolver } from '../../lib/icons';
 
 gsap.registerPlugin(useGSAP);
@@ -16,6 +18,7 @@ export default function BackpackSheet({ onClose, onBadgeProgressChange }) {
   const consumeCake    = useUserStore(s => s.useCake);
   const consumeCoffee  = useUserStore(s => s.useCoffee);
   const consumeSweetsSet = useUserStore(s => s.useSweetsSet);
+  const openGiftbox = useUserStore(s => s.useGiftbox);
   const activateXpCard = useUserStore(s => s.useXpCard);
   const activateCoinCard = useUserStore(s => s.useCoinCard);
   const lastCoffeeUsedDate = useUserStore(s => s.lastCoffeeUsedDate);
@@ -23,6 +26,7 @@ export default function BackpackSheet({ onClose, onBadgeProgressChange }) {
   const resolveIcon = useIconResolver();
 
   const [activationBoost, setActivationBoost] = useState(null);
+  const [giftboxReward, setGiftboxReward] = useState(null);
 
   // Brief button flash: itemId → 'used' | 'full'
   const [flash, setFlash] = useState({});
@@ -54,6 +58,13 @@ export default function BackpackSheet({ onClose, onBadgeProgressChange }) {
     if (f === 'used') return { label: '✓ 已使用', bg: '#22C55E', color: 'white', shadow: 'none', cursor: 'default' };
     if (count === 0) return { label: '使用', bg: '#F3F4F6', color: '#D1D5DB', shadow: 'none', cursor: 'not-allowed' };
     if (item.usable === false) return { label: '收纳中', bg: '#F3F4F6', color: '#9CA3AF', shadow: 'none', cursor: 'default' };
+    if (item.id?.startsWith('giftbox')) return {
+      label: '开启',
+      bg: 'linear-gradient(135deg, #F59E0B, #EF4444)',
+      color: 'white',
+      shadow: '0 3px 10px rgba(245,158,11,0.28)',
+      cursor: 'pointer',
+    };
     if (item.id === 'coffee' && coffeeUsedToday)
       return { label: '今日已用', bg: '#E0F2FE', color: '#0369A1', shadow: 'none', cursor: 'not-allowed' };
     if (item.id === 'coffee' && !hasActiveBoost)
@@ -95,6 +106,12 @@ export default function BackpackSheet({ onClose, onBadgeProgressChange }) {
     if (item.id === 'sweets_set') {
       const ok = consumeSweetsSet();
       triggerFlash(item.id, ok ? 'used' : 'full');
+    }
+    if (item.id?.startsWith('giftbox')) {
+      const reward = drawGiftboxOpenReward(item.id);
+      const ok = openGiftbox(item.id, reward);
+      if (ok) setGiftboxReward(reward);
+      else triggerFlash(item.id, 'full');
     }
   };
 
@@ -291,6 +308,19 @@ export default function BackpackSheet({ onClose, onBadgeProgressChange }) {
           multiplier={activationBoost.multiplier}
           boostType={activationBoost.boostType}
           onDismiss={() => setActivationBoost(null)}
+        />
+      )}
+      {giftboxReward && (
+        <RewardModal
+          reward={giftboxReward}
+          title="宝箱开启！"
+          subtitle="奖励已发放"
+          sourceLabel="礼物盒"
+          zIndex={220}
+          onDismiss={() => {
+            setGiftboxReward(null);
+            onBadgeProgressChange?.();
+          }}
         />
       )}
     </div>

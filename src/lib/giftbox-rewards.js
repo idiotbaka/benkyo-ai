@@ -14,6 +14,21 @@ function createItemReward(itemId) {
   };
 }
 
+function createCoinReward(min, max) {
+  const amount = Math.floor(Math.random() * (max - min + 1)) + min;
+  return {
+    type: 'coins',
+    amount,
+    label: '金币',
+    iconPath: 'item/coin.png',
+  };
+}
+
+function createItemRewardWithAmount(itemId, amount) {
+  const reward = createItemReward(itemId);
+  return reward ? { ...reward, amount } : null;
+}
+
 function pickWeighted(options) {
   const roll = Math.random();
   let cursor = 0;
@@ -62,4 +77,34 @@ export function drawWordReviewGiftboxReward() {
 
 export function createGachaGiftboxReward() {
   return createItemReward('giftbox3');
+}
+
+export function drawGiftboxOpenReward(giftboxId) {
+  if (giftboxId === 'giftbox1') {
+    return createCoinReward(40, 80);
+  }
+
+  if (giftboxId === 'giftbox2') {
+    const rewards = [
+      () => createItemReward('cake'),
+      () => createItemReward('sweets_set'),
+      () => createItemReward('coffee'),
+      () => createItemReward('xp2x_15'),
+      () => createItemReward('xp3x_15'),
+      () => createItemReward('coin2x_15'),
+      () => createCoinReward(80, 120),
+    ];
+    return rewards[Math.floor(Math.random() * rewards.length)]();
+  }
+
+  if (giftboxId === 'giftbox3') {
+    const rewards = [
+      () => createItemRewardWithAmount('sweets_set', 3),
+      () => createItemRewardWithAmount('coin3x_15', 2),
+      () => createCoinReward(300, 500),
+    ];
+    return rewards[Math.floor(Math.random() * rewards.length)]();
+  }
+
+  return null;
 }
