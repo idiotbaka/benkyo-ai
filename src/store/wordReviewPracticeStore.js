@@ -48,9 +48,9 @@ const useWordReviewPracticeStore = create((set, get) => ({
     let coinsEarned = practice.coinsEarned;
     let coinPop = null;
     if (isCorrect) {
-      useUserStore.getState().addCoins(COINS_PER_QUESTION);
-      coinsEarned += COINS_PER_QUESTION;
-      coinPop = createCoinPop(COINS_PER_QUESTION);
+      const awardedCoins = useUserStore.getState().addBoostedCoins(COINS_PER_QUESTION);
+      coinsEarned += awardedCoins;
+      coinPop = createCoinPop(awardedCoins);
     }
 
     set({

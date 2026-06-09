@@ -13,9 +13,19 @@ import BadgeSheet from '../components/Profile/BadgeSheet';
 import BadgeUnlockModal from '../components/Profile/BadgeUnlockModal';
 import HeartDisplay from '../components/UI/HeartDisplay';
 import CheckInModal from '../components/UI/CheckInModal';
+import RewardModal from '../components/UI/RewardModal';
 import DailyTaskSection from '../components/Profile/DailyTaskSection';
 import { useIcon } from '../lib/icons';
 import { buildBadgeProgress, getUnlockableBadgeIds } from '../lib/badge-progress';
+
+const CHECK_IN_ITEM_REWARDS = [
+  { type: 'item', itemId: 'coin2x_15', amount: 1, label: '双倍金币卡', iconPath: 'item/coin2.png' },
+  { type: 'item', itemId: 'coin3x_15', amount: 1, label: '三倍金币卡', iconPath: 'item/coin3.png' },
+];
+
+function drawCheckInItemReward() {
+  return CHECK_IN_ITEM_REWARDS[Math.floor(Math.random() * CHECK_IN_ITEM_REWARDS.length)];
+}
 
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -24,6 +34,7 @@ export default function ProfilePage() {
   const inventory = useUserStore(s => s.inventory);
   const lastCheckIn = useUserStore(s => s.lastCheckIn);
   const checkIn = useUserStore(s => s.checkIn);
+  const grantReward = useUserStore(s => s.grantReward);
   const lvImg = useIcon('ui/lv.png');
   const logoImg = useIcon('logo.png');
   const lvUpImg = useIcon('ui/level_up.png');
@@ -43,6 +54,7 @@ export default function ProfilePage() {
   const [showBackpack, setShowBackpack] = useState(false);
   const [showBadges, setShowBadges] = useState(false);
   const [checkInCoins, setCheckInCoins] = useState(null); // null = not shown
+  const [checkInItemReward, setCheckInItemReward] = useState(null);
   const [badgeUnlockQueue, setBadgeUnlockQueue] = useState([]);
   const chapters = useCourseStore(s => s.chapters);
 
@@ -450,6 +462,20 @@ export default function ProfilePage() {
           coins={checkInCoins}
           onDismiss={() => {
             setCheckInCoins(null);
+            const reward = drawCheckInItemReward();
+            grantReward(reward);
+            setCheckInItemReward(reward);
+          }}
+        />
+      )}
+      {checkInItemReward && (
+        <RewardModal
+          reward={checkInItemReward}
+          title="签到额外奖励！"
+          subtitle="奖励已放入背包"
+          sourceLabel="每日签到"
+          onDismiss={() => {
+            setCheckInItemReward(null);
             queueBadgeUnlocks();
           }}
         />

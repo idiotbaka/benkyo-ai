@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import useUserStore, { MAX_HEARTS } from '../../store/userStore';
-import { SHOP_ITEMS } from '../../data/shopItems';
+import { ITEM_DEFINITIONS } from '../../data/shopItems';
 import XpBoostActivationModal from '../UI/XpBoostActivationModal';
 import { useIcon, useIconResolver } from '../../lib/icons';
 
@@ -12,13 +12,14 @@ export default function BackpackSheet({ onClose, onBadgeProgressChange }) {
   const inventory   = useUserStore(s => s.inventory);
   const hearts      = useUserStore(s => s.hearts);
   const xpBoost     = useUserStore(s => s.xpBoost);
+  const coinBoost   = useUserStore(s => s.coinBoost);
   const consumeCake    = useUserStore(s => s.useCake);
   const activateXpCard = useUserStore(s => s.useXpCard);
+  const activateCoinCard = useUserStore(s => s.useCoinCard);
   const bagImg = useIcon('ui/bag.png');
   const resolveIcon = useIconResolver();
 
-  // Activation modal: null | 2 | 3
-  const [activationMultiplier, setActivationMultiplier] = useState(null);
+  const [activationBoost, setActivationBoost] = useState(null);
 
   // Brief button flash: itemId → 'used' | 'full'
   const [flash, setFlash] = useState({});
@@ -32,7 +33,7 @@ export default function BackpackSheet({ onClose, onBadgeProgressChange }) {
     const count = inventory?.[item.id] ?? 0;
     if (count === 0) return true;
     if (item.id === 'cake' && hearts >= MAX_HEARTS) return true;
-    if (item.multiplier && xpBoost !== null) return true; // boost already active
+    if (item.multiplier && (xpBoost !== null || coinBoost !== null)) return true; // boost already active
     return false;
   };
 
@@ -44,8 +45,8 @@ export default function BackpackSheet({ onClose, onBadgeProgressChange }) {
     if (count === 0) return { label: '使用', bg: '#F3F4F6', color: '#D1D5DB', shadow: 'none', cursor: 'not-allowed' };
     if (item.id === 'cake' && hearts >= MAX_HEARTS)
       return { label: '已满血', bg: '#FEF9C3', color: '#CA8A04', shadow: 'none', cursor: 'not-allowed' };
-    if (item.multiplier && xpBoost !== null)
-      return { label: '生效中', bg: '#D1FAE5', color: '#065F46', shadow: 'none', cursor: 'not-allowed' };
+    if (item.multiplier && (xpBoost !== null || coinBoost !== null))
+      return { label: '加成生效中', bg: '#D1FAE5', color: '#065F46', shadow: 'none', cursor: 'not-allowed' };
     return {
       label: '使用',
       bg: 'linear-gradient(135deg, var(--tp-from), var(--tp))',
@@ -58,8 +59,10 @@ export default function BackpackSheet({ onClose, onBadgeProgressChange }) {
   const handleUse = (item) => {
     if (isDisabled(item)) return;
     if (item.multiplier) {
-      const ok = activateXpCard(item.multiplier);
-      if (ok) setActivationMultiplier(item.multiplier);
+      const ok = item.boostType === 'coin'
+        ? activateCoinCard(item.multiplier)
+        : activateXpCard(item.multiplier);
+      if (ok) setActivationBoost({ multiplier: item.multiplier, boostType: item.boostType ?? 'xp' });
       else triggerFlash(item.id, 'full');
       return;
     }
@@ -90,7 +93,8 @@ export default function BackpackSheet({ onClose, onBadgeProgressChange }) {
     tl.to(overlayRef.current, { opacity: 0, duration: 0.18 }, '-=0.12');
   };
 
-  const totalItems = SHOP_ITEMS.reduce((sum, item) => sum + (inventory?.[item.id] ?? 0), 0);
+  const heldItems = ITEM_DEFINITIONS.filter(item => (inventory?.[item.id] ?? 0) > 0);
+  const totalItems = heldItems.reduce((sum, item) => sum + (inventory?.[item.id] ?? 0), 0);
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 100 }}>
@@ -124,7 +128,7 @@ export default function BackpackSheet({ onClose, onBadgeProgressChange }) {
           <div>
             <h2 style={{ fontSize: 20, fontWeight: 900, color: '#1E1B4B', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 6 }}><img src={bagImg} alt="背包" width={24} height={24} style={{ objectFit: 'contain' }} /> 我的背包</h2>
             <p style={{ fontSize: 12, color: '#9CA3AF' }}>
-              {totalItems > 0 ? `共 ${totalItems} 件道具` : '背包空空如也，快去商店购买吧！'}
+              共 {totalItems} 件道具
             </p>
           </div>
           <button
@@ -141,8 +145,12 @@ export default function BackpackSheet({ onClose, onBadgeProgressChange }) {
         </div>
 
         {/* Item list */}
-        <div style={{ overflowY: 'auto', padding: '0 16px 32px', flex: 1 }}>
-          {SHOP_ITEMS.map((item) => {
+        <div style={{ overflowY: 'auto', padding: '0 16px 32px', flex: 1, display: heldItems.length === 0 ? 'flex' : 'block', alignItems: 'center', justifyContent: 'center' }}>
+          {heldItems.length === 0 ? (
+            <p style={{ fontSize: 14, fontWeight: 800, color: '#9CA3AF', textAlign: 'center', lineHeight: 1.6 }}>
+              背包空空如也，快去商店购买吧！
+            </p>
+          ) : heldItems.map((item) => {
             const itemImg = resolveIcon(item.iconPath);
             const count = inventory?.[item.id] ?? 0;
             const disabled = isDisabled(item);
@@ -244,10 +252,11 @@ export default function BackpackSheet({ onClose, onBadgeProgressChange }) {
       </div>
 
       {/* XP boost activation celebration modal */}
-      {activationMultiplier !== null && (
+      {activationBoost !== null && (
         <XpBoostActivationModal
-          multiplier={activationMultiplier}
-          onDismiss={() => setActivationMultiplier(null)}
+          multiplier={activationBoost.multiplier}
+          boostType={activationBoost.boostType}
+          onDismiss={() => setActivationBoost(null)}
         />
       )}
     </div>

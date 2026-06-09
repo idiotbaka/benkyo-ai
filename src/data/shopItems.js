@@ -1,7 +1,7 @@
 // Shared item definitions — used by ShopPage and BackpackSheet.
 // iconPath is resolved by src/lib/icons.js according to the active icon skin.
 
-export const SHOP_ITEMS = [
+export const ITEM_DEFINITIONS = [
   {
     id: 'xp2x_15',
     name: '双倍经验卡',
@@ -14,6 +14,7 @@ export const SHOP_ITEMS = [
     badgeBg: 'linear-gradient(135deg, #FEF08A, #FDE047)',
     price: 120,
     multiplier: 2,
+    boostType: 'xp',
   },
   {
     id: 'xp3x_15',
@@ -27,6 +28,37 @@ export const SHOP_ITEMS = [
     badgeBg: 'linear-gradient(135deg, #C4B5FD, #A78BFA)',
     price: 160,
     multiplier: 3,
+    boostType: 'xp',
+  },
+  {
+    id: 'coin2x_15',
+    name: '双倍金币卡',
+    subtitle: '15 分钟',
+    desc: '答题金币变为双倍 15 分钟',
+    icon: '💰',
+    iconPath: 'item/coin2.png',
+    iconBg: '#ECFDF5',
+    color: '#059669',
+    badgeBg: 'linear-gradient(135deg, #A7F3D0, #34D399)',
+    price: 140,
+    multiplier: 2,
+    boostType: 'coin',
+    purchasable: false,
+  },
+  {
+    id: 'coin3x_15',
+    name: '三倍金币卡',
+    subtitle: '15 分钟',
+    desc: '答题金币变为三倍 15 分钟',
+    icon: '💎',
+    iconPath: 'item/coin3.png',
+    iconBg: '#DBEAFE',
+    color: '#2563EB',
+    badgeBg: 'linear-gradient(135deg, #BFDBFE, #60A5FA)',
+    price: 180,
+    multiplier: 3,
+    boostType: 'coin',
+    purchasable: false,
   },
   {
     id: 'cake',
@@ -41,3 +73,5 @@ export const SHOP_ITEMS = [
     price: 80,
   },
 ];
+
+export const SHOP_ITEMS = ITEM_DEFINITIONS.filter(item => item.purchasable !== false);

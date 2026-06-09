@@ -23,6 +23,8 @@ const getActiveXpMultiplier = () => {
   return (boost && Date.now() < boost.expiresAt) ? boost.multiplier : 1;
 };
 
+const awardBoostedCoins = (amount) => useUserStore.getState().addBoostedCoins(amount);
+
 const findLevel = (chapterId, levelId) => {
   const chapters = useCourseStore.getState().chapters;
   const chapter = chapters.find(c => c.id === chapterId);
@@ -218,9 +220,9 @@ const useGameStore = create(
           let newCoinsEarned = lesson.coinsEarned;
           let coinPop = null;
           if (isCorrect && question.type !== 'word-match') {
-            useUserStore.getState().addCoins(5);
-            newCoinsEarned += 5;
-            coinPop = createCoinPop(5);
+            const awardedCoins = awardBoostedCoins(5);
+            newCoinsEarned += awardedCoins;
+            coinPop = createCoinPop(awardedCoins);
           }
           set({
             lesson: {
@@ -250,9 +252,9 @@ const useGameStore = create(
         let newCoinsEarned = lesson.coinsEarned;
         let coinPop = null;
         if (isCorrect && question.type !== 'word-match') {
-          useUserStore.getState().addCoins(5);
-          newCoinsEarned += 5;
-          coinPop = createCoinPop(5);
+          const awardedCoins = awardBoostedCoins(5);
+          newCoinsEarned += awardedCoins;
+          coinPop = createCoinPop(awardedCoins);
         }
 
         set({
@@ -438,12 +440,12 @@ const useGameStore = create(
       awardPairCoin() {
         const { lesson } = get();
         if (!lesson) return;
-        useUserStore.getState().addCoins(1);
+        const awardedCoins = awardBoostedCoins(1);
         set({
           lesson: {
             ...lesson,
-            coinsEarned: lesson.coinsEarned + 1,
-            coinPop: createCoinPop(1),
+            coinsEarned: lesson.coinsEarned + awardedCoins,
+            coinPop: createCoinPop(awardedCoins),
           },
         });
       },

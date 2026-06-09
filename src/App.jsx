@@ -70,6 +70,7 @@ function AppInit() {
 
 function DebugConsoleCommands() {
   const [xpBoostModal, setXpBoostModal] = useState(null);
+  const [coinBoostModal, setCoinBoostModal] = useState(null);
 
   useEffect(() => {
     window.benkyoDebugXpBoost = (multiplier = 2) => {
@@ -86,19 +87,41 @@ function DebugConsoleCommands() {
       useUserStore.getState().debugAddCoins(amount)
     );
 
+    window.benkyoDebugCoinBoost = (multiplier = 2) => {
+      const result = useUserStore.getState().debugActivateCoinBoost(multiplier);
+      setCoinBoostModal(result.multiplier);
+      return {
+        ok: true,
+        multiplier: result.multiplier,
+        expiresAt: new Date(result.expiresAt).toLocaleString(),
+      };
+    };
+
     return () => {
       delete window.benkyoDebugXpBoost;
       delete window.benkyoDebugAddCoins;
+      delete window.benkyoDebugCoinBoost;
     };
   }, []);
 
-  if (xpBoostModal === null) return null;
+  if (xpBoostModal === null && coinBoostModal === null) return null;
 
   return (
-    <XpBoostActivationModal
-      multiplier={xpBoostModal}
-      onDismiss={() => setXpBoostModal(null)}
-    />
+    <>
+      {xpBoostModal !== null && (
+        <XpBoostActivationModal
+          multiplier={xpBoostModal}
+          onDismiss={() => setXpBoostModal(null)}
+        />
+      )}
+      {coinBoostModal !== null && (
+        <XpBoostActivationModal
+          multiplier={coinBoostModal}
+          boostType="coin"
+          onDismiss={() => setCoinBoostModal(null)}
+        />
+      )}
+    </>
   );
 }
 

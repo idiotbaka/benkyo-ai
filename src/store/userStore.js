@@ -24,9 +24,10 @@ const useUserStore = create(
 
       // ── XP boost system ───────────────────────────
       xpBoost: null, // { multiplier: 2|3, expiresAt: timestamp } | null
+      coinBoost: null, // { multiplier: 2|3, expiresAt: timestamp } | null
 
       // ── Inventory (backpack) ─────────────────────────
-      inventory: { xp2x_15: 0, xp3x_15: 0, cake: 0 },
+      inventory: { xp2x_15: 0, xp3x_15: 0, coin2x_15: 0, coin3x_15: 0, cake: 0 },
 
       // ── Omamori collection ───────────────────────────
       omamoriCollection: {},
@@ -94,6 +95,16 @@ const useUserStore = create(
         if (amount <= 0) return;
         useBadgeStore.getState().addCoinsEarned(amount);
         set(s => ({ coins: s.coins + amount }));
+      },
+
+      addBoostedCoins(amount) {
+        const baseAmount = Math.max(0, Number(amount) || 0);
+        if (baseAmount <= 0) return 0;
+        const { coinBoost } = get();
+        const multiplier = coinBoost && Date.now() < coinBoost.expiresAt ? coinBoost.multiplier : 1;
+        const finalAmount = Math.round(baseAmount * multiplier);
+        get().addCoins(finalAmount);
+        return finalAmount;
       },
 
       spendCoins(amount) {
@@ -167,20 +178,36 @@ const useUserStore = create(
 
       // Check if the boost has expired and clear it
       syncXpBoost() {
-        const { xpBoost } = get();
-        if (!xpBoost) return;
-        if (Date.now() >= xpBoost.expiresAt) set({ xpBoost: null });
+        const { xpBoost, coinBoost } = get();
+        const now = Date.now();
+        const next = {};
+        if (xpBoost && now >= xpBoost.expiresAt) next.xpBoost = null;
+        if (coinBoost && now >= coinBoost.expiresAt) next.coinBoost = null;
+        if (Object.keys(next).length > 0) set(next);
       },
 
       // Activate an XP card; returns true on success
       useXpCard(multiplier) {
-        const { xpBoost, inventory } = get();
-        if (xpBoost !== null) return false; // another boost is already active
+        const { xpBoost, coinBoost, inventory } = get();
+        if (xpBoost !== null || coinBoost !== null) return false; // another boost is already active
         const itemId = multiplier === 2 ? 'xp2x_15' : 'xp3x_15';
         const count = inventory?.[itemId] ?? 0;
         if (count <= 0) return false;
         set({
           xpBoost: { multiplier, expiresAt: Date.now() + 15 * 60 * 1000 },
+          inventory: { ...inventory, [itemId]: count - 1 },
+        });
+        return true;
+      },
+
+      useCoinCard(multiplier) {
+        const { xpBoost, coinBoost, inventory } = get();
+        if (xpBoost !== null || coinBoost !== null) return false;
+        const itemId = multiplier === 2 ? 'coin2x_15' : 'coin3x_15';
+        const count = inventory?.[itemId] ?? 0;
+        if (count <= 0) return false;
+        set({
+          coinBoost: { multiplier, expiresAt: Date.now() + 15 * 60 * 1000 },
           inventory: { ...inventory, [itemId]: count - 1 },
         });
         return true;
@@ -194,6 +221,23 @@ const useUserStore = create(
             multiplier: normalized,
             expiresAt,
           },
+          coinBoost: null,
+        });
+        return {
+          multiplier: normalized,
+          expiresAt,
+        };
+      },
+
+      debugActivateCoinBoost(multiplier = 2) {
+        const normalized = Number(multiplier) === 3 ? 3 : 2;
+        const expiresAt = Date.now() + 15 * 60 * 1000;
+        set({
+          coinBoost: {
+            multiplier: normalized,
+            expiresAt,
+          },
+          xpBoost: null,
         });
         return {
           multiplier: normalized,
@@ -267,6 +311,7 @@ const useUserStore = create(
         omamoriCollection: s.omamoriCollection,
         omamoriViewedDetails: s.omamoriViewedDetails,
         xpBoost: s.xpBoost,
+        coinBoost: s.coinBoost,
         lastCheckIn: s.lastCheckIn,
         learningProfile: s.learningProfile,
       }),
