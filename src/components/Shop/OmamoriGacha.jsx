@@ -8,6 +8,7 @@ import {
   OMAMORI_ITEMS,
   OMAMORI_RARITY_ORDER,
   drawOmamori,
+  getOmamoriEffect,
   getOmamoriLore,
   getOmamoriRarity,
 } from '../../data/omamoriGacha';
@@ -693,6 +694,7 @@ function OmamoriDetailModal({ item, onClose }) {
   const imageRef = useRef(null);
   const panelRef = useRef(null);
   const rarity = getOmamoriRarity(item.rarity);
+  const effect = getOmamoriEffect(item.id);
 
   useEffect(() => {
     const overlay = overlayRef.current;
@@ -743,6 +745,12 @@ function OmamoriDetailModal({ item, onClose }) {
         <h2>{item.name}</h2>
         <p className="omamori-detail-subtitle">御守・護身符</p>
         <p className="omamori-detail-lore">{item.lore}</p>
+        {effect && (
+          <div className="omamori-detail-effect" aria-label={`御守特效：${effect.label}`}>
+            <span className="omamori-detail-effect__label">特效</span>
+            <span className="omamori-detail-effect__text">{effect.label}</span>
+          </div>
+        )}
         <button type="button" onClick={dismiss} className="btn-press omamori-detail-close">
           关闭
         </button>

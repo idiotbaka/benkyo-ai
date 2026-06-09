@@ -64,6 +64,11 @@ export const OMAMORI_LORE = {
   'ssr-fujisan': '富士山在初梦文化里很吉利，“一富士二鷹三茄子”被认为是好兆头。高山不急着抵达，它只是每天安静地站在那里。',
 };
 
+export const OMAMORI_EFFECTS = {
+  'n-bakusui': { label: '商店中解锁罐装咖啡' },
+  'n-kenko': { label: '商店中解锁日式点心组合' },
+};
+
 export const OMAMORI_ITEMS = [
   { id: 'n-bakusui', rarity: 'N', name: '爆睡祈願', iconPath: 'sd/n-爆睡祈願.png' },
   { id: 'n-fufu', rarity: 'N', name: '夫婦円満', iconPath: 'sd/n-夫婦円満.png' },
@@ -105,6 +110,10 @@ export function getOmamoriRarity(rarity) {
 
 export function getOmamoriLore(itemId) {
   return OMAMORI_LORE[itemId] ?? '这枚御守静静守护着你的学习旅程。愿你在每一次练习里，都遇见一点新的勇气。';
+}
+
+export function getOmamoriEffect(itemId) {
+  return OMAMORI_EFFECTS[itemId] ?? null;
 }
 
 export function drawOmamori() {

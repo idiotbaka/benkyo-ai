@@ -1568,6 +1568,7 @@ rt {
 .omamori-detail-panel h2,
 .omamori-detail-subtitle,
 .omamori-detail-lore,
+.omamori-detail-effect,
 .omamori-detail-close {
   position: relative;
   z-index: 1;
@@ -1626,6 +1627,41 @@ rt {
   line-height: 1.62;
   font-weight: 800;
   text-align: left;
+}
+
+.omamori-detail-effect {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 11px 12px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--rarity-color) 9%, white);
+  border: 1px solid color-mix(in srgb, var(--rarity-color) 20%, white);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.78);
+  text-align: left;
+}
+
+.omamori-detail-effect__label {
+  flex: 0 0 auto;
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--rarity-color);
+  color: white;
+  font-size: 12px;
+  line-height: 24px;
+  font-weight: 900;
+  box-shadow: 0 5px 12px var(--rarity-glow);
+}
+
+.omamori-detail-effect__text {
+  min-width: 0;
+  color: #1E293B;
+  font-size: 14px;
+  line-height: 1.35;
+  font-weight: 900;
+  overflow-wrap: anywhere;
 }
 
 .omamori-detail-close {

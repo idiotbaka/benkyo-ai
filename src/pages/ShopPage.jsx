@@ -83,10 +83,26 @@ function useFlash() {
   return [flash, trigger];
 }
 
+function getPurchaseRequirementStatus(item, omamoriCollection) {
+  const requirement = item.purchaseRequirement;
+  if (!requirement) return { met: true, label: null };
+
+  if (requirement.type === 'omamori') {
+    const owned = (omamoriCollection?.[requirement.itemId] ?? 0) > 0;
+    return {
+      met: owned,
+      label: requirement.label ?? '需要指定御守',
+    };
+  }
+
+  return { met: true, label: null };
+}
+
 export default function ShopPage() {
   const coins = useUserStore(s => s.coins);
   const purchaseItem = useUserStore(s => s.purchaseItem);
   const inventory = useUserStore(s => s.inventory);
+  const omamoriCollection = useUserStore(s => s.omamoriCollection ?? {});
   const [activeView, setActiveView] = useState('items');
   const [renderedView, setRenderedView] = useState('items');
   const bagImg = useIcon('ui/bag.png');
@@ -224,6 +240,12 @@ export default function ShopPage() {
   };
 
   const handleBuy = (item) => {
+    const requirement = getPurchaseRequirementStatus(item, omamoriCollection);
+    if (!requirement.met) {
+      triggerFlash(item.id, 'broke');
+      return;
+    }
+
     if (coins < item.price) {
       triggerFlash(item.id, 'broke');
       return;
@@ -341,8 +363,11 @@ export default function ShopPage() {
               {SHOP_ITEMS.map((item) => {
                 const itemImg = resolveIcon(item.iconPath);
                 const owned = inventory?.[item.id] ?? 0;
+                const requirement = getPurchaseRequirementStatus(item, omamoriCollection);
                 const canAfford = coins >= item.price;
+                const canBuy = requirement.met && canAfford;
                 const f = flash[item.id];
+                const blockedLabel = requirement.met ? '金币不足' : '条件不足';
                 return (
                   <div
                     key={item.id}
@@ -388,19 +413,34 @@ export default function ShopPage() {
                         )}
                       </div>
                       <p style={{ fontSize: 12, color: '#6B7280', marginBottom: 6, lineHeight: 1.4 }}>{item.desc}</p>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <img src={coinImg} alt="金币" width={22} height={22} decoding="async" style={{ objectFit: 'contain' }} />
-                        <span style={{ fontSize: 15, fontWeight: 800, color: '#D97706' }}>{item.price}</span>
-                        {owned > 0 && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        {!requirement.met ? (
                           <span
                             style={{
-                              marginLeft: 4, fontSize: 11, fontWeight: 700,
-                              color: 'var(--tp)', background: 'var(--tp-lite)',
+                              fontSize: 11, fontWeight: 800,
+                              color: '#92400E', background: '#FEF3C7',
+                              border: '1px solid #FDE68A',
                               borderRadius: 10, padding: '1px 8px',
                             }}
                           >
-                            已拥有 {owned}
+                            购买条件：{requirement.label}
                           </span>
+                        ) : (
+                          <>
+                            <img src={coinImg} alt="金币" width={22} height={22} decoding="async" style={{ objectFit: 'contain' }} />
+                            <span style={{ fontSize: 15, fontWeight: 800, color: '#D97706' }}>{item.price}</span>
+                            {owned > 0 && (
+                              <span
+                                style={{
+                                  marginLeft: 4, fontSize: 11, fontWeight: 700,
+                                  color: 'var(--tp)', background: 'var(--tp-lite)',
+                                  borderRadius: 10, padding: '1px 8px',
+                                }}
+                              >
+                                已拥有 {owned}
+                              </span>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
@@ -415,18 +455,18 @@ export default function ShopPage() {
                         fontWeight: 800,
                         fontSize: 14,
                         border: 'none',
-                        cursor: canAfford ? 'pointer' : 'not-allowed',
+                        cursor: canBuy ? 'pointer' : 'not-allowed',
                         transition: 'all 0.18s',
                         ...(f === 'bought'
                           ? { background: '#22C55E', color: 'white' }
                           : f === 'broke'
                           ? { background: '#FEE2E2', color: '#EF4444' }
-                          : canAfford
+                          : canBuy
                           ? { background: 'linear-gradient(135deg, var(--tp-from), var(--tp))', color: 'white', boxShadow: '0 3px 10px rgba(91,79,233,0.32)' }
                           : { background: '#F3F4F6', color: '#9CA3AF' }),
                       }}
                     >
-                      {f === 'bought' ? '✓ 已购买' : f === 'broke' ? '金币不足' : '购买'}
+                      {f === 'bought' ? '✓ 已购买' : f === 'broke' ? blockedLabel : '购买'}
                     </button>
                   </div>
                 );
