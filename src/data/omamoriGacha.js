@@ -66,7 +66,16 @@ export const OMAMORI_LORE = {
 
 export const OMAMORI_EFFECTS = {
   'n-bakusui': { label: '商店中解锁罐装咖啡' },
-  'n-kenko': { label: '商店中解锁日式点心组合' },
+  'n-kenko': { label: '商店中解锁日式点心套装' },
+  'n-teruteru': { label: '商店中解锁团扇' },
+  'n-gakugyo': { label: '商店中解锁绘马' },
+  'n-ryoko': { label: '商店中解锁和伞' },
+  'r-enmusubi': { label: '商店中解锁风铃' },
+  'r-gokaku': { label: '商店中解锁樱花花瓣' },
+  'r-shobai': { label: '商店中解锁招财猫' },
+  'sr-tengu': { label: '商店中解锁天狗的面具' },
+  'sr-shogan': { label: '商店中解锁达摩不倒翁' },
+  'ssr-fujisan': { label: '商店中解锁迷你富士山' },
 };
 
 export const OMAMORI_ITEMS = [

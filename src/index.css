@@ -860,6 +860,15 @@ rt {
   transform: translateY(4px) rotate(8deg) scale(0.985);
 }
 
+.shop-header-art__image--equipment {
+  right: 2px;
+  bottom: -28px;
+  width: 154px;
+  height: 172px;
+  filter: drop-shadow(0 14px 18px rgba(15,118,110,0.22));
+  transform: translateY(4px) rotate(-7deg) scale(0.985);
+}
+
 .shop-header-art__image.is-active {
   opacity: 1;
 }
@@ -870,6 +879,10 @@ rt {
 
 .shop-header-art__image--omamori.is-active {
   transform: translateY(0) rotate(8deg) scale(1);
+}
+
+.shop-header-art__image--equipment.is-active {
+  transform: translateY(0) rotate(-7deg) scale(1);
 }
 
 .shop-title-icon {
@@ -903,7 +916,7 @@ rt {
   bottom: 14px;
   z-index: 8;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
   margin: 0;
   padding: 6px;
@@ -921,18 +934,18 @@ rt {
   border-radius: 15px;
   background: transparent;
   color: #6B7280;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 900;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
   cursor: pointer;
 }
 
 .shop-view-switcher button img {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   object-fit: contain;
   flex-shrink: 0;
 }
@@ -2157,7 +2170,13 @@ rt {
   }
 
   .shop-view-switcher button {
-    font-size: 12px;
+    font-size: 11px;
+    gap: 3px;
+  }
+
+  .shop-view-switcher button img {
+    width: 21px;
+    height: 21px;
   }
 
   .omamori-stage {

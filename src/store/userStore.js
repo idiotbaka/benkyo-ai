@@ -29,6 +29,7 @@ const useUserStore = create(
 
       // ── Inventory (backpack) ─────────────────────────
       inventory: { xp2x_15: 0, xp3x_15: 0, coin2x_15: 0, coin3x_15: 0, giftbox1: 0, giftbox2: 0, giftbox3: 0, coffee: 0, sweets_set: 0, cake: 0 },
+      equippedItems: {},
       lastCoffeeUsedDate: null,
 
       // ── Omamori collection ───────────────────────────
@@ -335,6 +336,20 @@ const useUserStore = create(
         return get().grantReward(reward);
       },
 
+      toggleEquipment(itemId) {
+        if (!itemId) return false;
+        const { inventory, equippedItems } = get();
+        if ((inventory?.[itemId] ?? 0) <= 0) return false;
+        const nextEquipped = !(equippedItems?.[itemId] ?? false);
+        set({
+          equippedItems: {
+            ...(equippedItems ?? {}),
+            [itemId]: nextEquipped,
+          },
+        });
+        return nextEquipped;
+      },
+
       // Restore one heart (used when AI overturns a wrong answer)
       restoreHeart() {
         const { hearts, nextHeartAt } = get();
@@ -346,12 +361,24 @@ const useUserStore = create(
       },
 
       // Purchase an item from the shop; returns true on success
-      purchaseItem(itemId, price) {
-        const { coins, inventory } = get();
+      purchaseItem(itemId, price, options = {}) {
+        const { coins, inventory, equippedItems } = get();
         if (coins < price) return false;
+        if (options.singlePurchase && (inventory?.[itemId] ?? 0) > 0) return false;
         set({
           coins: coins - price,
-          inventory: { ...inventory, [itemId]: (inventory[itemId] ?? 0) + 1 },
+          inventory: {
+            ...inventory,
+            [itemId]: options.singlePurchase ? 1 : (inventory?.[itemId] ?? 0) + 1,
+          },
+          ...(options.autoEquip
+            ? {
+              equippedItems: {
+                ...(equippedItems ?? {}),
+                [itemId]: true,
+              },
+            }
+            : {}),
         });
         return true;
       },
@@ -367,6 +394,7 @@ const useUserStore = create(
         nextHeartAt: s.nextHeartAt,
         coins: s.coins,
         inventory: s.inventory,
+        equippedItems: s.equippedItems,
         omamoriCollection: s.omamoriCollection,
         omamoriViewedDetails: s.omamoriViewedDetails,
         xpBoost: s.xpBoost,

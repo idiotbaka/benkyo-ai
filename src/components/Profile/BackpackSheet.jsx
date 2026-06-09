@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import useUserStore, { MAX_HEARTS } from '../../store/userStore';
-import { ITEM_DEFINITIONS } from '../../data/shopItems';
+import { ITEM_CATEGORIES, ITEM_DEFINITIONS } from '../../data/shopItems';
 import { drawGiftboxOpenReward } from '../../lib/giftbox-rewards';
 import XpBoostActivationModal from '../UI/XpBoostActivationModal';
 import RewardModal from '../UI/RewardModal';
@@ -15,12 +15,14 @@ export default function BackpackSheet({ onClose, onBadgeProgressChange }) {
   const hearts      = useUserStore(s => s.hearts);
   const xpBoost     = useUserStore(s => s.xpBoost);
   const coinBoost   = useUserStore(s => s.coinBoost);
+  const equippedItems = useUserStore(s => s.equippedItems ?? {});
   const consumeCake    = useUserStore(s => s.useCake);
   const consumeCoffee  = useUserStore(s => s.useCoffee);
   const consumeSweetsSet = useUserStore(s => s.useSweetsSet);
   const openGiftbox = useUserStore(s => s.useGiftbox);
   const activateXpCard = useUserStore(s => s.useXpCard);
   const activateCoinCard = useUserStore(s => s.useCoinCard);
+  const toggleEquipment = useUserStore(s => s.toggleEquipment);
   const lastCoffeeUsedDate = useUserStore(s => s.lastCoffeeUsedDate);
   const bagImg = useIcon('ui/bag.png');
   const resolveIcon = useIconResolver();
@@ -28,7 +30,7 @@ export default function BackpackSheet({ onClose, onBadgeProgressChange }) {
   const [activationBoost, setActivationBoost] = useState(null);
   const [giftboxReward, setGiftboxReward] = useState(null);
 
-  // Brief button flash: itemId → 'used' | 'full'
+  // Brief button flash: itemId -> 'used' | 'full' | 'equipped' | 'unequipped'
   const [flash, setFlash] = useState({});
   const triggerFlash = (id, type) => {
     setFlash(f => ({ ...f, [id]: type }));
@@ -43,6 +45,7 @@ export default function BackpackSheet({ onClose, onBadgeProgressChange }) {
   const isDisabled = (item) => {
     const count = inventory?.[item.id] ?? 0;
     if (count === 0) return true;
+    if (item.category === ITEM_CATEGORIES.EQUIPMENT) return false;
     if (item.usable === false) return true;
     if (item.id === 'coffee' && (!hasActiveBoost || coffeeUsedToday)) return true;
     if (item.id === 'sweets_set' && hearts >= MAX_HEARTS) return true;
@@ -56,7 +59,15 @@ export default function BackpackSheet({ onClose, onBadgeProgressChange }) {
     const count = inventory?.[item.id] ?? 0;
     const f = flash[item.id];
     if (f === 'used') return { label: '✓ 已使用', bg: '#22C55E', color: 'white', shadow: 'none', cursor: 'default' };
+    if (f === 'equipped') return { label: '✓ 装备中', bg: '#22C55E', color: 'white', shadow: 'none', cursor: 'default' };
+    if (f === 'unequipped') return { label: '已卸下', bg: '#F3F4F6', color: '#64748B', shadow: 'none', cursor: 'default' };
     if (count === 0) return { label: '使用', bg: '#F3F4F6', color: '#D1D5DB', shadow: 'none', cursor: 'not-allowed' };
+    if (item.category === ITEM_CATEGORIES.EQUIPMENT) {
+      const equipped = Boolean(equippedItems?.[item.id]);
+      return equipped
+        ? { label: '卸下', bg: '#FFF7ED', color: '#C2410C', shadow: 'none', cursor: 'pointer' }
+        : { label: '装备', bg: 'linear-gradient(135deg, #14B8A6, #22C55E)', color: 'white', shadow: '0 3px 10px rgba(20,184,166,0.24)', cursor: 'pointer' };
+    }
     if (item.usable === false) return { label: '收纳中', bg: '#F3F4F6', color: '#9CA3AF', shadow: 'none', cursor: 'default' };
     if (item.id?.startsWith('giftbox')) return {
       label: '开启',
@@ -86,6 +97,11 @@ export default function BackpackSheet({ onClose, onBadgeProgressChange }) {
 
   const handleUse = (item) => {
     if (isDisabled(item)) return;
+    if (item.category === ITEM_CATEGORIES.EQUIPMENT) {
+      const equipped = toggleEquipment(item.id);
+      triggerFlash(item.id, equipped ? 'equipped' : 'unequipped');
+      return;
+    }
     if (item.multiplier) {
       const ok = item.boostType === 'coin'
         ? activateCoinCard(item.multiplier)
@@ -195,6 +211,8 @@ export default function BackpackSheet({ onClose, onBadgeProgressChange }) {
           ) : heldItems.map((item) => {
             const itemImg = resolveIcon(item.iconPath);
             const count = inventory?.[item.id] ?? 0;
+            const isEquipment = item.category === ITEM_CATEGORIES.EQUIPMENT;
+            const equipped = isEquipment && Boolean(equippedItems?.[item.id]);
             const disabled = isDisabled(item);
             const btn = btnConfig(item);
             return (
@@ -225,21 +243,22 @@ export default function BackpackSheet({ onClose, onBadgeProgressChange }) {
                   }}
                 >
                   <img src={itemImg} alt={item.name} width={32} height={32} style={{ objectFit: 'contain' }} />
-                  {/* Count badge */}
-                  <div
-                    style={{
-                      position: 'absolute', top: -4, right: -4,
-                      minWidth: 20, height: 20,
-                      background: count > 0 ? 'var(--tp)' : '#D1D5DB',
-                      borderRadius: 10,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 11, fontWeight: 800, color: 'white',
-                      padding: '0 5px',
-                      boxShadow: '0 1px 4px rgba(0,0,0,0.18)',
-                    }}
-                  >
-                    {count}
-                  </div>
+                  {!isEquipment && (
+                    <div
+                      style={{
+                        position: 'absolute', top: -4, right: -4,
+                        minWidth: 20, height: 20,
+                        background: count > 0 ? 'var(--tp)' : '#D1D5DB',
+                        borderRadius: 10,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 11, fontWeight: 800, color: 'white',
+                        padding: '0 5px',
+                        boxShadow: '0 1px 4px rgba(0,0,0,0.18)',
+                      }}
+                    >
+                      {count}
+                    </div>
+                  )}
                 </div>
 
                 {/* Info */}
@@ -259,6 +278,11 @@ export default function BackpackSheet({ onClose, onBadgeProgressChange }) {
                     )}
                   </div>
                   <p style={{ fontSize: 12, color: '#9CA3AF', lineHeight: 1.3 }}>{item.desc}</p>
+                  {isEquipment && count > 0 && (
+                    <p style={{ fontSize: 11, color: equipped ? '#166534' : '#64748B', fontWeight: 700, marginTop: 3 }}>
+                      当前：{equipped ? '装备中' : '未装备'}{item.effectDesc ? ` · ${item.effectDesc}` : ''}
+                    </p>
+                  )}
                   {(item.id === 'cake' || item.id === 'sweets_set') && count > 0 && hearts >= MAX_HEARTS && (
                     <p style={{ fontSize: 11, color: '#CA8A04', fontWeight: 600, marginTop: 3 }}>
                       ♥ 心心已满，不需要使用
