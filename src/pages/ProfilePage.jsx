@@ -284,7 +284,7 @@ export default function ProfilePage() {
           <div className="flex">
             {[
               { icon: <img src={lvUpImg} alt="XP" width={32} height={32} style={{ objectFit: 'contain' }} />, label: '总经验', value: `${totalXp}`, unit: ' XP', color: '#F59E0B' },
-              { icon: <img src={fireImg} alt="连胜" width={32} height={32} style={{ objectFit: 'contain' }} />, label: '连胜天数', value: `${currentStreak}`, unit: ' 天', color: '#EF4444' },
+              { icon: <img src={fireImg} alt="连签" width={32} height={32} style={{ objectFit: 'contain' }} />, label: '连签天数', value: `${currentStreak}`, unit: ' 天', color: '#EF4444' },
               { icon: <img src={completedImg} alt="完成" width={32} height={32} style={{ objectFit: 'contain' }} />, label: '完成关卡', value: `${completedCount}`, unit: `/${totalLevels}`, color: 'var(--tp)' },
               { icon: <img src={collectStarImg} alt="星星" width={32} height={32} style={{ objectFit: 'contain' }} />, label: '累计星星', value: `${totalStars}`, unit: '', color: '#D97706' },
             ].map(({ icon, label, value, unit, color }) => (
