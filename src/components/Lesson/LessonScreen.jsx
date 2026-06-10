@@ -148,6 +148,8 @@ export default function LessonScreen() {
   const showUmbrellaShield = !lesson.isPractice &&
     isEquipmentEquipped(equippedItems, EQUIPMENT_IDS.UMBRELLA) &&
     !lesson.umbrellaShieldUsed;
+  const showSakuraPetalShield = lesson.practiceType === 'wrong-review' &&
+    isEquipmentEquipped(equippedItems, EQUIPMENT_IDS.SAKURA_PETAL);
 
   return (
     <div className="flex flex-col h-full relative bg-[#F5F3FF]">
@@ -214,6 +216,7 @@ export default function LessonScreen() {
             enemyHpRef={enemyHpRef}
             shouldSlide={shouldSlideBattleCharacters}
             showUmbrellaShield={showUmbrellaShield}
+            showSakuraPetalShield={showSakuraPetalShield}
           />
           <div className="lesson-answer-scroll flex-1 min-h-0 overflow-y-auto pt-4">
             {q.type === 'word-fill' && (

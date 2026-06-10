@@ -5,6 +5,7 @@ export const EQUIPMENT_IDS = {
   EMA: 'equip_ema',
   UMBRELLA: 'equip_umbrella',
   WIND_CHIME: 'equip_wind_chime',
+  SAKURA_PETAL: 'equip_sakura_petal',
 };
 
 export const ROUND_FAN_GACHA_COST = 160;
@@ -47,5 +48,14 @@ export function canUseUmbrellaShield(lesson, question, equippedItems) {
     !question._isReview &&
     !lesson.umbrellaShieldUsed &&
     isEquipmentEquipped(equippedItems, EQUIPMENT_IDS.UMBRELLA)
+  );
+}
+
+export function canUseSakuraPetalShield(lesson, question, equippedItems) {
+  return Boolean(
+    lesson &&
+    question?.type &&
+    lesson.practiceType === 'wrong-review' &&
+    isEquipmentEquipped(equippedItems, EQUIPMENT_IDS.SAKURA_PETAL)
   );
 }

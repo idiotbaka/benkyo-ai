@@ -6,7 +6,7 @@ import useVocabStore from './vocabStore';
 import useWrongQuestionStore, { getWrongQuestionId } from './wrongQuestionStore';
 import useDailyTaskStore, { DAILY_TASK_EVENTS } from './dailyTaskStore';
 import useBadgeStore from './badgeStore';
-import { applyEmaStarFloor, canUseUmbrellaShield } from '../lib/equipment-effects';
+import { applyEmaStarFloor, canUseSakuraPetalShield, canUseUmbrellaShield } from '../lib/equipment-effects';
 
 export const XP_PER_LEVEL = 200;
 export const BASE_XP = 60;
@@ -154,6 +154,7 @@ const useGameStore = create(
             coinPop: null,
             umbrellaShieldUsed: false,
             umbrellaShieldQuestionIndex: null,
+            sakuraPetalShieldedQuestionIndex: null,
             finalStars: 0,
             finalXp: 0,
             finalCoins: 0,
@@ -189,6 +190,7 @@ const useGameStore = create(
             isFailed: false,
             coinsEarned: 0,
             coinPop: null,
+            sakuraPetalShieldedQuestionIndex: null,
             finalStars: 0,
             finalXp: 0,
             finalCoins: 0,
@@ -241,15 +243,18 @@ const useGameStore = create(
           return;
         }
 
-        const shouldUseUmbrellaShield = !isCorrect && canUseUmbrellaShield(lesson, question, useUserStore.getState().equippedItems);
-        const newHearts = isCorrect || shouldUseUmbrellaShield ? lesson.hearts : Math.max(0, lesson.hearts - 1);
+        const equippedItems = useUserStore.getState().equippedItems;
+        const shouldUseUmbrellaShield = !isCorrect && canUseUmbrellaShield(lesson, question, equippedItems);
+        const shouldUseSakuraPetalShield = !isCorrect && canUseSakuraPetalShield(lesson, question, equippedItems);
+        const shouldPreventHeartLoss = shouldUseUmbrellaShield || shouldUseSakuraPetalShield;
+        const newHearts = isCorrect || shouldPreventHeartLoss ? lesson.hearts : Math.max(0, lesson.hearts - 1);
         if (isCorrect) {
           if (lesson.practiceType === 'wrong-review') {
             removeWrongQuestionFromLesson(lesson, question);
           }
         } else {
           addWrongQuestionFromLesson(lesson, question);
-          if (!shouldUseUmbrellaShield) {
+          if (!shouldPreventHeartLoss) {
             useUserStore.getState().deductHeart();
           }
         }
@@ -274,6 +279,7 @@ const useGameStore = create(
             coinPop,
             umbrellaShieldUsed: shouldUseUmbrellaShield ? true : lesson.umbrellaShieldUsed,
             umbrellaShieldQuestionIndex: shouldUseUmbrellaShield ? lesson.currentIndex : lesson.umbrellaShieldQuestionIndex,
+            sakuraPetalShieldedQuestionIndex: shouldUseSakuraPetalShield ? lesson.currentIndex : lesson.sakuraPetalShieldedQuestionIndex,
           },
         });
       },
@@ -392,8 +398,10 @@ const useGameStore = create(
           lesson.umbrellaShieldUsed &&
           lesson.umbrellaShieldQuestionIndex === lesson.currentIndex
         );
+        const wasSakuraPetalShieldedWrong = lesson.sakuraPetalShieldedQuestionIndex === lesson.currentIndex;
+        const shouldRestoreHeart = !wasUmbrellaShieldedWrong && !wasSakuraPetalShieldedWrong;
         removeWrongQuestionFromLesson(lesson, question);
-        if (!wasUmbrellaShieldedWrong) {
+        if (shouldRestoreHeart) {
           useUserStore.getState().restoreHeart();
         }
         useBadgeStore.getState().recordAppealSuccess(1);
@@ -407,13 +415,21 @@ const useGameStore = create(
           lesson: {
             ...lesson,
             correctCount: lesson.correctCount + 1,
-            hearts: wasUmbrellaShieldedWrong ? lesson.hearts : lesson.hearts + 1,
+            hearts: shouldRestoreHeart ? lesson.hearts + 1 : lesson.hearts,
             feedbackState: 'correct',
             umbrellaShieldUsed: wasUmbrellaShieldedWrong ? false : lesson.umbrellaShieldUsed,
             umbrellaShieldQuestionIndex: wasUmbrellaShieldedWrong ? null : lesson.umbrellaShieldQuestionIndex,
+            sakuraPetalShieldedQuestionIndex: wasSakuraPetalShieldedWrong ? null : lesson.sakuraPetalShieldedQuestionIndex,
           },
         });
-        return { restoredHeart: !wasUmbrellaShieldedWrong };
+        return {
+          restoredHeart: shouldRestoreHeart,
+          noRestoreReason: wasUmbrellaShieldedWrong
+            ? 'umbrella'
+            : wasSakuraPetalShieldedWrong
+              ? 'sakura-petal'
+              : null,
+        };
       },
 
       // Restore lesson after user uses a Cake item to revive mid-lesson.
@@ -436,9 +452,12 @@ const useGameStore = create(
         if (!lesson || lesson.hearts <= 0) return;
         const question = lesson.questions[lesson.currentIndex];
         addWrongQuestionFromLesson(lesson, question);
-        const shouldUseUmbrellaShield = canUseUmbrellaShield(lesson, question, useUserStore.getState().equippedItems);
-        const newHearts = shouldUseUmbrellaShield ? lesson.hearts : Math.max(0, lesson.hearts - 1);
-        if (!shouldUseUmbrellaShield) {
+        const equippedItems = useUserStore.getState().equippedItems;
+        const shouldUseUmbrellaShield = canUseUmbrellaShield(lesson, question, equippedItems);
+        const shouldUseSakuraPetalShield = canUseSakuraPetalShield(lesson, question, equippedItems);
+        const shouldPreventHeartLoss = shouldUseUmbrellaShield || shouldUseSakuraPetalShield;
+        const newHearts = shouldPreventHeartLoss ? lesson.hearts : Math.max(0, lesson.hearts - 1);
+        if (!shouldPreventHeartLoss) {
           useUserStore.getState().deductHeart();
         }
 
@@ -459,6 +478,7 @@ const useGameStore = create(
               hearts: newHearts,
               umbrellaShieldUsed: shouldUseUmbrellaShield ? true : lesson.umbrellaShieldUsed,
               umbrellaShieldQuestionIndex: shouldUseUmbrellaShield ? lesson.currentIndex : lesson.umbrellaShieldQuestionIndex,
+              sakuraPetalShieldedQuestionIndex: shouldUseSakuraPetalShield ? lesson.currentIndex : lesson.sakuraPetalShieldedQuestionIndex,
             },
           });
         }

@@ -33,6 +33,7 @@ export default function FeedbackPanel({
   const [appealReason, setAppealReason] = useState('');
   const [appealError, setAppealError] = useState('');
   const [appealRestoredHeart, setAppealRestoredHeart] = useState(true);
+  const [appealNoRestoreReason, setAppealNoRestoreReason] = useState(null);
 
   const aiConfig = useAiStore(s => s.getConfig)();
   const isAiReady = Boolean(aiConfig.provider && aiConfig.apiKey?.trim() && aiConfig.modelId?.trim());
@@ -69,6 +70,7 @@ export default function FeedbackPanel({
       if (result.correct) {
         const overturnResult = onOverturn?.(); // fix correctCount and restore/reset heart handling in stores
         setAppealRestoredHeart(overturnResult?.restoredHeart !== false);
+        setAppealNoRestoreReason(overturnResult?.noRestoreReason ?? null);
         setAppealStatus('overturned');
       } else {
         setAppealStatus('rejected');
@@ -98,9 +100,15 @@ export default function FeedbackPanel({
   let titleText, subText;
   if (isOverturned) {
     titleText = 'AI 确认正确！';
-    subText = appealRestoredHeart
-      ? <span className="inline-flex items-center gap-1 flex-wrap">你的翻译也是对的，<img src={heartImg} alt="heart" width={16} height={16} style={{ objectFit: 'contain', verticalAlign: 'middle' }} /> 已为你补回</span>
-      : '你的翻译也是对的，和伞特权已恢复';
+    if (appealRestoredHeart) {
+      subText = <span className="inline-flex items-center gap-1 flex-wrap">你的翻译也是对的，<img src={heartImg} alt="heart" width={16} height={16} style={{ objectFit: 'contain', verticalAlign: 'middle' }} /> 已为你补回</span>;
+    } else if (appealNoRestoreReason === 'umbrella') {
+      subText = '你的翻译也是对的，和伞已经恢复～';
+    } else if (appealNoRestoreReason === 'sakura-petal') {
+      subText = '你的翻译也是对的，樱花花瓣守住了心心';
+    } else {
+      subText = '你的翻译也是对的，心心没有被扣除';
+    }
   } else if (isCorrect) {
     titleText = 'よくできました！';
     subText = '完全正确！继续加油';

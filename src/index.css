@@ -462,6 +462,15 @@ rt {
   transform-origin: center center;
 }
 
+.battle-umbrella-shield--sakura {
+  width: clamp(42px, 12vw, 58px);
+  height: clamp(42px, 12vw, 58px);
+}
+
+.battle-umbrella-shield--sakura .battle-umbrella-shield__image {
+  filter: drop-shadow(0 5px 8px rgba(219,39,119,0.22));
+}
+
 @keyframes battle-umbrella-float {
   0%, 100% { transform: translateY(0) rotate(-2deg); }
   50% { transform: translateY(-7px) rotate(2deg); }
