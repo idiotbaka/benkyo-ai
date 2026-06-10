@@ -10,6 +10,7 @@ import RewardModal from '../UI/RewardModal';
 import { playSoundEffect, SOUND_EFFECT_TYPES } from '../../lib/sound-effects';
 import { useIcon } from '../../lib/icons';
 import { createListeningGiftboxReward } from '../../lib/giftbox-rewards';
+import { LUCKY_CAT_PERFECT_CLEAR_BONUS_COINS, PERFECT_CLEAR_BONUS_COINS } from '../../lib/equipment-effects';
 
 gsap.registerPlugin(useGSAP);
 
@@ -44,10 +45,13 @@ export default function ListeningPracticeComplete() {
     correctCount = 0,
     questions = [],
     hearts = 0,
+    coinsEarned = 0,
     leveledUp = false,
     oldLevel = 1,
     newLevel = 1,
   } = practice ?? {};
+  const bonusCoins = finalStars === 3 ? Math.max(0, finalCoins - coinsEarned) : 0;
+  const bonusLabel = bonusCoins >= LUCKY_CAT_PERFECT_CLEAR_BONUS_COINS ? '招财猫奖励' : '完美奖励';
 
   useGSAP(() => {
     gsap.set([titleRef.current, xpRef.current, coinRef.current, statsRef.current, btnRef.current], { opacity: 0 });
@@ -177,6 +181,12 @@ export default function ListeningPracticeComplete() {
               <img src={coinImg} alt="金币" width={26} height={26} style={{ objectFit: 'contain' }} />
               <p className="text-[26px] font-extrabold leading-none text-[#D97706]">{displayCoins}</p>
             </div>
+            {bonusCoins > 0 && (
+              <p className="mb-1 inline-flex items-center gap-1 rounded-full bg-[#FEF3C7] px-2 py-0.5 text-[10px] font-extrabold text-[#B45309]">
+                <img src={collectStarImg} alt="" width={13} height={13} style={{ objectFit: 'contain' }} />
+                +{bonusCoins || PERFECT_CLEAR_BONUS_COINS} {bonusLabel}
+              </p>
+            )}
             <p className="mt-1 text-xs font-medium text-[#9CA3AF]">本关金币</p>
           </div>
         </div>

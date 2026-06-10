@@ -6,7 +6,7 @@ import useVocabStore from './vocabStore';
 import useWrongQuestionStore, { getWrongQuestionId } from './wrongQuestionStore';
 import useDailyTaskStore, { DAILY_TASK_EVENTS } from './dailyTaskStore';
 import useBadgeStore from './badgeStore';
-import { applyEmaStarFloor, canUseSakuraPetalShield, canUseUmbrellaShield } from '../lib/equipment-effects';
+import { applyEmaStarFloor, canUseSakuraPetalShield, canUseUmbrellaShield, getPerfectClearBonusCoins } from '../lib/equipment-effects';
 
 export const XP_PER_LEVEL = 200;
 export const BASE_XP = 60;
@@ -309,14 +309,14 @@ const useGameStore = create(
           const normalQCount = lesson.questions.filter(q => !q._isReview).length;
           const wrongCount = normalQCount - lesson.correctCount;
           const rawStars = wrongCount === 0 ? 3 : wrongCount === 1 ? 2 : 1;
-          const stars = applyEmaStarFloor(rawStars, useUserStore.getState().equippedItems);
+          const equippedItems = useUserStore.getState().equippedItems;
+          const stars = applyEmaStarFloor(rawStars, equippedItems);
 
           // Apply active XP boost (card must still be valid at settlement time)
           const boostMult = getActiveXpMultiplier();
           const xp = Math.round(BASE_XP * stars * boostMult);
 
-          // Perfect clear bonus: +10 coins
-          const bonusCoins = stars === 3 ? 10 : 0;
+          const bonusCoins = getPerfectClearBonusCoins(stars, equippedItems);
           if (bonusCoins > 0) useUserStore.getState().addCoins(bonusCoins);
           const finalCoins = lesson.coinsEarned + bonusCoins;
 

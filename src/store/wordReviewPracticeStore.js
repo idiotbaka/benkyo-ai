@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import useGameStore from './gameStore';
 import useUserStore from './userStore';
 import useDailyTaskStore, { DAILY_TASK_EVENTS } from './dailyTaskStore';
-import { applyEmaStarFloor } from '../lib/equipment-effects';
+import { applyEmaStarFloor, getPerfectClearBonusCoins } from '../lib/equipment-effects';
 
 const COINS_PER_QUESTION = 2;
 const XP_PER_STAR = 10;
@@ -107,9 +107,12 @@ const useWordReviewPracticeStore = create((set, get) => ({
     if (isComplete) {
       const wrongCount = practice.questions.length - practice.correctCount;
       const rawStars = wrongCount === 0 ? 3 : wrongCount === 1 ? 2 : 1;
-      const stars = applyEmaStarFloor(rawStars, useUserStore.getState().equippedItems);
+      const equippedItems = useUserStore.getState().equippedItems;
+      const stars = applyEmaStarFloor(rawStars, equippedItems);
       const xp = stars * XP_PER_STAR;
       const levelResult = useGameStore.getState().awardPracticeXp(xp);
+      const bonusCoins = getPerfectClearBonusCoins(stars, equippedItems);
+      if (bonusCoins > 0) useUserStore.getState().addCoins(bonusCoins);
       useDailyTaskStore.getState().recordEvent(DAILY_TASK_EVENTS.WORD_REVIEW_COMPLETE, 1);
 
       set({
@@ -123,7 +126,7 @@ const useWordReviewPracticeStore = create((set, get) => ({
           finalXp: levelResult.xp,
           finalBaseXp: levelResult.baseXp,
           finalXpMultiplier: levelResult.multiplier,
-          finalCoins: practice.coinsEarned,
+          finalCoins: practice.coinsEarned + bonusCoins,
           leveledUp: levelResult.leveledUp,
           oldLevel: levelResult.oldLevel,
           newLevel: levelResult.newLevel,

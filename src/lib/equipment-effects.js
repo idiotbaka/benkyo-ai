@@ -6,11 +6,14 @@ export const EQUIPMENT_IDS = {
   UMBRELLA: 'equip_umbrella',
   WIND_CHIME: 'equip_wind_chime',
   SAKURA_PETAL: 'equip_sakura_petal',
+  LUCKY_CAT: 'equip_lucky_cat',
 };
 
 export const ROUND_FAN_GACHA_COST = 160;
 export const EMA_STAR_FLOOR = 2;
 export const WIND_CHIME_HEART_REGEN_MS = 60 * 1000;
+export const PERFECT_CLEAR_BONUS_COINS = 10;
+export const LUCKY_CAT_PERFECT_CLEAR_BONUS_COINS = 60;
 
 export function isEquipmentEquipped(equippedItems, itemId) {
   return Boolean(equippedItems?.[itemId]);
@@ -38,6 +41,17 @@ export function applyEmaStarFloor(stars, equippedItems) {
     return normalizedStars;
   }
   return Math.min(3, Math.max(EMA_STAR_FLOOR, normalizedStars));
+}
+
+export function getPerfectClearBonusCoins(stars, equippedItems) {
+  if (stars !== 3) return 0;
+  return isEquipmentEquipped(equippedItems, EQUIPMENT_IDS.LUCKY_CAT)
+    ? LUCKY_CAT_PERFECT_CLEAR_BONUS_COINS
+    : PERFECT_CLEAR_BONUS_COINS;
+}
+
+export function hasLuckyCatPerfectBonus(equippedItems) {
+  return isEquipmentEquipped(equippedItems, EQUIPMENT_IDS.LUCKY_CAT);
 }
 
 export function canUseUmbrellaShield(lesson, question, equippedItems) {

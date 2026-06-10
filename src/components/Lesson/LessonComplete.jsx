@@ -9,6 +9,7 @@ import RewardModal from '../UI/RewardModal';
 import { playSoundEffect, SOUND_EFFECT_TYPES } from '../../lib/sound-effects';
 import { useIcon } from '../../lib/icons';
 import { drawLessonGiftboxReward } from '../../lib/giftbox-rewards';
+import { LUCKY_CAT_PERFECT_CLEAR_BONUS_COINS, PERFECT_CLEAR_BONUS_COINS } from '../../lib/equipment-effects';
 
 export default function LessonComplete() {
   const navigate = useNavigate();
@@ -37,7 +38,8 @@ export default function LessonComplete() {
 
   const starRefs = [star1Ref, star2Ref, star3Ref];
   const { finalStars = 0, finalXp = 0, finalCoins = 0, leveledUp = false, oldLevel = 1, newLevel = 1 } = lesson ?? {};
-  const bonusCoins = finalStars === 3 ? 10 : 0;
+  const bonusCoins = finalStars === 3 ? Math.max(0, finalCoins - (lesson?.coinsEarned ?? 0)) : 0;
+  const bonusLabel = bonusCoins >= LUCKY_CAT_PERFECT_CLEAR_BONUS_COINS ? '招财猫奖励' : '完美奖励';
 
   // Prevent FOUC
   useGSAP(() => {
@@ -235,7 +237,7 @@ export default function LessonComplete() {
             {bonusCoins > 0 && (
               <p className="mb-1 inline-flex items-center gap-1 rounded-full bg-[#FEF3C7] px-2 py-0.5 text-[10px] font-extrabold text-[#B45309]">
                 <img src={collectStarImg} alt="" width={13} height={13} style={{ objectFit: 'contain' }} />
-                +10 完美奖励
+                +{bonusCoins || PERFECT_CLEAR_BONUS_COINS} {bonusLabel}
               </p>
             )}
             <p className="mt-1 text-xs font-medium text-[#9CA3AF]">本关金币</p>
