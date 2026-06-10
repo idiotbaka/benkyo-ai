@@ -10,7 +10,7 @@ gsap.registerPlugin(useGSAP);
 
 const CAKE_PRICE = 80;
 
-export default function ReviveSheet({ hasCake, cakeCount, canBuyCake, coins }) {
+export default function ReviveSheet({ hasCake, cakeCount, canBuyCake, coins, session, onRevive, onExit, returnPath }) {
   const navigate = useNavigate();
   const lesson       = useGameStore(s => s.lesson);
   const reviveLesson = useGameStore(s => s.reviveLesson);
@@ -25,6 +25,7 @@ export default function ReviveSheet({ hasCake, cakeCount, canBuyCake, coins }) {
   const cardRef  = useRef(null);
   const btnRef   = useRef(null);
   const quitRef  = useRef(null);
+  const activeSession = session ?? lesson;
 
   // FOUC prevention
   useGSAP(() => {
@@ -67,14 +68,23 @@ export default function ReviveSheet({ hasCake, cakeCount, canBuyCake, coins }) {
       purchaseItem('cake', CAKE_PRICE);
       consumeCake();
     }
-    reviveLesson();
+    if (onRevive) {
+      onRevive();
+    } else {
+      reviveLesson();
+    }
   };
 
   const handleQuit = () => {
+    if (onExit) {
+      onExit();
+      return;
+    }
     exitLesson();
-    navigate(lesson?.returnPath ?? '/');
+    navigate(activeSession?.returnPath ?? '/');
   };
-  const returnLabel = lesson?.returnPath === '/vocab' ? '回到练习中心' : '回到首页';
+  const targetPath = returnPath ?? activeSession?.returnPath;
+  const returnLabel = targetPath === '/vocab' ? '回到练习中心' : '回到首页';
 
   return (
     <div
@@ -118,8 +128,39 @@ export default function ReviveSheet({ hasCake, cakeCount, canBuyCake, coins }) {
         {/* Right badge: inventory count OR price */}
         <div className="flex-shrink-0 text-right">
           {hasCake ? (
-            <div className="font-extrabold text-[#16A34A] text-base">
-              背包 ×{cakeCount}
+            <div
+              aria-label={`背包中有 ${cakeCount} 个蛋糕`}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '6px 9px',
+                borderRadius: 999,
+                background: 'linear-gradient(135deg, #ECFDF5 0%, #DCFCE7 100%)',
+                border: '1px solid #BBF7D0',
+                boxShadow: '0 2px 8px rgba(22,163,74,0.12)',
+                color: '#166534',
+                fontSize: 12,
+                fontWeight: 900,
+                lineHeight: 1,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <span
+                style={{
+                  padding: '2px 6px',
+                  borderRadius: 999,
+                  background: 'rgba(255,255,255,0.72)',
+                  color: '#15803D',
+                  fontSize: 11,
+                  boxShadow: 'inset 0 0 0 1px rgba(187,247,208,0.8)',
+                }}
+              >
+                背包
+              </span>
+              <span style={{ color: '#16A34A', fontSize: 13 }}>
+                ×{cakeCount}
+              </span>
             </div>
           ) : (
             <div className="font-extrabold text-[#DB2777] text-base" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
