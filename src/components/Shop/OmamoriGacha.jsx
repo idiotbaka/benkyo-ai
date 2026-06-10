@@ -41,6 +41,22 @@ const COLLECTION_CARD_ENTER_TO = {
   stagger: 0.045,
   force3D: true,
 };
+const ROUND_FAN_EQUIPMENT_ID = 'equip_round_fan';
+const ROUND_FAN_GACHA_COST = 160;
+
+function getCurrentGachaCost(equippedItems) {
+  return equippedItems?.[ROUND_FAN_EQUIPMENT_ID] ? ROUND_FAN_GACHA_COST : OMAMORI_GACHA_COST;
+}
+
+function CoinPrice({ coinImg, cost, discounted = false, iconSize = 20 }) {
+  return (
+    <span className={`omamori-price ${discounted ? 'omamori-price--discounted' : ''}`}>
+      <img src={coinImg} alt="" width={iconSize} height={iconSize} decoding="async" />
+      {discounted && <del>{OMAMORI_GACHA_COST}</del>}
+      <span>{cost}</span>
+    </span>
+  );
+}
 
 function buildResultReel(result) {
   return Array.from({ length: REEL_ITEM_COUNT }, (_, index) => {
@@ -73,6 +89,7 @@ export default function OmamoriGacha() {
   const markOmamoriDetailViewed = useUserStore(s => s.markOmamoriDetailViewed);
   const omamoriCollection = useUserStore(s => s.omamoriCollection ?? {});
   const omamoriViewedDetails = useUserStore(s => s.omamoriViewedDetails ?? {});
+  const equippedItems = useUserStore(s => s.equippedItems ?? {});
   const coinImg = useIcon('item/coin.png');
   const gachaIntroImg = useIcon('sd/gacha-intro.png');
   const resolveIcon = useIconResolver();
@@ -90,7 +107,9 @@ export default function OmamoriGacha() {
   const lineupRef = useRef(null);
   const hasAnimatedCollectionRef = useRef(false);
 
-  const canAfford = coins >= OMAMORI_GACHA_COST;
+  const gachaCost = getCurrentGachaCost(equippedItems);
+  const hasRoundFanDiscount = gachaCost < OMAMORI_GACHA_COST;
+  const canAfford = coins >= gachaCost;
   const isDrawing = phase !== 'idle';
   const [reelItems, setReelItems] = useState([]);
   const [drawKey, setDrawKey] = useState(0);
@@ -299,7 +318,7 @@ export default function OmamoriGacha() {
           <span>御守・護身符 Gacha</span>
           <span>
             <img src={coinImg} alt="" width={16} height={16} decoding="async" />
-            1回 {OMAMORI_GACHA_COST}
+            1回 {gachaCost}
           </span>
         </div>
 
@@ -311,10 +330,7 @@ export default function OmamoriGacha() {
           disabled={isDrawing}
         >
           <span>抽取一次</span>
-          <span>
-            <img src={coinImg} alt="" width={20} height={20} decoding="async" />
-            {OMAMORI_GACHA_COST}
-          </span>
+          <CoinPrice coinImg={coinImg} cost={gachaCost} discounted={hasRoundFanDiscount} />
         </button>
 
         <div ref={noticeRef} className={`omamori-notice ${notice ? 'omamori-notice--show' : ''}`}>
@@ -379,6 +395,8 @@ export default function OmamoriGacha() {
           targetIndex={REEL_TARGET_INDEX}
           coinImg={coinImg}
           canDrawAgain={canAfford}
+          gachaCost={gachaCost}
+          discounted={hasRoundFanDiscount}
           spendCoins={spendCoins}
           onInsufficientCoins={showStageInsufficientCoins}
           onClose={closeResult}
@@ -397,7 +415,7 @@ export default function OmamoriGacha() {
   );
 }
 
-function GachaResultModal({ result, reelItems, targetIndex, coinImg, canDrawAgain, spendCoins, onInsufficientCoins, onClose, onDrawAgain }) {
+function GachaResultModal({ result, reelItems, targetIndex, coinImg, canDrawAgain, gachaCost, discounted, spendCoins, onInsufficientCoins, onClose, onDrawAgain }) {
   const resultIcon = useIcon(result.iconPath);
   const resolveIcon = useIconResolver();
   const recordOmamoriDraw = useUserStore(s => s.recordOmamoriDraw);
@@ -521,7 +539,7 @@ function GachaResultModal({ result, reelItems, targetIndex, coinImg, canDrawAgai
     if (drawState !== 'ready') return;
     if (!reelImagesReady || !reelItemsWithIcons.length) return;
 
-    if (!spendCoins(OMAMORI_GACHA_COST)) {
+    if (!spendCoins(gachaCost)) {
       setModalNotice('金币不足');
       onInsufficientCoins?.();
       gsap.fromTo(
@@ -631,7 +649,7 @@ function GachaResultModal({ result, reelItems, targetIndex, coinImg, canDrawAgai
         <h2>{settled ? result.name : isRolling ? '運命の御守を選んでいます' : '御守を迎えましょう'}</h2>
         <p>{settled ? '御守・護身符' : isRolling ? '金色の光が導いています' : '心を込めて、抽選札を引きます'}</p>
         <div className="omamori-result-rate">
-          {settled ? `${result.rarity} 排出率 ${rarity.rate}%` : isRolling ? '横スクロール抽選中' : `1回 ${OMAMORI_GACHA_COST}`}
+          {settled ? `${result.rarity} 排出率 ${rarity.rate}%` : isRolling ? '横スクロール抽選中' : `1回 ${gachaCost}`}
         </div>
         <div className={`omamori-result-notice ${modalNotice ? 'omamori-result-notice--show' : ''}`}>
           {modalNotice ?? ' '}
@@ -662,10 +680,7 @@ function GachaResultModal({ result, reelItems, targetIndex, coinImg, canDrawAgai
                 className="btn-press omamori-result-button omamori-result-button--draw"
               >
                 <span>{canDrawAgain ? '再抽一次' : '金币不足'}</span>
-                <span>
-                  <img src={coinImg} alt="" width={18} height={18} decoding="async" />
-                  {OMAMORI_GACHA_COST}
-                </span>
+                <CoinPrice coinImg={coinImg} cost={gachaCost} discounted={discounted} iconSize={18} />
               </button>
             </>
           )}

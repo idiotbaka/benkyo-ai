@@ -1286,6 +1286,24 @@ rt {
   gap: 5px;
 }
 
+.omamori-price {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.omamori-price del {
+  color: rgba(124,45,18,0.58);
+  font-size: 0.82em;
+  text-decoration-thickness: 2px;
+}
+
+.omamori-result-button--draw .omamori-price del {
+  color: rgba(255,255,255,0.72);
+}
+
 .omamori-draw-button img {
   object-fit: contain;
 }
