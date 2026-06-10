@@ -6,6 +6,7 @@ import useVocabStore from './vocabStore';
 import useWrongQuestionStore, { getWrongQuestionId } from './wrongQuestionStore';
 import useDailyTaskStore, { DAILY_TASK_EVENTS } from './dailyTaskStore';
 import useBadgeStore from './badgeStore';
+import { applyEmaStarFloor } from '../lib/equipment-effects';
 
 export const XP_PER_LEVEL = 200;
 export const BASE_XP = 60;
@@ -294,7 +295,8 @@ const useGameStore = create(
           // 排除巩固复习题，仅用普通题目数计算星数
           const normalQCount = lesson.questions.filter(q => !q._isReview).length;
           const wrongCount = normalQCount - lesson.correctCount;
-          const stars = wrongCount === 0 ? 3 : wrongCount === 1 ? 2 : 1;
+          const rawStars = wrongCount === 0 ? 3 : wrongCount === 1 ? 2 : 1;
+          const stars = applyEmaStarFloor(rawStars, useUserStore.getState().equippedItems);
 
           // Apply active XP boost (card must still be valid at settlement time)
           const boostMult = getActiveXpMultiplier();

@@ -15,6 +15,7 @@ import {
 import { useIcon, useIconResolver } from '../../lib/icons';
 import { playSoundEffect, SOUND_EFFECT_TYPES } from '../../lib/sound-effects';
 import { createGachaGiftboxReward } from '../../lib/giftbox-rewards';
+import { getOmamoriGachaCost, hasOmamoriGachaDiscount } from '../../lib/equipment-effects';
 import RewardModal from '../UI/RewardModal';
 
 gsap.registerPlugin(useGSAP);
@@ -41,13 +42,6 @@ const COLLECTION_CARD_ENTER_TO = {
   stagger: 0.045,
   force3D: true,
 };
-const ROUND_FAN_EQUIPMENT_ID = 'equip_round_fan';
-const ROUND_FAN_GACHA_COST = 160;
-
-function getCurrentGachaCost(equippedItems) {
-  return equippedItems?.[ROUND_FAN_EQUIPMENT_ID] ? ROUND_FAN_GACHA_COST : OMAMORI_GACHA_COST;
-}
-
 function CoinPrice({ coinImg, cost, discounted = false, iconSize = 20 }) {
   return (
     <span className={`omamori-price ${discounted ? 'omamori-price--discounted' : ''}`}>
@@ -107,8 +101,8 @@ export default function OmamoriGacha() {
   const lineupRef = useRef(null);
   const hasAnimatedCollectionRef = useRef(false);
 
-  const gachaCost = getCurrentGachaCost(equippedItems);
-  const hasRoundFanDiscount = gachaCost < OMAMORI_GACHA_COST;
+  const gachaCost = getOmamoriGachaCost(equippedItems);
+  const hasRoundFanDiscount = hasOmamoriGachaDiscount(equippedItems);
   const canAfford = coins >= gachaCost;
   const isDrawing = phase !== 'idle';
   const [reelItems, setReelItems] = useState([]);
