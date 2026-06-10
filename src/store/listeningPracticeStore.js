@@ -5,7 +5,6 @@ import useDailyTaskStore, { DAILY_TASK_EVENTS } from './dailyTaskStore';
 import { normalizeListeningSentence } from '../lib/listening-practice';
 import { applyEmaStarFloor } from '../lib/equipment-effects';
 
-const PRACTICE_HEARTS = 3;
 const COINS_PER_QUESTION = 5;
 const XP_PER_STAR = 30;
 
@@ -17,15 +16,20 @@ const useListeningPracticeStore = create((set, get) => ({
 
   start(questions) {
     if (!Array.isArray(questions) || questions.length === 0) return;
+    useUserStore.getState().syncHearts();
+    const currentHearts = useUserStore.getState().hearts;
+    if (currentHearts <= 0) return false;
+
     set({
       practice: {
         questions,
         currentIndex: 0,
-        hearts: PRACTICE_HEARTS,
+        hearts: currentHearts,
         correctCount: 0,
         selectedAnswer: null,
         feedbackState: null,
         isComplete: false,
+        isFailed: false,
         coinsEarned: 0,
         coinPop: null,
         finalStars: 0,
@@ -38,6 +42,7 @@ const useListeningPracticeStore = create((set, get) => ({
         newLevel: 1,
       },
     });
+    return true;
   },
 
   submitAnswer(answerSegments) {
@@ -58,6 +63,10 @@ const useListeningPracticeStore = create((set, get) => ({
       coinPop = createCoinPop(awardedCoins);
     }
 
+    if (!isCorrect) {
+      useUserStore.getState().deductHeart();
+    }
+
     set({
       practice: {
         ...practice,
@@ -74,6 +83,27 @@ const useListeningPracticeStore = create((set, get) => ({
   nextQuestion() {
     const { practice } = get();
     if (!practice) return;
+
+    if (practice.hearts === 0) {
+      const ratio = practice.correctCount / practice.questions.length;
+      const rawXp = XP_PER_STAR * ratio;
+      const partialXp = rawXp > 0 ? Math.ceil(rawXp / 5) * 5 : 0;
+      const levelResult = useGameStore.getState().awardPartialPracticeXp(partialXp);
+      set({
+        practice: {
+          ...practice,
+          isFailed: true,
+          finalXp: levelResult.xp,
+          finalBaseXp: levelResult.baseXp,
+          finalXpMultiplier: levelResult.multiplier,
+          finalCoins: practice.coinsEarned,
+          leveledUp: levelResult.leveledUp,
+          oldLevel: levelResult.oldLevel,
+          newLevel: levelResult.newLevel,
+        },
+      });
+      return;
+    }
 
     const nextIndex = practice.currentIndex + 1;
     const isComplete = nextIndex >= practice.questions.length;
@@ -118,6 +148,18 @@ const useListeningPracticeStore = create((set, get) => ({
 
   exit() {
     set({ practice: null });
+  },
+
+  revive() {
+    const { practice } = get();
+    if (!practice) return;
+    set({
+      practice: {
+        ...practice,
+        isFailed: false,
+        hearts: 3,
+      },
+    });
   },
 }));
 

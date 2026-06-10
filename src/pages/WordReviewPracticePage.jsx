@@ -3,8 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import useWordReviewPracticeStore from '../store/wordReviewPracticeStore';
+import useUserStore from '../store/userStore';
 import BattleArena from '../components/Lesson/BattleArena';
 import FeedbackPanel from '../components/Lesson/FeedbackPanel';
+import ReviveSheet from '../components/Lesson/ReviveSheet';
+import { LessonFailedContent } from '../components/Lesson/LessonFailed';
 import CoinBurst from '../components/UI/CoinBurst';
 import WordReviewQuestion from '../components/Practice/WordReviewQuestion';
 import WordReviewPracticeComplete from '../components/Practice/WordReviewPracticeComplete';
@@ -12,6 +15,8 @@ import { stopJapaneseSpeech } from '../lib/japanese-speech-player';
 import { useIcon } from '../lib/icons';
 
 gsap.registerPlugin(useGSAP);
+
+const CAKE_PRICE = 80;
 
 export default function WordReviewPracticePage() {
   const navigate = useNavigate();
@@ -35,7 +40,10 @@ function WordReviewPracticeScreen() {
   const practice = useWordReviewPracticeStore(s => s.practice);
   const submitAnswer = useWordReviewPracticeStore(s => s.submitAnswer);
   const nextQuestion = useWordReviewPracticeStore(s => s.nextQuestion);
+  const revive = useWordReviewPracticeStore(s => s.revive);
   const exit = useWordReviewPracticeStore(s => s.exit);
+  const inventory = useUserStore(s => s.inventory);
+  const coins = useUserStore(s => s.coins);
   const coinImg = useIcon('item/coin.png');
   const enemyHpRef = useRef(null);
   const coinTargetRef = useRef(null);
@@ -80,6 +88,27 @@ function WordReviewPracticeScreen() {
   }, { dependencies: [practice?.currentIndex, practice?.feedbackState] });
 
   if (!practice) return null;
+  if (practice.isFailed) {
+    const cakeCount = inventory?.cake ?? 0;
+    const hasCake = cakeCount > 0;
+    const canBuyCake = coins >= CAKE_PRICE;
+    if (hasCake || canBuyCake) {
+      return (
+        <ReviveSheet
+          hasCake={hasCake}
+          cakeCount={cakeCount}
+          canBuyCake={canBuyCake}
+          coins={coins}
+          session={practice}
+          onRevive={revive}
+          onExit={handleExit}
+          returnPath="/vocab"
+        />
+      );
+    }
+    return <LessonFailedContent session={practice} onExit={handleExit} returnPath="/vocab" />;
+  }
+
   if (practice.isComplete) return <WordReviewPracticeComplete />;
 
   const q = practice.questions[practice.currentIndex];

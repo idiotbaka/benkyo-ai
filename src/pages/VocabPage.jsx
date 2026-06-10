@@ -65,6 +65,15 @@ export default function VocabPage() {
     wordReview: getWordReviewPracticeQuestionCount(chapters),
   }), [chapters]);
 
+  const hasHeartsForPractice = () => {
+    useUserStore.getState().syncHearts();
+    if (useUserStore.getState().hearts === 0) {
+      setNotice('no-hearts');
+      return false;
+    }
+    return true;
+  };
+
   useGSAP(() => {
     const cards = contentRef.current?.querySelectorAll('[data-practice-card]');
     gsap.set([headerRef.current, contentRef.current], { opacity: 0, y: 18 });
@@ -112,7 +121,11 @@ export default function VocabPage() {
       return;
     }
 
-    startListeningPractice(questions);
+    if (!hasHeartsForPractice()) return;
+    if (!startListeningPractice(questions)) {
+      setNotice('no-hearts');
+      return;
+    }
     navigate('/practice/listening');
   };
 
@@ -123,11 +136,7 @@ export default function VocabPage() {
       return;
     }
 
-    useUserStore.getState().syncHearts();
-    if (useUserStore.getState().hearts === 0) {
-      setNotice('no-hearts');
-      return;
-    }
+    if (!hasHeartsForPractice()) return;
 
     startPracticeLesson({
       levelId: 'course-review',
@@ -145,7 +154,11 @@ export default function VocabPage() {
       return;
     }
 
-    startWordReviewPractice(questions);
+    if (!hasHeartsForPractice()) return;
+    if (!startWordReviewPractice(questions)) {
+      setNotice('no-hearts');
+      return;
+    }
     navigate('/practice/word-review');
   };
 
@@ -156,11 +169,7 @@ export default function VocabPage() {
       return;
     }
 
-    useUserStore.getState().syncHearts();
-    if (useUserStore.getState().hearts === 0) {
-      setNotice('no-hearts');
-      return;
-    }
+    if (!hasHeartsForPractice()) return;
 
     startPracticeLesson({
       levelId: 'wrong-review',

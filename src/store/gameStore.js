@@ -473,6 +473,26 @@ const useGameStore = create(
           leveledUp: newLevel > oldLevel,
         };
       },
+
+      awardPartialPracticeXp(amount) {
+        const xp = Math.max(0, Number(amount) || 0);
+        const { totalXp } = get();
+        const oldLevel = computeLevel(totalXp);
+        const newTotalXp = totalXp + xp;
+        const newLevel = computeLevel(newTotalXp);
+
+        set({ totalXp: newTotalXp });
+        recordDailyTaskEvent(DAILY_TASK_EVENTS.XP_EARNED, xp);
+        return {
+          xp,
+          baseXp: xp,
+          multiplier: 1,
+          totalXp: newTotalXp,
+          oldLevel,
+          newLevel,
+          leveledUp: newLevel > oldLevel,
+        };
+      },
     }),
     {
       name: 'benkyo-ai-progress',

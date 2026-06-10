@@ -11,11 +11,23 @@ gsap.registerPlugin(useGSAP);
 export default function LessonFailed() {
   const navigate = useNavigate();
   const { lesson, exitLesson } = useGameStore();
+  return (
+    <LessonFailedContent
+      session={lesson}
+      onExit={() => {
+        exitLesson();
+        navigate(lesson?.returnPath ?? '/');
+      }}
+    />
+  );
+}
+
+export function LessonFailedContent({ session, onExit, returnPath }) {
   const lvUpImg = useIcon('ui/level_up.png');
   const coinImg = useIcon('item/coin.png');
   const sdFailedImg = useIcon('sd/sd_failed.png');
 
-  const { finalXp = 0, finalCoins = 0, correctCount = 0, questions = [] } = lesson ?? {};
+  const { finalXp = 0, finalCoins = 0, correctCount = 0, questions = [] } = session ?? {};
   const total = questions.length;
   const coinsProxy = useRef({ value: 0 });
 
@@ -91,10 +103,10 @@ export default function LessonFailed() {
   }, [finalCoins]);
 
   const handleRetry = () => {
-    exitLesson();
-    navigate(lesson?.returnPath ?? '/');
+    onExit?.();
   };
-  const returnLabel = lesson?.returnPath === '/vocab' ? '回到练习中心' : '回到首页';
+  const targetPath = returnPath ?? session?.returnPath;
+  const returnLabel = targetPath === '/vocab' ? '回到练习中心' : '回到首页';
 
   return (
     <div
