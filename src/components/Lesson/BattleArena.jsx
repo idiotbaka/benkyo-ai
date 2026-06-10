@@ -52,8 +52,9 @@ function HeartRow({ hearts }) {
   );
 }
 
-export default function BattleArena({ battleState = 'idle', hearts, enemyHp, enemyHpRef, shouldSlide = true }) {
+export default function BattleArena({ battleState = 'idle', hearts, enemyHp, enemyHpRef, shouldSlide = true, showUmbrellaShield = false }) {
   const resolveIcon = useIconResolver();
+  const umbrellaImg = useIcon('item/umbrella.png');
   const imagePaths = BATTLE_IMAGE_PATHS[battleState] ?? BATTLE_IMAGE_PATHS.idle;
   const images = {
     player: resolveIcon(imagePaths.player),
@@ -94,6 +95,17 @@ export default function BattleArena({ battleState = 'idle', hearts, enemyHp, ene
             style={{ width: `${enemyHp}%` }}
           />
         </div>
+      </div>
+      <div
+        className={`battle-umbrella-shield ${showUmbrellaShield ? 'battle-umbrella-shield--active' : ''}`}
+        aria-hidden="true"
+      >
+        <img
+          src={umbrellaImg}
+          alt=""
+          className="battle-umbrella-shield__image"
+          decoding="async"
+        />
       </div>
       <div className="absolute bottom-3 left-[8%] right-[8%] h-3 rounded-[50%] bg-[#DDD6FE]/45 blur-sm" />
       <div

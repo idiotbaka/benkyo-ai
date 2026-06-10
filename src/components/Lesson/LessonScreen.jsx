@@ -16,6 +16,7 @@ import ReviveSheet from './ReviveSheet';
 import CoinBurst from '../UI/CoinBurst';
 import { stopJapaneseSpeech } from '../../lib/japanese-speech-player';
 import { useIcon } from '../../lib/icons';
+import { EQUIPMENT_IDS, isEquipmentEquipped } from '../../lib/equipment-effects';
 
 gsap.registerPlugin(useGSAP);
 
@@ -27,6 +28,7 @@ export default function LessonScreen() {
   const chapters = useCourseStore(s => s.chapters);
   const inventory = useUserStore(s => s.inventory);
   const coins     = useUserStore(s => s.coins);
+  const equippedItems = useUserStore(s => s.equippedItems ?? {});
   const coinImg = useIcon('item/coin.png');
   const enemyHpRef = useRef(null);
   const coinTargetRef = useRef(null);
@@ -143,6 +145,9 @@ export default function LessonScreen() {
     ?.levels.find(level => level.id === lesson.levelId);
   const displayLessonCoins = coinDisplay.lessonKey === activeLessonKey ? coinDisplay.value : 0;
   const lessonTitle = lesson.title ?? currentLevel?.title ?? '闯关练习';
+  const showUmbrellaShield = !lesson.isPractice &&
+    isEquipmentEquipped(equippedItems, EQUIPMENT_IDS.UMBRELLA) &&
+    !lesson.umbrellaShieldUsed;
 
   return (
     <div className="flex flex-col h-full relative bg-[#F5F3FF]">
@@ -208,6 +213,7 @@ export default function LessonScreen() {
             enemyHp={enemyHp}
             enemyHpRef={enemyHpRef}
             shouldSlide={shouldSlideBattleCharacters}
+            showUmbrellaShield={showUmbrellaShield}
           />
           <div className="lesson-answer-scroll flex-1 min-h-0 overflow-y-auto pt-4">
             {q.type === 'word-fill' && (

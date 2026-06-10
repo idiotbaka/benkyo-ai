@@ -3,6 +3,7 @@ import { OMAMORI_GACHA_COST } from '../data/omamoriGacha';
 export const EQUIPMENT_IDS = {
   ROUND_FAN: 'equip_round_fan',
   EMA: 'equip_ema',
+  UMBRELLA: 'equip_umbrella',
 };
 
 export const ROUND_FAN_GACHA_COST = 160;
@@ -28,4 +29,15 @@ export function applyEmaStarFloor(stars, equippedItems) {
     return normalizedStars;
   }
   return Math.min(3, Math.max(EMA_STAR_FLOOR, normalizedStars));
+}
+
+export function canUseUmbrellaShield(lesson, question, equippedItems) {
+  return Boolean(
+    lesson &&
+    question &&
+    !lesson.isPractice &&
+    !question._isReview &&
+    !lesson.umbrellaShieldUsed &&
+    isEquipmentEquipped(equippedItems, EQUIPMENT_IDS.UMBRELLA)
+  );
 }

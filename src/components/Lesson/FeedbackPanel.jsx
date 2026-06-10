@@ -32,6 +32,7 @@ export default function FeedbackPanel({
   const [appealStatus, setAppealStatus] = useState(null); // null | 'loading' | 'overturned' | 'rejected'
   const [appealReason, setAppealReason] = useState('');
   const [appealError, setAppealError] = useState('');
+  const [appealRestoredHeart, setAppealRestoredHeart] = useState(true);
 
   const aiConfig = useAiStore(s => s.getConfig)();
   const isAiReady = Boolean(aiConfig.provider && aiConfig.apiKey?.trim() && aiConfig.modelId?.trim());
@@ -66,8 +67,9 @@ export default function FeedbackPanel({
     try {
       const result = await judgeAnswer(aiConfig, question, userAnswer ?? []);
       if (result.correct) {
+        const overturnResult = onOverturn?.(); // fix correctCount and restore/reset heart handling in stores
+        setAppealRestoredHeart(overturnResult?.restoredHeart !== false);
         setAppealStatus('overturned');
-        onOverturn?.(); // fix correctCount + restore heart in stores
       } else {
         setAppealStatus('rejected');
         setAppealReason(result.reason);
@@ -96,7 +98,9 @@ export default function FeedbackPanel({
   let titleText, subText;
   if (isOverturned) {
     titleText = 'AI 确认正确！';
-    subText = <span className="inline-flex items-center gap-1 flex-wrap">你的翻译也是对的，<img src={heartImg} alt="heart" width={16} height={16} style={{ objectFit: 'contain', verticalAlign: 'middle' }} /> 已为你补回</span>;
+    subText = appealRestoredHeart
+      ? <span className="inline-flex items-center gap-1 flex-wrap">你的翻译也是对的，<img src={heartImg} alt="heart" width={16} height={16} style={{ objectFit: 'contain', verticalAlign: 'middle' }} /> 已为你补回</span>
+      : '你的翻译也是对的，和伞特权已恢复';
   } else if (isCorrect) {
     titleText = 'よくできました！';
     subText = '完全正确！继续加油';

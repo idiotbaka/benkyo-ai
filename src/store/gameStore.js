@@ -6,7 +6,7 @@ import useVocabStore from './vocabStore';
 import useWrongQuestionStore, { getWrongQuestionId } from './wrongQuestionStore';
 import useDailyTaskStore, { DAILY_TASK_EVENTS } from './dailyTaskStore';
 import useBadgeStore from './badgeStore';
-import { applyEmaStarFloor } from '../lib/equipment-effects';
+import { applyEmaStarFloor, canUseUmbrellaShield } from '../lib/equipment-effects';
 
 export const XP_PER_LEVEL = 200;
 export const BASE_XP = 60;
@@ -152,6 +152,8 @@ const useGameStore = create(
             isFailed: false,
             coinsEarned: 0,
             coinPop: null,
+            umbrellaShieldUsed: false,
+            umbrellaShieldQuestionIndex: null,
             finalStars: 0,
             finalXp: 0,
             finalCoins: 0,
@@ -239,14 +241,17 @@ const useGameStore = create(
           return;
         }
 
-        const newHearts = isCorrect ? lesson.hearts : Math.max(0, lesson.hearts - 1);
+        const shouldUseUmbrellaShield = !isCorrect && canUseUmbrellaShield(lesson, question, useUserStore.getState().equippedItems);
+        const newHearts = isCorrect || shouldUseUmbrellaShield ? lesson.hearts : Math.max(0, lesson.hearts - 1);
         if (isCorrect) {
           if (lesson.practiceType === 'wrong-review') {
             removeWrongQuestionFromLesson(lesson, question);
           }
         } else {
           addWrongQuestionFromLesson(lesson, question);
-          useUserStore.getState().deductHeart();
+          if (!shouldUseUmbrellaShield) {
+            useUserStore.getState().deductHeart();
+          }
         }
 
         // Award 5 coins immediately for correct non-word-match answers
@@ -267,6 +272,8 @@ const useGameStore = create(
             correctCount: isCorrect ? lesson.correctCount + 1 : lesson.correctCount,
             coinsEarned: newCoinsEarned,
             coinPop,
+            umbrellaShieldUsed: shouldUseUmbrellaShield ? true : lesson.umbrellaShieldUsed,
+            umbrellaShieldQuestionIndex: shouldUseUmbrellaShield ? lesson.currentIndex : lesson.umbrellaShieldQuestionIndex,
           },
         });
       },
@@ -375,14 +382,20 @@ const useGameStore = create(
 
       // Called when AI overturns a wrong answer on sentence-translate:
       // fixes correctCount so star calculation treats it as correct,
-      // restores the heart deducted for that wrong answer, and updates
-      // the visible feedback state so the lesson UI reacts as correct.
+      // restores the deducted heart when one was actually deducted, and
+      // updates the visible feedback state so the lesson UI reacts as correct.
       overturnWrongAnswer() {
         const { lesson, acceptedSentenceAnswers } = get();
-        if (!lesson) return;
+        if (!lesson) return { restoredHeart: false };
         const question = lesson.questions[lesson.currentIndex];
+        const wasUmbrellaShieldedWrong = Boolean(
+          lesson.umbrellaShieldUsed &&
+          lesson.umbrellaShieldQuestionIndex === lesson.currentIndex
+        );
         removeWrongQuestionFromLesson(lesson, question);
-        useUserStore.getState().restoreHeart();
+        if (!wasUmbrellaShieldedWrong) {
+          useUserStore.getState().restoreHeart();
+        }
         useBadgeStore.getState().recordAppealSuccess(1);
         set({
           acceptedSentenceAnswers: addAcceptedSentenceAnswer(
@@ -394,10 +407,13 @@ const useGameStore = create(
           lesson: {
             ...lesson,
             correctCount: lesson.correctCount + 1,
-            hearts: lesson.hearts + 1,
+            hearts: wasUmbrellaShieldedWrong ? lesson.hearts : lesson.hearts + 1,
             feedbackState: 'correct',
+            umbrellaShieldUsed: wasUmbrellaShieldedWrong ? false : lesson.umbrellaShieldUsed,
+            umbrellaShieldQuestionIndex: wasUmbrellaShieldedWrong ? null : lesson.umbrellaShieldQuestionIndex,
           },
         });
+        return { restoredHeart: !wasUmbrellaShieldedWrong };
       },
 
       // Restore lesson after user uses a Cake item to revive mid-lesson.
@@ -420,8 +436,11 @@ const useGameStore = create(
         if (!lesson || lesson.hearts <= 0) return;
         const question = lesson.questions[lesson.currentIndex];
         addWrongQuestionFromLesson(lesson, question);
-        const newHearts = Math.max(0, lesson.hearts - 1);
-        useUserStore.getState().deductHeart();
+        const shouldUseUmbrellaShield = canUseUmbrellaShield(lesson, question, useUserStore.getState().equippedItems);
+        const newHearts = shouldUseUmbrellaShield ? lesson.hearts : Math.max(0, lesson.hearts - 1);
+        if (!shouldUseUmbrellaShield) {
+          useUserStore.getState().deductHeart();
+        }
 
         if (newHearts === 0) {
           // Word-match has no FeedbackPanel → fail immediately
@@ -434,7 +453,14 @@ const useGameStore = create(
             lesson: { ...lesson, hearts: 0, isFailed: true, finalXp: partialXp, finalCoins: lesson.coinsEarned },
           });
         } else {
-          set({ lesson: { ...lesson, hearts: newHearts } });
+          set({
+            lesson: {
+              ...lesson,
+              hearts: newHearts,
+              umbrellaShieldUsed: shouldUseUmbrellaShield ? true : lesson.umbrellaShieldUsed,
+              umbrellaShieldQuestionIndex: shouldUseUmbrellaShield ? lesson.currentIndex : lesson.umbrellaShieldQuestionIndex,
+            },
+          });
         }
       },
 

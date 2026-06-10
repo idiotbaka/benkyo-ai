@@ -433,6 +433,40 @@ rt {
   7.142% { transform: translateY(-6px) scale(1.01); }
 }
 
+.battle-umbrella-shield {
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  z-index: 30;
+  width: clamp(38px, 11vw, 54px);
+  height: clamp(38px, 11vw, 54px);
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -8px) scale(0.9);
+  transition:
+    opacity 0.34s ease,
+    transform 0.34s ease;
+}
+
+.battle-umbrella-shield--active {
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1);
+}
+
+.battle-umbrella-shield__image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 5px 8px rgba(79,70,229,0.22));
+  animation: battle-umbrella-float 1.8s ease-in-out infinite;
+  transform-origin: center center;
+}
+
+@keyframes battle-umbrella-float {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-7px) rotate(2deg); }
+}
+
 /* ── Profile badges ── */
 .badge-medal {
   width: min(100px, 100%);
