@@ -4,10 +4,12 @@ export const EQUIPMENT_IDS = {
   ROUND_FAN: 'equip_round_fan',
   EMA: 'equip_ema',
   UMBRELLA: 'equip_umbrella',
+  WIND_CHIME: 'equip_wind_chime',
 };
 
 export const ROUND_FAN_GACHA_COST = 160;
 export const EMA_STAR_FLOOR = 2;
+export const WIND_CHIME_HEART_REGEN_MS = 60 * 1000;
 
 export function isEquipmentEquipped(equippedItems, itemId) {
   return Boolean(equippedItems?.[itemId]);
@@ -21,6 +23,12 @@ export function getOmamoriGachaCost(equippedItems) {
 
 export function hasOmamoriGachaDiscount(equippedItems) {
   return getOmamoriGachaCost(equippedItems) < OMAMORI_GACHA_COST;
+}
+
+export function getHeartRegenMs(equippedItems, defaultRegenMs) {
+  return isEquipmentEquipped(equippedItems, EQUIPMENT_IDS.WIND_CHIME)
+    ? WIND_CHIME_HEART_REGEN_MS
+    : defaultRegenMs;
 }
 
 export function applyEmaStarFloor(stars, equippedItems) {

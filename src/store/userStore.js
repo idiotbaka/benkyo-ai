@@ -2,12 +2,41 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import useDailyTaskStore, { DAILY_TASK_EVENTS } from './dailyTaskStore';
 import useBadgeStore from './badgeStore';
+import { getHeartRegenMs } from '../lib/equipment-effects';
 
 const toDateStr = (d = new Date()) => d.toISOString().slice(0, 10);
 
 export const MAX_HEARTS   = 3;
 export const REGEN_MS     = 5 * 60 * 1000; // 5 minutes per heart
 const COFFEE_EXTENSION_MS = 10 * 60 * 1000;
+
+const getActiveHeartRegenMs = (equippedItems) => getHeartRegenMs(equippedItems, REGEN_MS);
+const getStoredHeartRegenMs = (value) => {
+  const normalized = Number(value);
+  return Number.isFinite(normalized) && normalized > 0 ? normalized : REGEN_MS;
+};
+
+const getHeartRegenSchedulePatch = (state, equippedItems, now = Date.now()) => {
+  const regenMs = getActiveHeartRegenMs(equippedItems);
+  const { hearts, nextHeartAt } = state;
+
+  if (hearts >= MAX_HEARTS) {
+    return { nextHeartAt: null, heartRegenMs: regenMs };
+  }
+
+  if (!nextHeartAt) {
+    return { heartRegenMs: regenMs };
+  }
+
+  const scheduledRegenMs = getStoredHeartRegenMs(state.heartRegenMs);
+  const remaining = nextHeartAt - now;
+
+  if (regenMs < scheduledRegenMs && remaining > regenMs) {
+    return { nextHeartAt: now + regenMs, heartRegenMs: regenMs };
+  }
+
+  return { heartRegenMs: regenMs };
+};
 
 const useUserStore = create(
   persist(
@@ -19,6 +48,7 @@ const useUserStore = create(
       // ── Heart system ──────────────────────────────────
       hearts: MAX_HEARTS,
       nextHeartAt: null, // timestamp when the next heart will regenerate
+      heartRegenMs: REGEN_MS,
 
       // ── Coin system ───────────────────────────────────
       coins: 0,
@@ -64,33 +94,55 @@ const useUserStore = create(
 
       // Call whenever hearts might have regenerated (app open, page focus, etc.)
       syncHearts() {
-        const { hearts, nextHeartAt } = get();
-        if (hearts >= MAX_HEARTS || !nextHeartAt) return;
+        const { hearts, nextHeartAt, heartRegenMs, equippedItems } = get();
+        const regenMs = getActiveHeartRegenMs(equippedItems);
+        if (hearts >= MAX_HEARTS || !nextHeartAt) {
+          if (heartRegenMs !== regenMs || nextHeartAt) {
+            set({ heartRegenMs: regenMs, nextHeartAt: hearts >= MAX_HEARTS ? null : nextHeartAt });
+          }
+          return;
+        }
         const now = Date.now();
-        if (now < nextHeartAt) return;
+        const scheduledRegenMs = getStoredHeartRegenMs(heartRegenMs);
+        let effectiveNextHeartAt = nextHeartAt;
+        if (regenMs < scheduledRegenMs && nextHeartAt - now > regenMs) {
+          effectiveNextHeartAt = now + regenMs;
+        }
+        if (now < effectiveNextHeartAt) {
+          if (effectiveNextHeartAt !== nextHeartAt || heartRegenMs !== regenMs) {
+            set({ nextHeartAt: effectiveNextHeartAt, heartRegenMs: regenMs });
+          }
+          return;
+        }
         const gained = Math.min(
           MAX_HEARTS - hearts,
-          Math.floor((now - nextHeartAt) / REGEN_MS) + 1
+          Math.floor((now - effectiveNextHeartAt) / regenMs) + 1
         );
         const newHearts = hearts + gained;
         set({
           hearts: newHearts,
-          nextHeartAt: newHearts >= MAX_HEARTS ? null : nextHeartAt + gained * REGEN_MS,
+          nextHeartAt: newHearts >= MAX_HEARTS ? null : effectiveNextHeartAt + gained * regenMs,
+          heartRegenMs: regenMs,
         });
       },
 
       // Deduct one heart and start regen timer if not already running
       deductHeart() {
-        const { hearts, nextHeartAt } = get();
+        const { hearts, nextHeartAt, heartRegenMs, equippedItems } = get();
         if (hearts <= 0) return;
         const newHearts = hearts - 1;
+        const regenMs = getActiveHeartRegenMs(equippedItems);
+        const now = Date.now();
+        let nextRegenAt = nextHeartAt ?? now + regenMs;
+        if (nextHeartAt && regenMs < getStoredHeartRegenMs(heartRegenMs) && nextHeartAt - now > regenMs) {
+          nextRegenAt = now + regenMs;
+        }
         set({
           hearts: newHearts,
           // Only (re)start regen when dipping below MAX_HEARTS.
           // If hearts are still >= MAX_HEARTS (temp hearts being consumed), keep null.
-          nextHeartAt: newHearts < MAX_HEARTS
-            ? (nextHeartAt ?? Date.now() + REGEN_MS)
-            : null,
+          nextHeartAt: newHearts < MAX_HEARTS ? nextRegenAt : null,
+          heartRegenMs: regenMs,
         });
       },
 
@@ -338,14 +390,17 @@ const useUserStore = create(
 
       toggleEquipment(itemId) {
         if (!itemId) return false;
+        get().syncHearts();
         const { inventory, equippedItems } = get();
         if ((inventory?.[itemId] ?? 0) <= 0) return false;
         const nextEquipped = !(equippedItems?.[itemId] ?? false);
+        const nextEquippedItems = {
+          ...(equippedItems ?? {}),
+          [itemId]: nextEquipped,
+        };
         set({
-          equippedItems: {
-            ...(equippedItems ?? {}),
-            [itemId]: nextEquipped,
-          },
+          equippedItems: nextEquippedItems,
+          ...getHeartRegenSchedulePatch(get(), nextEquippedItems),
         });
         return nextEquipped;
       },
@@ -362,23 +417,24 @@ const useUserStore = create(
 
       // Purchase an item from the shop; returns true on success
       purchaseItem(itemId, price, options = {}) {
+        get().syncHearts();
         const { coins, inventory, equippedItems } = get();
         if (coins < price) return false;
         if (options.singlePurchase && (inventory?.[itemId] ?? 0) > 0) return false;
+        const nextEquippedItems = options.autoEquip
+          ? {
+            ...(equippedItems ?? {}),
+            [itemId]: true,
+          }
+          : equippedItems;
         set({
           coins: coins - price,
           inventory: {
             ...inventory,
             [itemId]: options.singlePurchase ? 1 : (inventory?.[itemId] ?? 0) + 1,
           },
-          ...(options.autoEquip
-            ? {
-              equippedItems: {
-                ...(equippedItems ?? {}),
-                [itemId]: true,
-              },
-            }
-            : {}),
+          ...(options.autoEquip ? { equippedItems: nextEquippedItems } : {}),
+          ...(options.autoEquip ? getHeartRegenSchedulePatch(get(), nextEquippedItems) : {}),
         });
         return true;
       },
@@ -392,6 +448,7 @@ const useUserStore = create(
         lastActiveDate: s.lastActiveDate,
         hearts: s.hearts,
         nextHeartAt: s.nextHeartAt,
+        heartRegenMs: s.heartRegenMs,
         coins: s.coins,
         inventory: s.inventory,
         equippedItems: s.equippedItems,
