@@ -7,6 +7,7 @@ export const EQUIPMENT_IDS = {
   WIND_CHIME: 'equip_wind_chime',
   SAKURA_PETAL: 'equip_sakura_petal',
   LUCKY_CAT: 'equip_lucky_cat',
+  TENGU_MASK: 'equip_tengu_mask',
 };
 
 export const ROUND_FAN_GACHA_COST = 160;
@@ -52,6 +53,20 @@ export function getPerfectClearBonusCoins(stars, equippedItems) {
 
 export function hasLuckyCatPerfectBonus(equippedItems) {
   return isEquipmentEquipped(equippedItems, EQUIPMENT_IDS.LUCKY_CAT);
+}
+
+export function getTenguMarkedWrongOptionIndex(options, isCorrectOption, equippedItems) {
+  if (!isEquipmentEquipped(equippedItems, EQUIPMENT_IDS.TENGU_MASK) || !Array.isArray(options)) {
+    return -1;
+  }
+
+  const wrongOptionIndexes = options
+    .map((option, index) => ({ option, index }))
+    .filter(({ option }) => !isCorrectOption(option))
+    .map(({ index }) => index);
+
+  if (wrongOptionIndexes.length === 0) return -1;
+  return wrongOptionIndexes[Math.floor(Math.random() * wrongOptionIndexes.length)];
 }
 
 export function canUseUmbrellaShield(lesson, question, equippedItems) {

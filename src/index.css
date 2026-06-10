@@ -172,7 +172,7 @@ rt {
   border-bottom-width: 2px;
 }
 .word-btn:disabled { cursor: not-allowed; }
-.word-btn:hover:not(:disabled):not(.correct):not(.wrong) {
+.word-btn:hover:not(:disabled):not(.correct):not(.wrong):not(.tengu-marked) {
   border-color: #A78BFA;
   background: #F5F3FF;
 }
@@ -194,6 +194,22 @@ rt {
   border-bottom-color: #16A34A;
   background: #DCFCE7;
   color: #15803D;
+}
+.word-btn.tengu-marked {
+  border-color: #EF4444;
+  border-bottom-color: #DC2626;
+  background: #FFF7F7;
+}
+.tengu-mark-icon {
+  position: absolute;
+  left: 50%;
+  top: -13px;
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  pointer-events: none;
+  filter: drop-shadow(0 3px 4px rgba(127, 29, 29, 0.2));
+  animation: tenguMaskFloat 1.6s ease-in-out infinite;
 }
 .word-btn.dimmed {
   opacity: 0.38;
@@ -265,6 +281,11 @@ rt {
   50% { transform: translateY(-8px); }
 }
 .mascot-idle { animation: mascotBob 2.5s ease-in-out infinite; }
+
+@keyframes tenguMaskFloat {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-6px); }
+}
 
 @keyframes pageSlideUp {
   from { opacity: 0; transform: translateY(20px); }

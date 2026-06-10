@@ -3,8 +3,11 @@ import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import RubyText from '../UI/RubyText';
 import JapaneseSpeechButton from '../UI/JapaneseSpeechButton';
+import useUserStore from '../../store/userStore';
 import { playSavedJapaneseSpeech } from '../../lib/japanese-speech-player';
 import { toKanaReading } from '../../lib/japanese-text';
+import { getTenguMarkedWrongOptionIndex } from '../../lib/equipment-effects';
+import { useIcon } from '../../lib/icons';
 
 gsap.registerPlugin(useGSAP);
 
@@ -12,7 +15,14 @@ export default function WordReviewQuestion({ question, onAnswer, feedbackState, 
   const cardRef = useRef(null);
   const optionRefs = useRef([]);
   const [locked, setLocked] = useState(false);
+  const equippedItems = useUserStore(s => s.equippedItems ?? {});
+  const tenguMaskImg = useIcon('item/tengu_mask.png');
   const isJapaneseAnswer = question.mode === 'cn-to-jp';
+  const [tenguMarkedIndex] = useState(() => getTenguMarkedWrongOptionIndex(
+    question.options,
+    option => (isJapaneseAnswer ? option.jp : option.cn) === question.correctAnswer,
+    equippedItems
+  ));
 
   useGSAP(() => {
     gsap.set(cardRef.current, { opacity: 0 });
@@ -45,9 +55,10 @@ export default function WordReviewQuestion({ question, onAnswer, feedbackState, 
     onAnswer(answer);
   };
 
-  const getOptionClass = (option) => {
+  const getOptionClass = (option, idx) => {
     const optionAnswer = isJapaneseAnswer ? option.jp : option.cn;
     let cls = 'word-btn w-full text-center';
+    if (!feedbackState && tenguMarkedIndex === idx) return `${cls} tengu-marked`;
     if (!feedbackState) return cls;
     if (optionAnswer === question.correctAnswer) return `${cls} show-correct`;
     if (optionAnswer === selectedAnswer && feedbackState === 'wrong') return `${cls} wrong`;
@@ -95,8 +106,11 @@ export default function WordReviewQuestion({ question, onAnswer, feedbackState, 
             ref={el => { optionRefs.current[idx] = el; }}
             onClick={() => handleOptionClick(option, idx)}
             disabled={feedbackState !== null || locked}
-            className={getOptionClass(option)}
+            className={getOptionClass(option, idx)}
           >
+            {!feedbackState && tenguMarkedIndex === idx && (
+              <img src={tenguMaskImg} alt="天狗的面具" className="tengu-mark-icon" />
+            )}
             {isJapaneseAnswer ? (
               <span className="jp text-lg font-black leading-loose">
                 <RubyText text={option.jp} rubyMap={option.ruby || {}} />
