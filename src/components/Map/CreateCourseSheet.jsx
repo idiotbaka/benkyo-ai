@@ -149,10 +149,10 @@ const QUESTIONS = [
     title: '希望的学习节奏？',
     emoji: '⏱️',
     options: [
-      { value: 'relaxed',    label: '轻松随意', desc: '每章 1 个语法 · 5 节课' },
-      { value: 'steady',     label: '稳步推进', desc: '每章 2 个语法 · 6 节课' },
-      { value: 'fast',       label: '快速入门', desc: '每章 3 个语法 · 7 节课' },
-      { value: 'intensive',  label: '密集冲刺', desc: '每章 4 个语法 · 8 节课' },
+      { value: 'relaxed',    label: '轻松随意', desc: '适合轻松日常的学习难度，推荐选择' },
+      { value: 'steady',     label: '稳步推进', desc: '适合稳步提升的学习节奏，节奏略高' },
+      { value: 'fast',       label: '快速入门', desc: '适合希望快速的掌握基础，节奏较快' },
+      { value: 'intensive',  label: '密集冲刺', desc: '适合已有日语基础的玩家，快速复习' },
     ],
   },
   {
