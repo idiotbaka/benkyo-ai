@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import useDailyTaskStore, { DAILY_TASK_EVENTS } from './dailyTaskStore';
 import useBadgeStore from './badgeStore';
-import { getHeartRegenMs } from '../lib/equipment-effects';
+import { getHeartRegenMs, rollCheckInCoins } from '../lib/equipment-effects';
 
 const toDateStr = (d = new Date()) => d.toISOString().slice(0, 10);
 
@@ -225,7 +225,7 @@ const useUserStore = create(
       checkIn() {
         const today = toDateStr();
         if (get().lastCheckIn === today) return 0;
-        const amount = Math.floor(Math.random() * 61) + 60; // 60~120
+        const amount = rollCheckInCoins(get().equippedItems);
         useBadgeStore.getState().addCoinsEarned(amount);
         set(s => ({ coins: s.coins + amount, lastCheckIn: today }));
         return amount;

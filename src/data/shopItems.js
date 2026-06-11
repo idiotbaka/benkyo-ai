@@ -204,7 +204,7 @@ export const ITEM_DEFINITIONS = [
     category: ITEM_CATEGORIES.EQUIPMENT,
     name: '和伞',
     subtitle: '装备',
-    desc: '纸伞撑起旅途的一点从容，适合主线闯关',
+    desc: '纸伞撑起旅途的一点从容，章节闯关更有安全感',
     effectDesc: '主线关卡每关第 1 次错误不扣心心',
     icon: '☂️',
     iconPath: 'item/umbrella.png',
