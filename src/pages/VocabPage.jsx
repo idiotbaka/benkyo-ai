@@ -238,7 +238,7 @@ export default function VocabPage() {
           onClose={() => setNotice(null)}
           onGoSettings={() => {
             setNotice(null);
-            navigate('/settings');
+            navigate('/settings?panel=tts');
           }}
         />
       )}

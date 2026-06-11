@@ -687,7 +687,7 @@ export default function LevelMap() {
         {showNoAiConfig && (
           <NoAiConfigModal
             onClose={() => setShowNoAiConfig(false)}
-            onGoSettings={() => { setShowNoAiConfig(false); navigate('/settings'); }}
+            onGoSettings={() => { setShowNoAiConfig(false); navigate('/settings?panel=ai'); }}
           />
         )}
         {showCreateSheet && (
@@ -757,7 +757,7 @@ export default function LevelMap() {
       {showNoAiConfig && (
         <NoAiConfigModal
           onClose={() => setShowNoAiConfig(false)}
-          onGoSettings={() => { setShowNoAiConfig(false); navigate('/settings'); }}
+          onGoSettings={() => { setShowNoAiConfig(false); navigate('/settings?panel=ai'); }}
         />
       )}
       {chapters.map((chapter) => {
