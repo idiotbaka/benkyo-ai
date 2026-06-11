@@ -1,3 +1,5 @@
+mod japanese_segmenter;
+
 const VOLCENGINE_TTS_URL_PREFIX: &str = "https://openspeech.bytedance.com/api/v3/tts/";
 const VOLCENGINE_TTS_TIMEOUT_SECS: u64 = 20;
 
@@ -154,7 +156,10 @@ pub fn run() {
             }
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![proxy_volcengine_tts])
+        .invoke_handler(tauri::generate_handler![
+            proxy_volcengine_tts,
+            japanese_segmenter::segment_japanese_sentence
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
