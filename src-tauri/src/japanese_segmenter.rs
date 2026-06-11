@@ -54,6 +54,10 @@ pub fn segment_japanese_sentence(text: String) -> Result<Vec<String>, String> {
     Ok(segments)
 }
 
+pub fn warm_up_tokenizer() -> Result<(), String> {
+    get_tokenizer().map(|_| ())
+}
+
 fn get_tokenizer() -> Result<&'static Tokenizer, String> {
     match TOKENIZER.get_or_init(load_tokenizer) {
         Ok(tokenizer) => Ok(tokenizer),
