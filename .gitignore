@@ -17,7 +17,9 @@ dist-ssr
 
 # Local AI instructions and repository automation
 .claude/
-.github/
+.github/*
+!.github/workflows/
+!.github/workflows/*.yml
 
 # Local environment variables
 .env

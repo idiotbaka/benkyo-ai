@@ -1,0 +1,293 @@
+name: Build packages
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+concurrency:
+  group: build-packages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+  android:
+    name: Android APK
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android toolchain
+        run: |
+          yes | sdkmanager --licenses || true
+          sdkmanager "platforms;android-36" "build-tools;36.0.0" "ndk;27.2.12479018"
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
+
+      - name: Cache Rust
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate platform icons
+        run: npm run icons:generate
+
+      - name: Build Android APK
+        env:
+          NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/27.2.12479018
+          ANDROID_NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/27.2.12479018
+        run: |
+          npm run android:build
+          npm run android:build:universal
+
+      - name: Collect Android APKs
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          version="$(node -p "require('./package.json').version")"
+          output_dir="dist-android-apk"
+          mkdir -p "$output_dir"
+
+          find src-tauri/gen/android/app/build/outputs/apk -type f -name '*.apk' \
+            -path '*/release/*' \
+            ! -name '*-signed.apk' \
+            ! -name '*-aligned.apk' \
+            -print |
+          sort
+
+          find src-tauri/gen/android/app/build/outputs/apk -type f -name '*.apk' \
+            -path '*/release/*' \
+            ! -name '*-signed.apk' \
+            ! -name '*-aligned.apk' \
+            -print0 |
+          while IFS= read -r -d '' apk; do
+            abi=""
+            case "$apk" in
+              *universal*) abi="universal" ;;
+              *arm64-v8a*|*aarch64*|*/arm64/*|*-arm64-*) abi="arm64" ;;
+              *armeabi-v7a*|*armv7*|*/arm/*|*-arm-*) abi="arm" ;;
+              *x86_64*|*/x64/*|*-x64-*) abi="x86_64" ;;
+              *x86*) abi="x86" ;;
+            esac
+
+            if [ -n "$abi" ]; then
+              echo "Collecting $apk as $abi"
+              cp "$apk" "$output_dir/benkyo-ai-$version-$abi.apk"
+            fi
+          done
+
+          for abi in arm arm64 x86 x86_64 universal; do
+            if [ ! -f "$output_dir/benkyo-ai-$version-$abi.apk" ]; then
+              echo "Missing Android APK for $abi" >&2
+              exit 1
+            fi
+          done
+
+          ls -lh "$output_dir"
+
+      - name: Upload Android arm APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk-arm
+          path: dist-android-apk/*-arm.apk
+          if-no-files-found: error
+
+      - name: Upload Android arm64 APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk-arm64
+          path: dist-android-apk/*-arm64.apk
+          if-no-files-found: error
+
+      - name: Upload Android x86 APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk-x86
+          path: dist-android-apk/*-x86.apk
+          if-no-files-found: error
+
+      - name: Upload Android x86_64 APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk-x86_64
+          path: dist-android-apk/*-x86_64.apk
+          if-no-files-found: error
+
+      - name: Upload Android universal APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk-universal
+          path: dist-android-apk/*-universal.apk
+          if-no-files-found: error
+
+  windows:
+    name: Windows
+    runs-on: windows-latest
+    needs: lint
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate platform icons
+        run: npm run icons:generate
+
+      - name: Build Windows
+        run: npm run windows:build
+
+      - name: Upload Windows bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-bundle
+          path: src-tauri/target/release/bundle/**/*
+          if-no-files-found: error
+
+  macos:
+    name: macOS
+    runs-on: macos-latest
+    needs: lint
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - name: Cache Rust
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate platform icons
+        run: npm run icons:generate
+
+      - name: Build macOS
+        run: npm run macos:build
+
+      - name: Upload macOS bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-bundle
+          path: |
+            src-tauri/target/release/bundle/**/*
+            src-tauri/target/*/release/bundle/**/*
+          if-no-files-found: error
+
+  ios:
+    name: iOS unsigned IPA
+    runs-on: macos-latest
+    needs: lint
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios
+
+      - name: Install Apple mobile tools
+        run: |
+          brew install xcodegen libimobiledevice
+          command -v pod >/dev/null || sudo gem install cocoapods
+
+      - name: Cache Rust
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate platform icons
+        run: npm run icons:generate
+
+      - name: Generate iOS project
+        run: npm run ios:init:ci
+
+      - name: Build unsigned iOS IPA
+        run: npm run ios:build
+
+      - name: Upload iOS IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-unsigned-ipa
+          path: src-tauri/gen/apple/build/**/*.ipa
+          if-no-files-found: error

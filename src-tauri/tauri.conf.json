@@ -1,6 +1,6 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "日学",
+  "productName": "Benkyo AI",
   "version": "0.3.0",
   "identifier": "com.benkyo.ai",
   "build": {
@@ -35,6 +35,12 @@
     ],
     "android": {
       "debugApplicationIdSuffix": ".debug"
+    },
+    "iOS": {
+      "infoPlist": "Info.plist"
+    },
+    "macOS": {
+      "infoPlist": "Info.plist"
     }
   }
 }

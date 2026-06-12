@@ -12,6 +12,16 @@
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
+    "icons:generate": "tauri icon src-tauri/icon-manifest.json --ios-color '#ffffff'",
+    "ios:init": "tauri ios init",
+    "ios:init:ci": "tauri ios init --ci --skip-targets-install",
+    "ios:dev": "tauri ios dev",
+    "ios:build:sim": "tauri ios build --debug --target aarch64-sim --ci",
+    "ios:build": "tauri ios build --ci --no-sign",
+    "macos:build": "tauri build --target universal-apple-darwin --bundles app,dmg --ci --no-sign",
+    "windows:build": "tauri build --ci",
+    "android:build": "node scripts/sync-android-app-name.mjs && tauri android build --apk --split-per-abi --ci",
+    "android:build:universal": "node scripts/sync-android-app-name.mjs && tauri android build --apk --ci",
     "android:release": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/build-android.ps1"
   },
   "dependencies": {

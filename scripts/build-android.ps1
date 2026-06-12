@@ -213,6 +213,7 @@ if (-not $KeyPassword) {
     }
 }
 
+$node = Get-RequiredCommand "node"
 $npx = Get-RequiredCommand "npx"
 $keytool = Get-RequiredCommand "keytool"
 $sdkPath = Get-AndroidSdkPath -RepoRoot $repoRoot
@@ -256,6 +257,7 @@ if (-not $Universal) {
 if (-not $SkipBuild) {
     Push-Location $repoRoot
     try {
+        Invoke-External -FilePath $node -Arguments @("scripts/sync-android-app-name.mjs") -Description "Syncing Android app name"
         Invoke-External -FilePath $npx -Arguments $buildArguments -Description "Building release APKs with Tauri"
     }
     finally {
