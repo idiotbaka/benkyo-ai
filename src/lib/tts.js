@@ -126,7 +126,8 @@ function isSupportedTtsProvider(provider) {
     provider === 'aliyun-qwen-tts' ||
     provider === 'aliyun-minimax-tts' ||
     provider === 'minimax-official-tts' ||
-    provider === 'volcengine-doubao-tts'
+    provider === 'volcengine-doubao-tts' ||
+    provider === 'openai-tts'
   );
 }
 
@@ -146,6 +147,16 @@ function createTtsRequestHeaders(profile) {
 }
 
 function createTtsRequestBody(profile, text) {
+  if (profile.provider === 'openai-tts') {
+    return {
+      model: profile.modelId,
+      input: text,
+      voice: profile.voice,
+      response_format: profile.format,
+      instructions: 'Speak in clear, natural Japanese with friendly lesson pacing.',
+    };
+  }
+
   if (profile.provider === 'aliyun-qwen-tts') {
     return {
       model: profile.modelId,

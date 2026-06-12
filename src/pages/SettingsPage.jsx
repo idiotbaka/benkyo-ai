@@ -1084,6 +1084,9 @@ function getModelIdPlaceholder(provider) {
 }
 
 function getTtsProviderHint(provider) {
+  if (provider === 'openai-tts') {
+    return '访问 https://platform.openai.com/ 获取 API Key；推荐模型 gpt-4o-mini-tts，推荐音色 marin 或 cedar。';
+  }
 
   if (provider === 'aliyun-cosyvoice') {
     return '访问 https://bailian.console.aliyun.com/ 进行开通';

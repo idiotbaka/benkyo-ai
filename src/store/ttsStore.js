@@ -2,6 +2,12 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 export const TTS_PROVIDER_PRESETS = {
+  'openai-tts': {
+    label: 'OpenAI TTS',
+    baseUrl: 'https://api.openai.com/v1/audio/speech',
+    modelId: 'gpt-4o-mini-tts',
+    voice: 'marin',
+  },
   'aliyun-cosyvoice': {
     label: 'CosyVoice（阿里云百炼）',
     baseUrl: 'https://dashscope.aliyuncs.com/api/v1/services/audio/tts/SpeechSynthesizer',
