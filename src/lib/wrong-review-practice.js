@@ -10,6 +10,7 @@ export function buildWrongReviewPracticeQuestions(wrongQuestions, count = WRONG_
     _wrongQuestionId: record.id,
     _sourceChapterId: record.chapterId,
     _sourceLevelId: record.levelId,
+    _sourceQuestionId: record.question?.id ?? record.id.split('::').slice(2).join('::'),
   }));
 }
 
@@ -22,6 +23,7 @@ function cloneQuestion(question) {
   const cloned = JSON.parse(JSON.stringify(question ?? {}));
   delete cloned._isReview;
   delete cloned._wrongQuestionId;
+  delete cloned._sourceQuestionId;
   return cloned;
 }
 

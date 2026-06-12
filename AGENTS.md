@@ -1,7 +1,7 @@
 # 日学 (Benkyo AI) - AI 工程指南
 
 日语学习 App，交互参考 Duolingo。使用 React Web 技术栈，通过 Tauri v2 打包桌面端和 Android。
-支持 AI 生成个性化课程、闯关练习、练习中心、语法教程、单词本、每日任务、徽章/御守收集、TTS 日语语音和 UI 音效。
+支持 AI 生成个性化课程、闯关练习、练习中心、语法教程、单词本、每日任务、徽章/御守/道具收集、TTS 日语语音和 UI 音效。
 
 本文件只保留 AI 快速理解代码所需的信息。实现细节以源码为准，修改前先读目标组件、store 和相邻工具函数，不要只凭本文假设行为。
 
@@ -54,7 +54,7 @@ src/
 │   ├── Profile/                        编辑资料、头像裁剪、背包、徽章
 │   └── UI/                             通用组件、悬浮组件、音频按钮
 ├── store/
-│   ├── userStore.js                    用户、心心、金币、道具、XP 加速、御守收藏
+│   ├── userStore.js                    用户、心心、金币、道具、XP/金币加成、御守收藏
 │   ├── gameStore.js                    章节/通用练习闯关状态
 │   ├── courseStore.js                  AI 生成课程
 │   ├── badgeStore.js                   徽章解锁与累计进度
@@ -72,7 +72,9 @@ src/
 │   ├── generate-chapter.js             课程生成流水线
 │   ├── course-wire.js                  AI JSON 传输协议与兼容解码
 │   ├── badge-progress.js               徽章实时进度计算
+│   ├── equipment-effects.js            护身符/装备实际特效入口
 │   ├── *-practice.js                   练习中心抽题/构题工具
+│   ├── giftbox-rewards.js              礼物盒掉落与开启奖励
 │   ├── judge-answer.js                 AI 误判申诉
 │   ├── tts.js                          TTS 请求与 IndexedDB 缓存
 │   ├── japanese-speech-player.js       日语语音播放控制
@@ -115,7 +117,7 @@ Android 自定义入口：`src-tauri/gen/android/app/src/main/java/com/benkyo/ai
 
 | Store | 持久化 key | 核心职责 |
 |-------|------------|----------|
-| `userStore` | `benkyo-ai-user` | profile、连续天数、心心、金币、背包、签到、XP 加速、学习档案、御守收藏 |
+| `userStore` | `benkyo-ai-user` | profile、连续天数、心心、金币、背包、装备状态、签到、XP/金币加成、学习档案、御守收藏 |
 | `gameStore` | `benkyo-ai-progress` | 持久化 `levelProgress`、`totalXp`；临时保存章节闯关和通用练习 `lesson` |
 | `courseStore` | `benkyo-ai-courses` | AI 生成的 `chapters` |
 | `dailyTaskStore` | `benkyo-ai-daily-tasks` | 每日任务、完成 toast 队列、宝箱领取状态 |
@@ -125,14 +127,16 @@ Android 自定义入口：`src-tauri/gen/android/app/src/main/java/com/benkyo/ai
 | `vocabStore` | `benkyo-ai-vocab` | 单词本 |
 | `wrongQuestionStore` | `benkyo-ai-wrong-questions` | 错题库，按章节+关卡+题目稳定去重 |
 | `appearanceStore` | `benkyo-ai-appearance` | 当前图标皮肤，默认 `benkyochan` |
-| `listeningPracticeStore` | 不持久化 | 听力练习特殊玩法状态 |
-| `wordReviewPracticeStore` | 不持久化 | 单词复习特殊玩法状态 |
+| `listeningPracticeStore` | 不持久化 | 听力练习特殊玩法状态、心心、失败/复活、结算 |
+| `wordReviewPracticeStore` | 不持久化 | 单词复习特殊玩法状态、心心、失败/复活、结算 |
 | `autoGenStore` | 不持久化 | 后台批量生成进度与 AbortController |
 | `nextChapterGenStore` | 不持久化 | 下一章节生成进度与 AbortController |
 
 关键常量：`MAX_HEARTS = 3`、`REGEN_MS = 5 * 60 * 1000`、`XP_PER_LEVEL = 200`、`BASE_XP = 60`。
 
-`gameStore.lesson` 是临时答题状态，包含当前题目位置、心心、正确数、反馈、金币和最终结算信息。`startPracticeLesson()` 用于课程巩固和错题重练这类复用章节闯关 UI 的练习，`lesson.isPractice` 会阻止写入章节进度。
+`userStore` 同时管理背包道具、`xpBoost`、`coinBoost`、咖啡每日使用日期和奖励发放。`addBoostedCoins()` 会应用金币加成；XP 加成卡与金币加成卡互斥；`syncXpBoost()` 会清理过期加成。背包只展示已拥有道具，空背包显示居中提示。
+
+`gameStore.lesson` 是临时答题状态，包含当前题目位置、心心、正确数、反馈、金币和最终结算信息。`startPracticeLesson()` 用于课程巩固和错题重练这类复用章节闯关 UI 的练习，`lesson.isPractice` 会阻止写入章节进度。听力练习和单词复习使用独立 store，但心心扣除、失败页、复活页与通用闯关保持同一套体验。
 
 ---
 
@@ -143,6 +147,7 @@ Android 自定义入口：`src-tauri/gen/android/app/src/main/java/com/benkyo/ai
 - `dailyTaskStore.ensureToday()` 每天生成小/中/大三个任务。
 - 进度由各玩法调用 `recordEvent()` 推进；任务首次完成会加入 `toastQueue`，由全局 `DailyTaskToast` 顶部弹出。
 - 在“我的”页点击已完成任务宝箱会 `claimTask()`，随后 `userStore.grantReward()` 发放金币或道具，并弹出 `RewardModal`。
+- 每日签到成功后可能额外获得金币加成卡；签到奖励、任务奖励、礼物盒开启和扭蛋额外掉落统一通过 `RewardModal` 展示。
 - 徽章静态定义在 `data/badges.js`，进度统一由 `lib/badge-progress.js` 计算，解锁和累计计数在 `badgeStore`。
 - 用户进入“我的”页时 `ProfilePage.queueBadgeUnlocks()` 统一检查并弹出 `BadgeUnlockModal`；签到/每日任务奖励/吃蛋糕后会额外触发检查。
 - 徽章进度来源包括背包道具、单词数、角色等级、全 3 星章节、章节数；累计计数包括每日任务、总金币、吃蛋糕、误判申诉。
@@ -201,7 +206,13 @@ word-match 每配对成功一组 +1 金币
 3 星额外 +10 金币
 ```
 
-商店道具：`xp2x_15` 120 金币，15 分钟 2x XP；`xp3x_15` 160 金币，15 分钟 3x XP；`cake` 80 金币，恢复 3 心。
+装备 `绘马(equip_ema)` 时，正常完成结算的星级最低为 2 星，`1 星` 会提升为 `2 星`，XP、关卡进度、礼物盒掉落和完成页均使用提升后的最终星级。失败页不触发绘马保底。
+
+金币题目奖励通过 `userStore.addBoostedCoins()` 发放，会受金币加成卡影响；3 星额外金币不受金币加成影响。结算和练习完成页可能额外掉落礼物盒，掉落/开启逻辑集中在 `giftbox-rewards.js`。
+
+道具定义集中在 `data/shopItems.js` 的 `ITEM_DEFINITIONS`；`SHOP_ITEMS` 只过滤可购买道具，背包使用完整定义。当前道具包括 XP 加成卡、金币加成卡、礼物盒、蛋糕、罐装咖啡和日式点心套装。
+
+道具规则：`xp2x_15` / `xp3x_15` 商店可买，15 分钟 XP 加成；`coin2x_15` / `coin3x_15` 不能购买，可由签到等奖励获得，15 分钟金币加成；金币加成与 XP 加成互斥。`cake` 恢复 3 心；`coffee` 每日可用 1 次，延长当前 XP 或金币加成 10 分钟；`sweets_set` 直接恢复到 5 心。`giftbox1`、`giftbox2`、`giftbox3` 不可购买，可从闯关、练习或扭蛋额外掉落，打开后随机发放金币或道具。装备类护身符的实际效果集中在 `lib/equipment-effects.js`，使用 `userStore.equippedItems` 判断是否生效。
 
 ---
 
@@ -209,11 +220,17 @@ word-match 每配对成功一组 +1 金币
 
 `ShopPage.jsx` 底部固定切换“道具商店 / 御守・護身符”。道具商店仍使用 `data/shopItems.js`；御守扭蛋入口渲染 `components/Shop/OmamoriGacha.jsx`。
 
-御守数据集中在 `data/omamoriGacha.js`：`OMAMORI_GACHA_COST = 200`；概率为 `N 72%`、`R 15%`、`SR 10%`、`SSR 3%`；`OMAMORI_ITEMS` 定义 27 种御守、稀有度、名称和 `sd/*.png` 图标路径；`OMAMORI_LORE` / `getOmamoriLore()` 定义详情页文化小知识；`drawOmamori()` 只负责按概率抽取，不写 store。`连勝守`、`勉強ちゃんの絆` 是 App 定制御守。
+御守数据集中在 `data/omamoriGacha.js`：`OMAMORI_GACHA_COST = 200`；概率为 `N 62%`、`R 25%`、`SR 10%`、`SSR 3%`；`OMAMORI_ITEMS` 定义 27 种御守、稀有度、名称和 `sd/*.png` 图标路径；`OMAMORI_LORE` / `getOmamoriLore()` 定义详情页文化小知识；`OMAMORI_EFFECTS` / `getOmamoriEffect()` 定义御守特效说明；`drawOmamori()` 只负责按概率抽取，不写 store。`连勝守`、`勉強ちゃんの絆` 是 App 定制御守。
 
-御守持久化在 `userStore`：`spendCoins(amount)` 扣金币；`recordOmamoriDraw(itemId)` 累加 `omamoriCollection[itemId]`；`markOmamoriDetailViewed()` 写入 `omamoriViewedDetails[itemId]`。Console 调试方法在 `App.jsx` 暴露：`benkyoDebugAddCoins(amount = 1000)`。
+御守与装备持久化在 `userStore`：`spendCoins(amount)` 扣金币；`recordOmamoriDraw(itemId)` 累加 `omamoriCollection[itemId]`；`markOmamoriDetailViewed()` 写入 `omamoriViewedDetails[itemId]`；`equippedItems[itemId]` 记录装备是否启用。Console 调试方法在 `App.jsx` 暴露：`benkyoDebugAddCoins(amount = 1000)`。
 
 `OmamoriGacha.jsx` 负责所有御守 UI：舞台背景、抽奖结果横向滚动、收藏图鉴和详情遮罩。收藏区只允许点击已获得御守；未获得置灰且不可打开详情。已获得但未查看详情的御守在“累计X枚”前显示主题色 `New`，打开详情后消失。首次抽到新御守时，结果弹窗顶部固定占位显示 `New!!`，避免弹窗高度跳动。
+
+御守与商店存在解锁关系：持有 `爆睡祈願(N)` 后可购买 `罐装咖啡`；持有 `健康祈願(N)` 后可购买 `日式点心套装`；持有指定御守后可购买对应装备护身符。商店购买条件使用 item 的 `purchaseRequirement` 声明，`ShopPage` 统一判断并展示。装备类护身符可在商店和背包切换“装备/卸下”，购买后默认装备（除非 item 显式关闭 `autoEquipOnPurchase`）。
+
+已实现装备特效：`团扇(equip_round_fan)` 装备时，御守抽取实际费用从 `OMAMORI_GACHA_COST = 200` 降为 160，Gacha 主按钮、主卡片右上角、抽取弹窗 tag、再抽一次按钮都显示 160，其中按钮价格会显示 200 删除线和 160 现价；实际扣费使用 160。`绘马(equip_ema)` 装备时，首页章节关卡和练习中心正常完成结算星级最低为 2 星。
+
+御守详情页会显示简洁的特效说明。抽到 SR/SSR 御守会额外获得 1 个豪华礼物盒。
 
 样式主要在 `index.css` 的 `Shop: Omamori gacha` 区块。御守图片不要再套卡片边框：收藏图统一 4 列，`100px × 204px` 容器底部对齐；结果滚动图使用 `125px × 255px` 容器底部对齐。SR/SSR 收藏图保留扫光；结果页 SR/SSR 扫光使用图片 mask，只扫御守不透明区域，不扫外部空白。
 
@@ -227,10 +244,12 @@ word-match 每配对成功一组 +1 金币
 
 | 功能 | 数据来源 | 进入条件 | 状态/页面 | 奖励 |
 |------|----------|----------|-----------|------|
-| 听力练习 | 全部 `sentence-translate`，取 `sentence` + `translation` | TTS 已配置且可用题 >= 6 | `listeningPracticeStore` + `ListeningPracticePage` | 答对 +5 金币，XP = 星数 × 30 |
+| 听力练习 | 全部 `sentence-translate`，取 `sentence` + `translation` | TTS 已配置、可用题 >= 6 且有心心 | `listeningPracticeStore` + `ListeningPracticePage` | 答对 +5 金币，XP = 星数 × 30，可能掉落礼物盒 |
 | 课程巩固 | 全部关卡 `questions` 随机抽 9 题 | 可用题 >= 9 且有心心 | `gameStore.startPracticeLesson` + `CourseReviewPracticePage` | 同章节闯关 |
-| 单词复习 | `word-match.pairs` 去重后构 10 题 | 可用词条 >= 10 | `wordReviewPracticeStore` + `WordReviewPracticePage` | 答对 +2 金币，XP = 星数 × 10 |
+| 单词复习 | `word-match.pairs` 去重后构 10 题 | 可用词条 >= 10 且有心心 | `wordReviewPracticeStore` + `WordReviewPracticePage` | 答对 +2 金币，XP = 星数 × 10，可能掉落礼物盒 |
 | 错题重练 | `wrongQuestionStore.questions` 随机抽 9 题 | 错题 >= 9 且有心心 | `gameStore.startPracticeLesson({ practiceType: 'wrong-review' })` + `WrongReviewPracticePage` | 同章节闯关 |
+
+练习中心四个入口都会先 `syncHearts()`，没有心心时弹出生命值耗尽提示并阻止进入。听力练习和单词复习虽使用独立 store，也会从 `userStore.hearts` 初始化本局心心；答错会调用 `userStore.deductHeart()` 扣全局心心；心心归零后进入失败/复活流程。`LessonFailedContent` 和 `ReviveSheet` 支持传入独立 practice session，听力/单词复习复用同一套失败页和蛋糕复活页。失败页只发放按答对比例折算的部分 XP，不套 XP 加成，不触发绘马星级保底；正常完成才按星级结算并受绘马保底影响。
 
 听力练习：未配置 TTS 时弹出配置引导；句子先删除标点，再优先使用 `Intl.Segmenter('ja-JP', { granularity: 'word' })` 分词，旧运行时回退逐字符；反馈卡片展示中文翻译。
 
@@ -327,7 +346,8 @@ TTS 缓存：
 ## 图标与资源
 
 - 图标统一通过 `useIcon()` / `useIconResolver()` 读取，路径写相对皮肤根目录，如 `ui/bag.png`、`sd/sd_badge_course.png`。
-- 当前支持 `benkyochan` 和 `hiyohiyo` 两套皮肤，默认 `benkyochan`；缺失资源会回退默认皮肤。
+- 道具图标位于当前皮肤 `item/` 目录；商店和背包都从 `ITEM_DEFINITIONS.iconPath` 解析，不要手写 public URL。
+- 当前支持 `benkyochan` 默认皮肤，缺失资源会回退默认皮肤，未来会增加新皮肤。
 - 徽章图为圆形成品图，不要额外绘制边框；未解锁灰度，已解锁和解锁弹窗使用扫光效果。
 - 御守图标位于当前皮肤 `sd/` 目录，文件名含日文/中文字符；通过 `useIconResolver()` 解析，不要手写 public URL。
 - 品牌 Logo 使用当前皮肤下的 `logo_32.png` 或 `logo.png`。
@@ -346,6 +366,7 @@ TTS 缓存：
 - 为避免 FOUC，先 `gsap.set()` 再播放入场动画。
 - Sheet 关闭时先播放退场动画，完成后再卸载。
 - 练习中心卡片右侧 SD 图允许溢出显示；调整卡片时检查移动端文本和图片不要互相遮挡。
+- 复活页 `ReviveSheet` 中蛋糕库存数量使用背包风格胶囊标签，不要退回普通右对齐文字。
 
 ---
 
@@ -369,10 +390,11 @@ TTS 缓存：
 2. 不要扫描 `src-tauri/target` 或 Android `build` 目录。
 3. 涉及 AI 时确认使用 `maxOutputTokens`；保留当前流式/非流式策略。
 4. 涉及题目切换时考虑跨关卡重复 `q.id` 和组件本地状态。
-5. 涉及练习中心时确认使用对应 `*-practice.js` 里的构题和计数口径。
+5. 涉及练习中心时确认使用对应 `*-practice.js` 里的构题和计数口径，并确认四个入口都有心心检查。
 6. 涉及错题库时确认只记录章节闯关错误，练习中心错误不入库。
 7. 涉及徽章时区分实时进度和累计计数，解锁只在“我的”页统一检查。
-8. 涉及商店/御守时确认金币扣除、收藏计数、已读 New 状态和图标皮肤回退。
+8. 涉及商店/御守/道具/装备时确认金币扣除、购买条件、背包库存、装备状态、实际特效、收藏计数、已读 New 状态和图标皮肤回退。
 9. 涉及音频时区分 TTS 语音与 UI 音效。
 10. 涉及全屏布局时检查 Android 原生 safe area 与 `body overflow:hidden`。
-11. 修改后至少运行 `npm run lint`；重要功能或路由变更同时运行 `npm run build`。
+11. 涉及护身符特效时优先复用 `lib/equipment-effects.js`，避免 UI 展示和实际扣费/结算逻辑分叉。
+12. 修改后至少运行 `npm run lint`；重要功能或路由变更只需运行 `npm run build` 确认即可，不要启动 Vite 开发服务器或内置浏览器。

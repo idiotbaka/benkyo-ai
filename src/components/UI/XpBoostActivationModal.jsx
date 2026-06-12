@@ -9,10 +9,13 @@ import { useIcon } from '../../lib/icons';
  *   multiplier: 2 | 3
  *   onDismiss: () => void  — called once the animation ends (~3.2 s)
  */
-export default function XpBoostActivationModal({ multiplier, onDismiss }) {
+export default function XpBoostActivationModal({ multiplier, boostType = 'xp', onDismiss }) {
   const isDouble = multiplier === 2;
+  const isCoinBoost = boostType === 'coin';
   const exp2Img = useIcon('item/exp2.png');
   const exp3Img = useIcon('item/exp3.png');
+  const coin2Img = useIcon('item/coin2.png');
+  const coin3Img = useIcon('item/coin3.png');
 
   const overlayRef   = useRef(null);
   const particleRef  = useRef(null); // container for JS-spawned particles
@@ -21,11 +24,18 @@ export default function XpBoostActivationModal({ multiplier, onDismiss }) {
   const multRef      = useRef(null);
   const textRef      = useRef(null);
 
-  const accentColor = isDouble ? '#D97706' : 'var(--tp)';
-  const softBg = isDouble
+  const boostIcon = isCoinBoost
+    ? (isDouble ? coin2Img : coin3Img)
+    : (isDouble ? exp2Img : exp3Img);
+  const accentColor = isCoinBoost
+    ? (isDouble ? '#059669' : '#2563EB')
+    : (isDouble ? '#D97706' : 'var(--tp)');
+  const softBg = isCoinBoost
+    ? (isDouble ? 'linear-gradient(180deg, #ECFDF5 0%, #FFFBEB 100%)' : 'linear-gradient(180deg, #EFF6FF 0%, #F5F3FF 100%)')
+    : isDouble
     ? 'linear-gradient(180deg, #FFF7ED 0%, #FFFBEB 100%)'
     : 'linear-gradient(180deg, #F5F3FF 0%, #FFF1F2 100%)';
-  const borderColor = isDouble ? '#FDE68A' : 'var(--tp-bdr)';
+  const borderColor = isCoinBoost ? (isDouble ? '#A7F3D0' : '#BFDBFE') : isDouble ? '#FDE68A' : 'var(--tp-bdr)';
 
   useEffect(() => {
     const overlay  = overlayRef.current;
@@ -46,7 +56,7 @@ export default function XpBoostActivationModal({ multiplier, onDismiss }) {
     const PARTICLES = 18;
     for (let i = 0; i < PARTICLES; i++) {
       const el = document.createElement('img');
-      el.src = isDouble ? exp2Img : exp3Img;
+      el.src = boostIcon;
       el.alt = '';
       el.style.cssText = `
         position:absolute; left:calc(50% - 10px); top:calc(50% - 64px);
@@ -162,7 +172,7 @@ export default function XpBoostActivationModal({ multiplier, onDismiss }) {
               marginBottom: 12,
             }}
           >
-            经验加成
+            {isCoinBoost ? '金币加成' : '经验加成'}
           </div>
 
           <div
@@ -182,7 +192,7 @@ export default function XpBoostActivationModal({ multiplier, onDismiss }) {
                 : 'drop-shadow(0 10px 16px rgba(91,79,233,0.16))',
             }}
           >
-            <img src={isDouble ? exp2Img : exp3Img} alt="XP加速" width={78} height={78} style={{ objectFit: 'contain' }} />
+            <img src={boostIcon} alt={isCoinBoost ? '金币加成' : 'XP加速'} width={78} height={78} style={{ objectFit: 'contain' }} />
           </div>
 
           <div
@@ -206,7 +216,7 @@ export default function XpBoostActivationModal({ multiplier, onDismiss }) {
             color: '#1E1B4B',
             marginBottom: 8,
           }}>
-            {isDouble ? '双倍' : '三倍'}经验已开启
+            {isDouble ? '双倍' : '三倍'}{isCoinBoost ? '金币' : '经验'}已开启
           </p>
           <div
             style={{

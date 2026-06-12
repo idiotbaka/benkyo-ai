@@ -60,6 +60,8 @@ export function stopJapaneseSpeech() {
 function createPlayback(audioBlob) {
   const audioUrl = URL.createObjectURL(audioBlob);
   const audio = new Audio(audioUrl);
+  audio.preload = 'auto';
+  audio.setAttribute('playsinline', '');
   let settled = false;
   let resolveFinished;
 
@@ -88,6 +90,8 @@ function createPlayback(audioBlob) {
     audio.removeEventListener('ended', handleEnded);
     audio.removeEventListener('error', handleError);
     audio.pause();
+    audio.removeAttribute('src');
+    audio.load();
     URL.revokeObjectURL(audioUrl);
     if (activePlayback === playback) activePlayback = null;
     resolveFinished(reason);

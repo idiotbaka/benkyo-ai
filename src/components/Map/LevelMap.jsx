@@ -129,7 +129,7 @@ function NoHeartsModal({ nextHeartAt, onClose }) {
 }
 
 // ── Level Info Sheet ────────────────────────────────────────────────────────
-function LevelInfoSheet({ info, onClose, onEnter, onGenerate, isAutoGenerating, autoGenMsg, autoGenProgress }) {
+function LevelInfoSheet({ info, onClose, onEnter, onKnowledge, onGenerate, isAutoGenerating, autoGenMsg, autoGenProgress }) {
   const sheetRef   = useRef(null);
   const overlayRef = useRef(null);
   const completedLevelsImg = useIcon('ui/completed_levels.png');
@@ -180,6 +180,7 @@ function LevelInfoSheet({ info, onClose, onEnter, onGenerate, isAutoGenerating, 
         setGenMsg(event.message);
         setGenProgress(event.overallProgress);
       });
+      setGenerating(false);
     } catch (err) {
       setGenerating(false);
       setGenError(err?.message || '生成失败，请重试');
@@ -326,20 +327,64 @@ function LevelInfoSheet({ info, onClose, onEnter, onGenerate, isAutoGenerating, 
             )}
 
             {/* CTA */}
-            <button
-              className="btn-press"
-              onClick={hasQuestions ? onEnter : handleGenerate}
-              style={{
-                width: '100%', padding: '15px',
-                borderRadius: 18, border: 'none',
-                background: `linear-gradient(135deg, ${chapterColor}DD, ${chapterColor})`,
-                color: 'white', fontSize: 16, fontWeight: 900,
-                cursor: 'pointer',
-                boxShadow: `0 4px 0 ${chapterColor}88`,
-              }}
-            >
-              {hasQuestions ? '进入关卡 →' : '✨ 生成关卡'}
-            </button>
+            {hasQuestions ? (
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  className="btn-press"
+                  onClick={onKnowledge}
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    padding: '15px 8px',
+                    borderRadius: 18,
+                    border: `1.5px solid ${chapterColor}55`,
+                    background: chapterColor + '12',
+                    color: chapterColor,
+                    fontSize: 16,
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    boxShadow: `0 4px 0 ${chapterColor}22`,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  知识讲解
+                </button>
+                <button
+                  className="btn-press"
+                  onClick={onEnter}
+                  style={{
+                    flex: 3,
+                    minWidth: 0,
+                    padding: '15px',
+                    borderRadius: 18,
+                    border: 'none',
+                    background: `linear-gradient(135deg, ${chapterColor}DD, ${chapterColor})`,
+                    color: 'white',
+                    fontSize: 16,
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    boxShadow: `0 4px 0 ${chapterColor}88`,
+                  }}
+                >
+                  进入关卡 →
+                </button>
+              </div>
+            ) : (
+              <button
+                className="btn-press"
+                onClick={handleGenerate}
+                style={{
+                  width: '100%', padding: '15px',
+                  borderRadius: 18, border: 'none',
+                  background: `linear-gradient(135deg, ${chapterColor}DD, ${chapterColor})`,
+                  color: 'white', fontSize: 16, fontWeight: 900,
+                  cursor: 'pointer',
+                  boxShadow: `0 4px 0 ${chapterColor}88`,
+                }}
+              >
+                ✨ 生成关卡
+              </button>
+            )}
           </>
         )}
         {/* 当后台自动生成完成后，hasQuestions 会变为 true，CTA 按钮自动变为「进入关卡」 */}
@@ -541,6 +586,12 @@ export default function LevelMap() {
     }
   }, [navigate, selectedLevel]);
 
+  const handleOpenLevelKnowledge = useCallback(() => {
+    if (selectedLevel) {
+      navigate(`/level-knowledge/${selectedLevel.chapterId}/${selectedLevel.level.id}`);
+    }
+  }, [navigate, selectedLevel]);
+
   const handleGenerateLevel = useCallback(async (onProgress) => {
     if (!selectedLevel) return;
     const { chapterId, levelIdx } = selectedLevel;
@@ -564,11 +615,10 @@ export default function LevelMap() {
         ),
       }));
 
-      navigate(`/lesson/${chapterId}/${selectedLevel.level.id}`);
     } finally {
       releaseKeepScreenAwake(keepAwakeToken);
     }
-  }, [selectedLevel, chapters, navigate]);
+  }, [selectedLevel, chapters]);
 
   const isLevelUnlocked = (chapter, levelIdx) => {
     if (chapter.locked) return false;
@@ -637,7 +687,7 @@ export default function LevelMap() {
         {showNoAiConfig && (
           <NoAiConfigModal
             onClose={() => setShowNoAiConfig(false)}
-            onGoSettings={() => { setShowNoAiConfig(false); navigate('/settings'); }}
+            onGoSettings={() => { setShowNoAiConfig(false); navigate('/settings?panel=ai'); }}
           />
         )}
         {showCreateSheet && (
@@ -690,6 +740,7 @@ export default function LevelMap() {
           info={selectedLevel}
           onClose={() => setSelectedLevel(null)}
           onEnter={handleEnterLesson}
+          onKnowledge={handleOpenLevelKnowledge}
           onGenerate={handleGenerateLevel}
           isAutoGenerating={
             autoGenRunning &&
@@ -706,7 +757,7 @@ export default function LevelMap() {
       {showNoAiConfig && (
         <NoAiConfigModal
           onClose={() => setShowNoAiConfig(false)}
-          onGoSettings={() => { setShowNoAiConfig(false); navigate('/settings'); }}
+          onGoSettings={() => { setShowNoAiConfig(false); navigate('/settings?panel=ai'); }}
         />
       )}
       {chapters.map((chapter) => {

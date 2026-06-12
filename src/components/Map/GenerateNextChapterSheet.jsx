@@ -1,12 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
-import useCourseStore from '../../store/courseStore';
 import useUserStore from '../../store/userStore';
-import useAiStore from '../../store/aiStore';
 import useNextChapterGenStore from '../../store/nextChapterGenStore';
-import { generateChapterRecommendations } from '../../lib/generate-chapter';
-import { acquireKeepScreenAwake, releaseKeepScreenAwake } from '../../lib/keep-screen-awake';
+import useNextChapterRecommendationStore from '../../store/nextChapterRecommendationStore';
 import { useIcon } from '../../lib/icons';
 import EstimatedProgressBar from '../UI/EstimatedProgressBar';
 
@@ -400,7 +397,7 @@ function GenErrorPhase({ error, onRetry, onClose }) {
         >取消</button>
         <button onClick={onRetry} className="btn-press"
           style={{ flex: 2, padding: '14px 0', borderRadius: 14, background: 'var(--tp)', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 15, color: '#fff' }}
-        >重新生成</button>
+        >重试一次</button>
       </div>
     </div>
   );
@@ -423,27 +420,37 @@ export default function GenerateNextChapterSheet({ onClose, onDone }) {
   const startGeneration   = useNextChapterGenStore(s => s.start);
   const retryGeneration   = useNextChapterGenStore(s => s.retry);
   const resetGeneration   = useNextChapterGenStore(s => s.reset);
+  const recStatus         = useNextChapterRecommendationStore(s => s.status);
+  const recRecommendations = useNextChapterRecommendationStore(s => s.recommendations);
+  const recError          = useNextChapterRecommendationStore(s => s.error);
+  const ensureRecommendations = useNextChapterRecommendationStore(s => s.ensureForCurrentCourse);
+  const retryRecommendations = useNextChapterRecommendationStore(s => s.retry);
 
   const [phase, setPhase] = useState(() => {
     if (nextChapterStatus === 'generating') return 'generating';
     if (nextChapterStatus === 'error') return 'genError';
     return 'loading';
   }); // 'loading'|'select'|'extra'|'generating'|'error'|'genError'
-  const [recommendations, setRecommendations] = useState([]);
   const [selectedIdx, setSelectedIdx]   = useState(null);
   const [customTopic, setCustomTopic]   = useState('');
   const [extraNote, setExtraNote]       = useState(() => useUserStore.getState().learningProfile?.extra?.trim() ?? '');
-  const [loadError, setLoadError]       = useState('');
+  const recommendations = recRecommendations;
+  const recommendationPhase = recStatus === 'error'
+    ? 'error'
+    : recStatus === 'success' && recommendations.length > 0
+    ? 'select'
+    : 'loading';
   const displayPhase = nextChapterStatus === 'generating'
     ? 'generating'
     : nextChapterStatus === 'error'
     ? 'genError'
-    : phase;
+    : phase === 'extra' && recommendationPhase === 'select'
+    ? 'extra'
+    : recommendationPhase;
 
   const overlayRef = useRef(null);
   const sheetRef   = useRef(null);
   const contentRef = useRef(null);
-  const abortRef   = useRef(null);
 
   // ── Entry animation ─────────────────────────────────────────────────────────
   useGSAP(() => {
@@ -468,58 +475,22 @@ export default function GenerateNextChapterSheet({ onClose, onDone }) {
 
   // ── Close (with exit animation) ──────────────────────────────────────────────
   const doClose = useCallback(() => {
-    abortRef.current?.abort();
     gsap.to(overlayRef.current, { opacity: 0, duration: 0.2 });
     gsap.to(sheetRef.current, { y: '100%', duration: 0.28, ease: 'power3.in', onComplete: onClose });
   }, [onClose]);
 
   // ── Load AI recommendations ──────────────────────────────────────────────────
-  const loadRecommendations = useCallback(async () => {
-    setPhase('loading');
-    setLoadError('');
-
-    const controller = new AbortController();
-    abortRef.current = controller;
-    const keepAwakeToken = acquireKeepScreenAwake('next-chapter-recommendations');
-
-    try {
-      const aiConfig    = useAiStore.getState().getConfig();
-      const chapters    = useCourseStore.getState().getChapters();
-      const lastChapter = chapters[chapters.length - 1];
-
-      const recs = await generateChapterRecommendations(aiConfig, {
-        recentChapters: chapters,
-        lastChapter,
-        userAnswers: useUserStore.getState().learningProfile,
-        signal: controller.signal,
-      });
-
-      setRecommendations(recs);
-      setPhase('select');
-    } catch (err) {
-      if (err?.name === 'AbortError') return;
-      console.error('[GenerateNextChapterSheet] error:', err);
-      setLoadError(err?.message || '推荐生成失败，请重试');
-      setPhase('error');
-    } finally {
-      releaseKeepScreenAwake(keepAwakeToken);
-      if (abortRef.current === controller) {
-        abortRef.current = null;
-      }
-    }
-  }, []);
+  const requestRecommendations = useCallback((force = false) => {
+    return force
+      ? retryRecommendations({ source: 'sheet' })
+      : ensureRecommendations({ source: 'sheet' });
+  }, [ensureRecommendations, retryRecommendations]);
 
   // 打开时自动开始加载
   useEffect(() => {
-    if (nextChapterStatus !== 'idle') return undefined;
-    const timer = setTimeout(() => {
-      void loadRecommendations();
-    }, 0);
-    return () => {
-      clearTimeout(timer);
-      abortRef.current?.abort();
-    };
-  }, [loadRecommendations, nextChapterStatus]);
+    if (nextChapterStatus !== 'idle') return;
+    requestRecommendations();
+  }, [nextChapterStatus, requestRecommendations]);
 
   // ── Selection logic ──────────────────────────────────────────────────────────
   const handleSelectCard = (idx) => {
@@ -571,6 +542,13 @@ export default function GenerateNextChapterSheet({ onClose, onDone }) {
     setPhase('generating');
     startGeneration({ selectedTopic: selected, extraNote: extra ?? '' });
   }, [selectedIdx, customTopic, recommendations, startGeneration]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleRetryRecommendations = useCallback(() => {
+    setPhase('loading');
+    setSelectedIdx(null);
+    setCustomTopic('');
+    requestRecommendations(true);
+  }, [requestRecommendations]);
 
   // ── Header info ──────────────────────────────────────────────────────────────
   const PHASE_TITLES = {
@@ -684,8 +662,8 @@ export default function GenerateNextChapterSheet({ onClose, onDone }) {
 
             {displayPhase === 'error' && (
               <ErrorPhase
-                error={loadError}
-                onRetry={loadRecommendations}
+                error={recError}
+                onRetry={handleRetryRecommendations}
                 onClose={doClose}
               />
             )}

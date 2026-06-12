@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import useGameStore from '../store/gameStore';
+import useNextChapterRecommendationStore from '../store/nextChapterRecommendationStore';
 import LessonScreen from '../components/Lesson/LessonScreen';
 
 export default function LessonPage() {
@@ -15,6 +16,10 @@ export default function LessonPage() {
     }
     // If a lesson for this level was already in progress, resume it
   }, [chapterId, levelId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    void useNextChapterRecommendationStore.getState().prefetchForCurrentCourse();
+  }, [chapterId, levelId]);
 
   if (!lesson) {
     // Redirect back if no valid lesson data (e.g. direct URL to empty level)

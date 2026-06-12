@@ -1,3 +1,5 @@
+mod japanese_segmenter;
+
 const VOLCENGINE_TTS_URL_PREFIX: &str = "https://openspeech.bytedance.com/api/v3/tts/";
 const VOLCENGINE_TTS_TIMEOUT_SECS: u64 = 20;
 
@@ -145,6 +147,17 @@ fn merge_volcengine_tts_chunks(
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
+            if let Err(err) = std::thread::Builder::new()
+                .name("japanese-segmenter-preload".to_string())
+                .spawn(|| {
+                    if let Err(err) = japanese_segmenter::warm_up_tokenizer() {
+                        log::warn!("日语分词词典预加载失败：{err}");
+                    }
+                })
+            {
+                log::warn!("日语分词词典预加载线程启动失败：{err}");
+            }
+
             if cfg!(debug_assertions) {
                 app.handle().plugin(
                     tauri_plugin_log::Builder::default()
@@ -154,7 +167,10 @@ pub fn run() {
             }
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![proxy_volcengine_tts])
+        .invoke_handler(tauri::generate_handler![
+            proxy_volcengine_tts,
+            japanese_segmenter::segment_japanese_sentence
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

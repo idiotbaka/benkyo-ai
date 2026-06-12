@@ -349,6 +349,36 @@ const useDailyTaskStore = create(
           difficulty: task.difficulty,
         };
       },
+
+      debugResetAndCompleteTask(selector = 'small') {
+        const tasks = get().ensureToday();
+        const task = findTaskForDebug(tasks, selector);
+        if (!task) return null;
+
+        const completedAt = Date.now();
+        set(state => ({
+          tasks: state.tasks.map(item => (
+            item.instanceId === task.instanceId
+              ? {
+                  ...item,
+                  progress: item.target,
+                  completed: true,
+                  completedAt,
+                  claimed: false,
+                  claimedAt: null,
+                  reward: null,
+                }
+              : item
+          )),
+        }));
+
+        return {
+          ok: true,
+          task: task.title,
+          difficulty: task.difficulty,
+          instanceId: task.instanceId,
+        };
+      },
     }),
     {
       name: DAILY_TASK_STORE_KEY,

@@ -16,6 +16,7 @@ import ReviveSheet from './ReviveSheet';
 import CoinBurst from '../UI/CoinBurst';
 import { stopJapaneseSpeech } from '../../lib/japanese-speech-player';
 import { useIcon } from '../../lib/icons';
+import { EQUIPMENT_IDS, isEquipmentEquipped } from '../../lib/equipment-effects';
 
 gsap.registerPlugin(useGSAP);
 
@@ -27,6 +28,7 @@ export default function LessonScreen() {
   const chapters = useCourseStore(s => s.chapters);
   const inventory = useUserStore(s => s.inventory);
   const coins     = useUserStore(s => s.coins);
+  const equippedItems = useUserStore(s => s.equippedItems ?? {});
   const coinImg = useIcon('item/coin.png');
   const enemyHpRef = useRef(null);
   const coinTargetRef = useRef(null);
@@ -49,6 +51,11 @@ export default function LessonScreen() {
     nextQuestion();
   };
 
+  const handleSubmitAnswer = useCallback((answer) => {
+    stopJapaneseSpeech();
+    submitAnswer(answer);
+  }, [submitAnswer]);
+
   const showTemporaryMatchBattleState = useCallback((battleState) => {
     clearTimeout(matchBattleTimerRef.current);
     setMatchBattleState(battleState);
@@ -56,6 +63,18 @@ export default function LessonScreen() {
       setMatchBattleState(null);
     }, 700);
   }, []);
+
+  const handleWrongMatch = useCallback(() => {
+    stopJapaneseSpeech();
+    showTemporaryMatchBattleState('wrong');
+    deductHeart();
+  }, [deductHeart, showTemporaryMatchBattleState]);
+
+  const handlePairMatched = useCallback(() => {
+    stopJapaneseSpeech();
+    showTemporaryMatchBattleState('correct');
+    awardPairCoin();
+  }, [awardPairCoin, showTemporaryMatchBattleState]);
 
   useEffect(() => () => {
     clearTimeout(matchBattleTimerRef.current);
@@ -126,6 +145,11 @@ export default function LessonScreen() {
     ?.levels.find(level => level.id === lesson.levelId);
   const displayLessonCoins = coinDisplay.lessonKey === activeLessonKey ? coinDisplay.value : 0;
   const lessonTitle = lesson.title ?? currentLevel?.title ?? '闯关练习';
+  const showUmbrellaShield = !lesson.isPractice &&
+    isEquipmentEquipped(equippedItems, EQUIPMENT_IDS.UMBRELLA) &&
+    !lesson.umbrellaShieldUsed;
+  const showSakuraPetalShield = lesson.practiceType === 'wrong-review' &&
+    isEquipmentEquipped(equippedItems, EQUIPMENT_IDS.SAKURA_PETAL);
 
   return (
     <div className="flex flex-col h-full relative bg-[#F5F3FF]">
@@ -191,13 +215,15 @@ export default function LessonScreen() {
             enemyHp={enemyHp}
             enemyHpRef={enemyHpRef}
             shouldSlide={shouldSlideBattleCharacters}
+            showUmbrellaShield={showUmbrellaShield}
+            showSakuraPetalShield={showSakuraPetalShield}
           />
           <div className="lesson-answer-scroll flex-1 min-h-0 overflow-y-auto pt-4">
             {q.type === 'word-fill' && (
               <WordFillQuestion
                 key={questionInstanceKey}
                 question={q}
-                onAnswer={submitAnswer}
+                onAnswer={handleSubmitAnswer}
                 feedbackState={lesson.feedbackState}
                 selectedAnswer={lesson.selectedAnswer}
               />
@@ -206,7 +232,7 @@ export default function LessonScreen() {
               <SentenceTranslateQuestion
                 key={questionInstanceKey}
                 question={q}
-                onAnswer={submitAnswer}
+                onAnswer={handleSubmitAnswer}
                 feedbackState={lesson.feedbackState}
               />
             )}
@@ -215,17 +241,10 @@ export default function LessonScreen() {
                 key={questionInstanceKey}
                 question={q}
                 onComplete={() => {
-                  stopJapaneseSpeech();
-                  submitAnswer('matched');
+                  handleSubmitAnswer('matched');
                 }}
-                onWrongMatch={() => {
-                  showTemporaryMatchBattleState('wrong');
-                  deductHeart();
-                }}
-                onPairMatched={() => {
-                  showTemporaryMatchBattleState('correct');
-                  awardPairCoin();
-                }}
+                onWrongMatch={handleWrongMatch}
+                onPairMatched={handlePairMatched}
               />
             )}
           </div>

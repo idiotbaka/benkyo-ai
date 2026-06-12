@@ -34,9 +34,12 @@ function applyThinkingOpts(aiConfig, callOptions) {
 
 // ─── Streamed JSON generation with estimated progress ─────────────────────────
 
-const STREAM_PROGRESS_CAP = 0.92;
-const VALIDATING_PROGRESS = 0.96;
-const STREAM_PROGRESS_MULTIPLIER = 2;
+const CHAPTER_PHASE_PROGRESS_POINTS = 33;
+const STREAM_AUTO_PROGRESS_CAP = 16 / CHAPTER_PHASE_PROGRESS_POINTS;
+const STREAM_RECEIVE_PROGRESS = 17 / CHAPTER_PHASE_PROGRESS_POINTS;
+const OBJECT_PROGRESS_CAP = 32 / CHAPTER_PHASE_PROGRESS_POINTS;
+const PROGRESS_TICK_MS = 1000;
+const DEFAULT_PHASE_PROGRESS_POINTS = 100;
 const EXPECTED_JSON_CHARS = {
   scaffold:        900,
   grammar:         4000,
@@ -45,13 +48,17 @@ const EXPECTED_JSON_CHARS = {
 };
 const RECOMMENDATION_DESCRIPTION_MAX_CHARS = 50;
 const CHAPTER_PHASES = [
-  { id: 'scaffold',  weight: 0.15 },
-  { id: 'grammar',   weight: 0.35 },
-  { id: 'questions', weight: 0.50 },
+  { id: 'scaffold',  weight: 1 / 3 },
+  { id: 'grammar',   weight: 1 / 3 },
+  { id: 'questions', weight: 1 / 3 },
 ];
 
+function shouldUseStreamRequest(aiConfig) {
+  return aiConfig?.requestMode !== 'object';
+}
+
 function buildProgressMessage(baseMessage, status, progress) {
-  if (status === 'thinking') return `${baseMessage} · 模型正在思考…`;
+  if (status === 'thinking') return `${baseMessage} · 模型正在深度思考…`;
   if (status === 'generating') return `${baseMessage} · 正在生成完整内容，约 ${Math.round(progress * 100)}%`;
   if (status === 'streaming') return `${baseMessage} · 正在接收内容，约 ${Math.round(progress * 100)}%`;
   if (status === 'validating') return `${baseMessage} · 正在校验并整理…`;
@@ -59,11 +66,13 @@ function buildProgressMessage(baseMessage, status, progress) {
   return `${baseMessage} · 已完成`;
 }
 
-function createProgressReporter({ phase, baseMessage, expectedChars, onProgress }) {
+function createProgressReporter({ phase, baseMessage, expectedChars, onProgress, progressPoints = DEFAULT_PHASE_PROGRESS_POINTS }) {
   let timer = null;
   let status = 'thinking';
   let stepProgress = 0;
   let receivedChars = 0;
+  let mode = 'stream';
+  const tickAmount = 1 / progressPoints;
 
   const emit = (nextStatus = status, nextProgress = stepProgress) => {
     status = nextStatus;
@@ -80,38 +89,31 @@ function createProgressReporter({ phase, baseMessage, expectedChars, onProgress 
   const start = () => {
     emit('thinking', 0);
     timer = setInterval(() => {
-      const cap = status === 'thinking'
-        ? 0.12
-        : status === 'generating'
-        ? 0.88
-        : status === 'fallback'
-        ? 0.88
-        : status === 'streaming'
-        ? 0.90
-        : stepProgress;
-      const increment = status === 'thinking' ? 0.008 : 0.004;
-      if (stepProgress < cap) emit(status, Math.min(cap, stepProgress + increment));
-    }, 800);
+      const cap = mode === 'object' ? OBJECT_PROGRESS_CAP : STREAM_AUTO_PROGRESS_CAP;
+      if (stepProgress < cap) {
+        emit(status, Math.min(cap, stepProgress + tickAmount));
+      }
+    }, PROGRESS_TICK_MS);
   };
 
   return {
     start,
     receive(delta) {
       receivedChars += delta.length;
-      const estimated = Math.min(
-        STREAM_PROGRESS_CAP,
-        (0.08 + (receivedChars / expectedChars) * 0.84) * STREAM_PROGRESS_MULTIPLIER
-      );
+      const receivedRatio = Math.min(1, receivedChars / expectedChars);
+      const estimated = STREAM_AUTO_PROGRESS_CAP + receivedRatio * STREAM_RECEIVE_PROGRESS;
       emit('streaming', estimated);
     },
     generating() {
+      mode = 'object';
       emit('generating', stepProgress);
     },
     fallback() {
+      mode = 'object';
       emit('fallback', stepProgress);
     },
     validating() {
-      emit('validating', VALIDATING_PROGRESS);
+      emit('validating', stepProgress);
     },
     done() {
       emit('done', 1);
@@ -158,10 +160,30 @@ async function generateJsonWithProgress(aiConfig, callOptions, {
   expectedChars,
   onProgress,
 }) {
-  const reporter = createProgressReporter({ phase, baseMessage, expectedChars, onProgress });
+  const reporter = createProgressReporter({
+    phase,
+    baseMessage,
+    expectedChars,
+    onProgress,
+    progressPoints: onProgress?.progressPoints,
+  });
   reporter.start();
 
   try {
+    if (!shouldUseStreamRequest(aiConfig)) {
+      reporter.generating();
+      const { object } = await generateObjectWithDebugLog(aiConfig, {
+        ...callOptions,
+        output: 'no-schema',
+      }, {
+        phase,
+        mode: 'generateObject',
+      });
+      reporter.validating();
+      reporter.done();
+      return object;
+    }
+
     let streamedText = '';
     try {
       const result = streamText(applyThinkingOpts(aiConfig, {
@@ -219,7 +241,22 @@ async function generateJsonObjectWithProgress(aiConfig, callOptions, {
   onProgress,
   mode = 'generateObject',
 }) {
-  const reporter = createProgressReporter({ phase, baseMessage, expectedChars, onProgress });
+  if (shouldUseStreamRequest(aiConfig)) {
+    return generateJsonWithProgress(aiConfig, callOptions, {
+      phase,
+      baseMessage,
+      expectedChars,
+      onProgress,
+    });
+  }
+
+  const reporter = createProgressReporter({
+    phase,
+    baseMessage,
+    expectedChars,
+    onProgress,
+    progressPoints: onProgress?.progressPoints,
+  });
   reporter.start();
   reporter.generating();
 
@@ -245,11 +282,24 @@ function createChapterProgressHandler(onProgress, stepIndex) {
     .reduce((sum, phase) => sum + phase.weight, 0);
   const { weight } = CHAPTER_PHASES[stepIndex];
 
-  return event => onProgress?.({
+  const handler = event => onProgress?.({
     ...event,
     stepIndex,
     stepTotal: CHAPTER_PHASES.length,
     overallProgress: completedWeight + event.stepProgress * weight,
+  });
+  handler.progressPoints = CHAPTER_PHASE_PROGRESS_POINTS;
+  return handler;
+}
+
+function emitCompletedChapterStep(onProgress, stepIndex, message) {
+  const handler = createChapterProgressHandler(onProgress, stepIndex);
+  handler({
+    phase: CHAPTER_PHASES[stepIndex]?.id,
+    status: 'done',
+    stepProgress: 1,
+    receivedChars: 0,
+    message,
   });
 }
 
@@ -587,29 +637,6 @@ function isNonEmptyString(value) {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
-function normalizeGrammarMatchText(value) {
-  return normalizeGrammarPoint(value).replace(/[\s「」『』【】()[\]（）]/g, '');
-}
-
-function matchGrammarRulesToPoints(rules, expectedGrammarPoints) {
-  const unmatchedRules = new Set(rules.map((_, idx) => idx));
-
-  return expectedGrammarPoints.filter(grammarPoint => {
-    const expected = normalizeGrammarMatchText(grammarPoint);
-    const exactMatch = [...unmatchedRules].find(
-      idx => normalizeGrammarMatchText(rules[idx].title) === expected
-    );
-    const match = exactMatch ?? [...unmatchedRules].find(idx => {
-      const title = normalizeGrammarMatchText(rules[idx].title);
-      return title.includes(expected) || expected.includes(title);
-    });
-
-    if (match === undefined) return true;
-    unmatchedRules.delete(match);
-    return false;
-  });
-}
-
 function validateGrammarSections(sections, expectedGrammarPoints = []) {
   if (!Array.isArray(sections) || sections.length === 0) {
     throw new Error('Grammar tutorial has no sections');
@@ -700,16 +727,8 @@ function validateGrammarSections(sections, expectedGrammarPoints = []) {
     );
   }
   if (ruleCount === 0) throw new Error('Grammar tutorial must have at least one rule');
-  if (tipCount < 1 || tipCount > 2) throw new Error('Grammar tutorial must have one or two tips');
+  if (tipCount < 1) throw new Error('Grammar tutorial must have at least one tip');
   if (vocabularyCount !== 1) throw new Error('Grammar tutorial must have exactly one vocabulary');
-
-  const missingGrammar = matchGrammarRulesToPoints(
-    sections.filter(section => section.type === 'grammar-rule'),
-    expectedGrammarPoints
-  );
-  if (missingGrammar.length > 0) {
-    throw new Error(`Grammar tutorial is missing scaffold grammar: ${missingGrammar.join('、')}`);
-  }
 
   return sections;
 }
@@ -912,7 +931,7 @@ ${grammarRuleText}
 题目要求：
 - 【极其重要】所有题目的场景、人名、词汇必须与关卡标题「${level1.title}」（${level1.topic}）的主题高度契合，营造沉浸感
 - word-fill：4 个选项，答案唯一正确，干扰项有迷惑性，parts 中用 "___" 标记空格
-- sentence-translate：给出一句日语，让学习者点击【中文词语】拼出中文翻译。sentence 字段填日语原句，options 和 answers 字段必须全部是【中文词语】（不得出现日语），options 为中文词（含干扰词）
+- sentence-translate：给出一句日语，让学习者点击【中文词语】拼出中文翻译。sentence 字段填日语原句，options 和 answers 字段必须全部是【中文词语】（不得出现日语，不得包含标点符号），options 为中文词（含干扰词）
 - sentence-translate 的 answers 必须按自然中文译文顺序排列，并与 translation 保持一致；例如「昨日、映画を見た。」为 ["昨天","看了","电影"]
 - sentence-translate 的 options 必须按词卡数量完整包含 answers：answers 中同一个中文词语每出现一次，options 中也必须至少出现一次。重复词语不得去重。例如 answers 为 ["我","让","妹妹","叫醒了","我"] 时，options 中必须提供两个 "我" 词卡。
 - word-match：每道固定 4 对，pairs 中每对含 jp/cn/ruby 三个字段
@@ -980,7 +999,7 @@ ${prevSummary}
 - 【极其重要】所有题目的场景、人名、词汇必须与当前关卡标题「${level.title}」（${level.topic}）的主题高度契合，营造沉浸感
 - 难度递进：比前序关卡有所提升，聚焦当前关卡语法要点，可有机复用前序已学词汇
 - word-fill：4 个选项，答案唯一正确，干扰项有迷惑性，parts 中用 "___" 标记空格
-- sentence-translate：给出一句日语，让学习者点击【中文词语】拼出中文翻译。sentence 字段填日语原句，options 和 answers 字段必须全部是【中文词语】（不得出现日语），options 含干扰词
+- sentence-translate：给出一句日语，让学习者点击【中文词语】拼出中文翻译。sentence 字段填日语原句，options 和 answers 字段必须全部是【中文词语】（不得出现日语，不得包含标点符号），options 含干扰词
 - sentence-translate 的 answers 必须按自然中文译文顺序排列，并与 translation 保持一致；例如「昨日、映画を見た。」为 ["昨天","看了","电影"]
 - sentence-translate 的 options 必须按词卡数量完整包含 answers：answers 中同一个中文词语每出现一次，options 中也必须至少出现一次。重复词语不得去重。例如 answers 为 ["我","让","妹妹","叫醒了","我"] 时，options 中必须提供两个 "我" 词卡。
 - word-match：每道固定 4 对，pairs 中每对含 jp/cn/ruby 三个字段
@@ -1124,9 +1143,8 @@ export async function generateChapterRecommendations(aiConfig, { recentChapters,
   const userCtx = userAnswers ? buildUserContext(userAnswers) : '';
   const extraHint = userAnswers?.extra?.trim() ? `\n学习者个性化需求：${userAnswers.extra.trim()}` : '';
 
-  const { object: raw } = await generateObjectWithDebugLog(aiConfig, {
+  const raw = await generateJsonWithProgress(aiConfig, {
     model,
-    output: 'no-schema',
     system: `你是专业的日语互动课程顾问。根据学习者的已学内容和水平，规划具有剧情连续性、语法递进合理的下一章节候选方向。${userCtx ? `\n学习者信息：\n${userCtx}` : ''}`,
     prompt: `【下一章节编号】
 必须推荐第 ${nextChapterNum} 章。四个候选标题都必须严格使用「第${nextChapterNum}章：中文故事标题」格式；它们是同一个下一章节的四种备选方向，不是连续四章。
@@ -1157,7 +1175,8 @@ ${COMPACT_JSON_OUTPUT_RULE}`,
     maxRetries: 1,
   }, {
     phase: 'recommendations',
-    mode: 'generateObject',
+    baseMessage: '🧭 生成章节推荐',
+    expectedChars: EXPECTED_JSON_CHARS.recommendations,
   });
 
   const decoded = decodeRecommendationsWire(raw);
@@ -1191,23 +1210,35 @@ ${COMPACT_JSON_OUTPUT_RULE}`,
  * @param {AbortSignal} [options.signal] - 取消信号
  * @returns {Promise<object>} 完整章节对象（符合 courses.json 结构）
  */
-export async function generateFirstChapter(aiConfig, userAnswers, { onProgress, signal } = {}) {
+export async function generateFirstChapter(aiConfig, userAnswers, { onProgress, signal, resumeState, onCheckpoint } = {}) {
   const sig = signal ?? AbortSignal.timeout(300_000);
 
-  const scaffold = await generateScaffold(
-    aiConfig,
-    userAnswers,
-    sig,
-    createChapterProgressHandler(onProgress, 0)
-  );
+  let scaffold = resumeState?.scaffold;
+  if (scaffold) {
+    emitCompletedChapterStep(onProgress, 0, '🏗️ 规划课程结构 · 已完成');
+  } else {
+    scaffold = await generateScaffold(
+      aiConfig,
+      userAnswers,
+      sig,
+      createChapterProgressHandler(onProgress, 0)
+    );
+    onCheckpoint?.({ scaffold });
+  }
 
-  const grammarSections = await generateGrammarSections(
-    aiConfig,
-    scaffold,
-    userAnswers,
-    sig,
-    createChapterProgressHandler(onProgress, 1)
-  );
+  let grammarSections = resumeState?.grammarSections;
+  if (grammarSections) {
+    emitCompletedChapterStep(onProgress, 1, '📚 生成语法讲解 · 已完成');
+  } else {
+    grammarSections = await generateGrammarSections(
+      aiConfig,
+      scaffold,
+      userAnswers,
+      sig,
+      createChapterProgressHandler(onProgress, 1)
+    );
+    onCheckpoint?.({ scaffold, grammarSections });
+  }
 
   const level1Questions = await generateLevel1Questions(
     aiConfig,
@@ -1241,7 +1272,7 @@ export async function generateFirstChapter(aiConfig, userAnswers, { onProgress, 
  *   userAnswers:   learningProfile（{ level, pace, purpose, style, extra }）
  * @param {{ onProgress?, signal? }} options
  */
-export async function generateNextChapter(aiConfig, context, { onProgress, signal } = {}) {
+export async function generateNextChapter(aiConfig, context, { onProgress, signal, resumeState, onCheckpoint } = {}) {
   const sig = signal ?? AbortSignal.timeout(300_000);
   const { recentChapters, extraNote, userAnswers } = context;
 
@@ -1260,21 +1291,33 @@ export async function generateNextChapter(aiConfig, context, { onProgress, signa
 
   const enrichedUserAnswers = { ...(userAnswers ?? {}), extra: enrichedExtra };
 
-  const scaffold = await generateNextScaffold(
-    aiConfig,
-    context,
-    chapterId,
-    sig,
-    createChapterProgressHandler(onProgress, 0)
-  );
+  let scaffold = resumeState?.scaffold;
+  if (scaffold) {
+    emitCompletedChapterStep(onProgress, 0, '🏗️ 规划课程结构 · 已完成');
+  } else {
+    scaffold = await generateNextScaffold(
+      aiConfig,
+      context,
+      chapterId,
+      sig,
+      createChapterProgressHandler(onProgress, 0)
+    );
+    onCheckpoint?.({ scaffold });
+  }
 
-  const grammarSections = await generateGrammarSections(
-    aiConfig,
-    scaffold,
-    enrichedUserAnswers,
-    sig,
-    createChapterProgressHandler(onProgress, 1)
-  );
+  let grammarSections = resumeState?.grammarSections;
+  if (grammarSections) {
+    emitCompletedChapterStep(onProgress, 1, '📚 生成语法讲解 · 已完成');
+  } else {
+    grammarSections = await generateGrammarSections(
+      aiConfig,
+      scaffold,
+      enrichedUserAnswers,
+      sig,
+      createChapterProgressHandler(onProgress, 1)
+    );
+    onCheckpoint?.({ scaffold, grammarSections });
+  }
 
   const level1Questions = await generateLevel1Questions(
     aiConfig,

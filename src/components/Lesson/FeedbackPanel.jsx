@@ -5,12 +5,15 @@ import useAiStore from '../../store/aiStore';
 import { judgeAnswer } from '../../lib/judge-answer';
 import { playSoundEffect, SOUND_EFFECT_TYPES } from '../../lib/sound-effects';
 import { useIcon } from '../../lib/icons';
+import RubyText from '../UI/RubyText';
 
 export default function FeedbackPanel({
   feedbackState,
   question,
   userAnswer,
   correctAnswer,
+  correctAnswerLabel = '正解',
+  correctAnswerRuby,
   hint,
   onContinue,
   onOverturn,
@@ -29,6 +32,8 @@ export default function FeedbackPanel({
   const [appealStatus, setAppealStatus] = useState(null); // null | 'loading' | 'overturned' | 'rejected'
   const [appealReason, setAppealReason] = useState('');
   const [appealError, setAppealError] = useState('');
+  const [appealRestoredHeart, setAppealRestoredHeart] = useState(true);
+  const [appealNoRestoreReason, setAppealNoRestoreReason] = useState(null);
 
   const aiConfig = useAiStore(s => s.getConfig)();
   const isAiReady = Boolean(aiConfig.provider && aiConfig.apiKey?.trim() && aiConfig.modelId?.trim());
@@ -63,8 +68,10 @@ export default function FeedbackPanel({
     try {
       const result = await judgeAnswer(aiConfig, question, userAnswer ?? []);
       if (result.correct) {
+        const overturnResult = onOverturn?.(); // fix correctCount and restore/reset heart handling in stores
+        setAppealRestoredHeart(overturnResult?.restoredHeart !== false);
+        setAppealNoRestoreReason(overturnResult?.noRestoreReason ?? null);
         setAppealStatus('overturned');
-        onOverturn?.(); // fix correctCount + restore heart in stores
       } else {
         setAppealStatus('rejected');
         setAppealReason(result.reason);
@@ -93,7 +100,15 @@ export default function FeedbackPanel({
   let titleText, subText;
   if (isOverturned) {
     titleText = 'AI 确认正确！';
-    subText = <span className="inline-flex items-center gap-1 flex-wrap">你的翻译也是对的，<img src={heartImg} alt="heart" width={16} height={16} style={{ objectFit: 'contain', verticalAlign: 'middle' }} /> 已为你补回</span>;
+    if (appealRestoredHeart) {
+      subText = <span className="inline-flex items-center gap-1 flex-wrap">你的翻译也是对的，<img src={heartImg} alt="heart" width={16} height={16} style={{ objectFit: 'contain', verticalAlign: 'middle' }} /> 已为你补回</span>;
+    } else if (appealNoRestoreReason === 'umbrella') {
+      subText = '你的翻译也是对的，和伞已经恢复～';
+    } else if (appealNoRestoreReason === 'sakura-petal') {
+      subText = '你的翻译也是对的，樱花花瓣守住了心心';
+    } else {
+      subText = '你的翻译也是对的，心心没有被扣除';
+    }
   } else if (isCorrect) {
     titleText = 'よくできました！';
     subText = '完全正确！继续加油';
@@ -144,7 +159,7 @@ export default function FeedbackPanel({
             {/* Wrong state: show correct answer */}
             {(!isCorrect || showCorrectAnswerOnCorrect) && correctAnswer && (
               <p className="text-sm font-medium mt-0.5" style={{ color: isCorrect ? '#16A34A' : isReviewWrong ? '#92400E' : '#DC2626' }}>
-                正解：<span className="jp font-bold text-base">{correctAnswer}</span>
+                {correctAnswerLabel}：<span className="jp font-bold text-base"><RubyText text={correctAnswer} rubyMap={correctAnswerRuby || {}} /></span>
               </p>
             )}
             {detailText && (

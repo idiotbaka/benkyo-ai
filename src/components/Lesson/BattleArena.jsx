@@ -52,13 +52,25 @@ function HeartRow({ hearts }) {
   );
 }
 
-export default function BattleArena({ battleState = 'idle', hearts, enemyHp, enemyHpRef, shouldSlide = true }) {
+export default function BattleArena({
+  battleState = 'idle',
+  hearts,
+  enemyHp,
+  enemyHpRef,
+  shouldSlide = true,
+  showUmbrellaShield = false,
+  showSakuraPetalShield = false,
+}) {
   const resolveIcon = useIconResolver();
+  const umbrellaImg = useIcon('item/umbrella.png');
+  const sakuraPetalImg = useIcon('item/sakura_petal.png');
   const imagePaths = BATTLE_IMAGE_PATHS[battleState] ?? BATTLE_IMAGE_PATHS.idle;
   const images = {
     player: resolveIcon(imagePaths.player),
     enemy: resolveIcon(imagePaths.enemy),
   };
+  const shieldImg = showSakuraPetalShield ? sakuraPetalImg : umbrellaImg;
+  const showShield = showUmbrellaShield || showSakuraPetalShield;
   const playerPositionRef = useRef(null);
   const enemyPositionRef = useRef(null);
 
@@ -94,6 +106,17 @@ export default function BattleArena({ battleState = 'idle', hearts, enemyHp, ene
             style={{ width: `${enemyHp}%` }}
           />
         </div>
+      </div>
+      <div
+        className={`battle-umbrella-shield ${showShield ? 'battle-umbrella-shield--active' : ''} ${showSakuraPetalShield ? 'battle-umbrella-shield--sakura' : ''}`}
+        aria-hidden="true"
+      >
+        <img
+          src={shieldImg}
+          alt=""
+          className="battle-umbrella-shield__image"
+          decoding="async"
+        />
       </div>
       <div className="absolute bottom-3 left-[8%] right-[8%] h-3 rounded-[50%] bg-[#DDD6FE]/45 blur-sm" />
       <div

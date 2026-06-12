@@ -2,8 +2,11 @@ import { useState, useRef } from 'react';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import RubyText from '../UI/RubyText';
+import useUserStore from '../../store/userStore';
 import { playSavedJapaneseSpeech } from '../../lib/japanese-speech-player';
 import { toKanaReading } from '../../lib/japanese-text';
+import { getTenguMarkedWrongOptionIndex } from '../../lib/equipment-effects';
+import { useIcon } from '../../lib/icons';
 
 gsap.registerPlugin(useGSAP);
 
@@ -11,6 +14,8 @@ export default function WordFillQuestion({ question, onAnswer, feedbackState, se
   const cardRef = useRef(null);
   const blankRef = useRef(null);
   const optionRefs = useRef([]);
+  const equippedItems = useUserStore(s => s.equippedItems ?? {});
+  const tenguMaskImg = useIcon('item/tengu_mask.png');
 
   // Shuffle options once on mount (component is re-keyed per question)
   const [shuffledOptions] = useState(() => {
@@ -21,6 +26,11 @@ export default function WordFillQuestion({ question, onAnswer, feedbackState, se
     }
     return arr;
   });
+  const [tenguMarkedIndex] = useState(() => getTenguMarkedWrongOptionIndex(
+    shuffledOptions,
+    word => word === question.answers[0],
+    equippedItems
+  ));
 
   // Animate the blank slot when feedback arrives
   useGSAP(() => {
@@ -69,8 +79,9 @@ export default function WordFillQuestion({ question, onAnswer, feedbackState, se
     void playSavedJapaneseSpeech(toKanaReading(word, question.ruby)).catch(() => {});
   };
 
-  const getOptionClass = (word) => {
+  const getOptionClass = (word, idx) => {
     let cls = 'word-btn w-full text-center';
+    if (!feedbackState && tenguMarkedIndex === idx) return `${cls} tengu-marked`;
     if (!feedbackState) return cls;
     if (word === question.answers[0]) return cls + ' show-correct';
     if (word === selectedAnswer && feedbackState === 'wrong') return cls + ' wrong';
@@ -124,10 +135,13 @@ export default function WordFillQuestion({ question, onAnswer, feedbackState, se
           <button
             key={word}
             ref={el => { optionRefs.current[idx] = el; }}
-            className={getOptionClass(word)}
+            className={getOptionClass(word, idx)}
             disabled={feedbackState !== null}
             onClick={() => handleOptionClick(word, idx)}
           >
+            {!feedbackState && tenguMarkedIndex === idx && (
+              <img src={tenguMaskImg} alt="天狗的面具" className="tengu-mark-icon" />
+            )}
             {word}
           </button>
         ))}

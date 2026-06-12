@@ -13,17 +13,30 @@ import BadgeSheet from '../components/Profile/BadgeSheet';
 import BadgeUnlockModal from '../components/Profile/BadgeUnlockModal';
 import HeartDisplay from '../components/UI/HeartDisplay';
 import CheckInModal from '../components/UI/CheckInModal';
+import RewardModal from '../components/UI/RewardModal';
 import DailyTaskSection from '../components/Profile/DailyTaskSection';
 import { useIcon } from '../lib/icons';
 import { buildBadgeProgress, getUnlockableBadgeIds } from '../lib/badge-progress';
+import { getCheckInCoinRange, hasMiniFujiCheckInBonus } from '../lib/equipment-effects';
+
+const CHECK_IN_ITEM_REWARDS = [
+  { type: 'item', itemId: 'coin2x_15', amount: 1, label: '双倍金币卡', iconPath: 'item/coin2.png' },
+  { type: 'item', itemId: 'coin3x_15', amount: 1, label: '三倍金币卡', iconPath: 'item/coin3.png' },
+];
+
+function drawCheckInItemReward() {
+  return CHECK_IN_ITEM_REWARDS[Math.floor(Math.random() * CHECK_IN_ITEM_REWARDS.length)];
+}
 
 export default function ProfilePage() {
   const navigate = useNavigate();
   const { profile, currentStreak } = useUserStore();
   const coins = useUserStore(s => s.coins);
   const inventory = useUserStore(s => s.inventory);
+  const equippedItems = useUserStore(s => s.equippedItems);
   const lastCheckIn = useUserStore(s => s.lastCheckIn);
   const checkIn = useUserStore(s => s.checkIn);
+  const grantReward = useUserStore(s => s.grantReward);
   const lvImg = useIcon('ui/lv.png');
   const logoImg = useIcon('logo.png');
   const lvUpImg = useIcon('ui/level_up.png');
@@ -32,6 +45,7 @@ export default function ProfilePage() {
   const collectStarImg = useIcon('ui/collect_star.png');
   const bagImg = useIcon('ui/bag.png');
   const checkInImg = useIcon('ui/check_in.png');
+  const miniFujiImg = useIcon('item/mini_fuji.png');
   const settingImg = useIcon('ui/setting.png');
   const coinImg = useIcon('item/coin.png');
   const totalXp = useGameStore(s => s.totalXp);
@@ -43,6 +57,7 @@ export default function ProfilePage() {
   const [showBackpack, setShowBackpack] = useState(false);
   const [showBadges, setShowBadges] = useState(false);
   const [checkInCoins, setCheckInCoins] = useState(null); // null = not shown
+  const [checkInItemReward, setCheckInItemReward] = useState(null);
   const [badgeUnlockQueue, setBadgeUnlockQueue] = useState([]);
   const chapters = useCourseStore(s => s.chapters);
 
@@ -67,6 +82,10 @@ export default function ProfilePage() {
 
   const today = new Date().toISOString().slice(0, 10);
   const checkedInToday = lastCheckIn === today;
+  const miniFujiCheckInActive = !checkedInToday && hasMiniFujiCheckInBonus(equippedItems);
+  const checkInCoinRange = getCheckInCoinRange(equippedItems);
+  const checkInButtonIcon = miniFujiCheckInActive ? miniFujiImg : checkInImg;
+  const checkInButtonText = checkedInToday ? '今日已签到' : miniFujiCheckInActive ? '每日富士山' : '每日签到';
 
   const handleCheckIn = () => {
     if (checkedInToday) return;
@@ -272,7 +291,7 @@ export default function ProfilePage() {
           <div className="flex">
             {[
               { icon: <img src={lvUpImg} alt="XP" width={32} height={32} style={{ objectFit: 'contain' }} />, label: '总经验', value: `${totalXp}`, unit: ' XP', color: '#F59E0B' },
-              { icon: <img src={fireImg} alt="连胜" width={32} height={32} style={{ objectFit: 'contain' }} />, label: '连胜天数', value: `${currentStreak}`, unit: ' 天', color: '#EF4444' },
+              { icon: <img src={fireImg} alt="连签" width={32} height={32} style={{ objectFit: 'contain' }} />, label: '连签天数', value: `${currentStreak}`, unit: ' 天', color: '#EF4444' },
               { icon: <img src={completedImg} alt="完成" width={32} height={32} style={{ objectFit: 'contain' }} />, label: '完成关卡', value: `${completedCount}`, unit: `/${totalLevels}`, color: 'var(--tp)' },
               { icon: <img src={collectStarImg} alt="星星" width={32} height={32} style={{ objectFit: 'contain' }} />, label: '累计星星', value: `${totalStars}`, unit: '', color: '#D97706' },
             ].map(({ icon, label, value, unit, color }) => (
@@ -353,13 +372,13 @@ export default function ProfilePage() {
               cursor: checkedInToday ? 'not-allowed' : 'pointer',
             }}
           >
-            <img src={checkInImg} alt="签到" width={22} height={22} style={{ objectFit: 'contain' }} />
+            <img src={checkInButtonIcon} alt={miniFujiCheckInActive ? '迷你富士山' : '签到'} width={22} height={22} style={{ objectFit: 'contain' }} />
             <span style={{ fontSize: 13, fontWeight: 800, color: checkedInToday ? '#9CA3AF' : '#D97706' }}>
-              {checkedInToday ? '今日已签到' : '每日签到'}
+              {checkInButtonText}
             </span>
             {!checkedInToday && (
               <span style={{ fontSize: 11, fontWeight: 600, color: '#B45309', background: '#FDE68A', borderRadius: 8, padding: '1px 7px', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                60–120 <img src={coinImg} alt="金币" width={12} height={12} style={{ objectFit: 'contain' }} />
+                {checkInCoinRange.min}–{checkInCoinRange.max} <img src={coinImg} alt="金币" width={12} height={12} style={{ objectFit: 'contain' }} />
               </span>
             )}
           </button>
@@ -450,6 +469,21 @@ export default function ProfilePage() {
           coins={checkInCoins}
           onDismiss={() => {
             setCheckInCoins(null);
+            const reward = drawCheckInItemReward();
+            grantReward(reward);
+            setCheckInItemReward(reward);
+          }}
+        />
+      )}
+      {checkInItemReward && (
+        <RewardModal
+          reward={checkInItemReward}
+          title="签到额外奖励！"
+          subtitle="奖励已放入背包"
+          sourceLabel="每日签到"
+          playSound={false}
+          onDismiss={() => {
+            setCheckInItemReward(null);
             queueBadgeUnlocks();
           }}
         />

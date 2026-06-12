@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import RubyText from '../UI/RubyText';
@@ -6,12 +6,17 @@ import JapaneseSpeechButton from '../UI/JapaneseSpeechButton';
 import { playSavedJapaneseSpeech } from '../../lib/japanese-speech-player';
 import { toKanaReading } from '../../lib/japanese-text';
 import { playSoundEffect, SOUND_EFFECT_TYPES } from '../../lib/sound-effects';
+import { animateWordChipLayout, captureWordChipRects } from '../../lib/word-chip-motion';
+import useAppearanceStore from '../../store/appearanceStore';
 
 gsap.registerPlugin(useGSAP);
 
 export default function SentenceTranslateQuestion({ question, onAnswer, feedbackState }) {
+  const wordChipMotion = useAppearanceStore(s => s.wordChipMotion);
+  const shouldAnimateWordChips = wordChipMotion !== 'none';
   const [selectedWords, setSelectedWords] = useState([]);
   const cardRef = useRef(null);
+  const previousChipRectsRef = useRef(null);
   const zoneRef = useRef(null);
 
   // Shuffle word bank once on mount (component is re-keyed per question)
@@ -49,17 +54,30 @@ export default function SentenceTranslateQuestion({ question, onAnswer, feedback
       .to(zoneRef.current, { x: 0, duration: 0.05 });
   }, { dependencies: [feedbackState] });
 
+  useLayoutEffect(() => {
+    if (!shouldAnimateWordChips) return;
+    animateWordChipLayout(cardRef.current, previousChipRectsRef.current);
+    previousChipRectsRef.current = null;
+  }, [selectedWords, shouldAnimateWordChips]);
+
+  const captureChipLayout = () => {
+    if (!shouldAnimateWordChips) return;
+    previousChipRectsRef.current = captureWordChipRects(cardRef.current);
+  };
+
   const handleBankClick = (word, idx) => {
     if (feedbackState !== null) return;
+    captureChipLayout();
     playSoundEffect(SOUND_EFFECT_TYPES.WORD_SELECTED);
     setSelectedWords(prev => [
       ...prev,
-      { word, bankIdx: idx, uid: `${idx}-${Date.now()}` },
+      { word, bankIdx: idx, uid: `bank-${idx}` },
     ]);
   };
 
   const handleZoneClick = (uid) => {
     if (feedbackState !== null) return;
+    captureChipLayout();
     playSoundEffect(SOUND_EFFECT_TYPES.WORD_UNSELECTED);
     setSelectedWords(prev => prev.filter(w => w.uid !== uid));
   };
@@ -70,6 +88,9 @@ export default function SentenceTranslateQuestion({ question, onAnswer, feedback
   };
 
   const usedBankIndices = new Set(selectedWords.map(w => w.bankIdx));
+  const availableOptions = shuffledOptions
+    .map((word, idx) => ({ word, idx }))
+    .filter(({ idx }) => shouldAnimateWordChips ? !usedBankIndices.has(idx) : true);
 
   const zoneCorrect = feedbackState === 'correct';
   const zoneWrong = feedbackState === 'wrong';
@@ -119,6 +140,7 @@ export default function SentenceTranslateQuestion({ question, onAnswer, feedback
                 key={uid}
                 onClick={() => handleZoneClick(uid)}
                 disabled={feedbackState !== null}
+                data-word-chip-id={uid}
                 className={[
                   'zone-chip',
                   zoneCorrect ? 'zone-chip--correct' : '',
@@ -134,12 +156,13 @@ export default function SentenceTranslateQuestion({ question, onAnswer, feedback
 
       {/* Word bank */}
       <div className="flex flex-wrap gap-2 justify-center mb-3">
-        {shuffledOptions.map((word, idx) => (
+        {availableOptions.map(({ word, idx }) => (
           <button
             key={idx}
             onClick={() => handleBankClick(word, idx)}
             disabled={feedbackState !== null || usedBankIndices.has(idx)}
-            className={`bank-chip ${usedBankIndices.has(idx) ? 'bank-chip--used' : ''}`}
+            data-word-chip-id={`bank-${idx}`}
+            className={`bank-chip ${!shouldAnimateWordChips && usedBankIndices.has(idx) ? 'bank-chip--used' : ''}`}
           >
             {word}
           </button>

@@ -1,31 +1,54 @@
+import { invoke } from '@tauri-apps/api/core';
+
 export const LISTENING_QUESTION_COUNT = 6;
+export const TAURI_LISTENING_REQUIRED_MESSAGE = '需要在 Tauri 客户端中使用';
 
 const PUNCTUATION_RE = /[\s。、，,.！？!?「」『』（）()［］[\]【】《》〈〉“”"‘’'・…‥:：;；]/g;
-let japaneseWordSegmenter = null;
 
 export function normalizeListeningSentence(sentence) {
   return String(sentence ?? '').replace(PUNCTUATION_RE, '');
 }
 
-export function segmentListeningSentence(sentence) {
+export function isNativeJapaneseSegmenterAvailable() {
+  return Boolean(globalThis.__TAURI_INTERNALS__);
+}
+
+export async function segmentListeningSentence(sentence) {
   const normalized = normalizeListeningSentence(sentence);
   if (!normalized) return [];
 
-  const segments = segmentWithIntl(normalized);
+  if (!isNativeJapaneseSegmenterAvailable()) {
+    throw new Error(TAURI_LISTENING_REQUIRED_MESSAGE);
+  }
+
+  const segments = cleanSegments(await invoke('segment_japanese_sentence', { text: sentence }));
   if (isValidSegmentation(segments, normalized)) return segments;
 
-  // Defensive fallback for old Android WebView / old desktop WebKit.
-  // Modern supported runtimes should use Intl.Segmenter above.
-  return Array.from(normalized);
+  throw new Error('日语分词结果不可用');
 }
 
-export function buildListeningPracticeQuestions(chapters, count = LISTENING_QUESTION_COUNT) {
-  const candidates = collectListeningQuestionCandidates(chapters);
+export async function buildListeningPracticeQuestions(chapters, count = LISTENING_QUESTION_COUNT) {
+  if (!isNativeJapaneseSegmenterAvailable()) {
+    throw new Error(TAURI_LISTENING_REQUIRED_MESSAGE);
+  }
+
+  const candidates = shuffle(collectListeningQuestionCandidates(chapters));
   if (candidates.length < count) return [];
-  return shuffle(candidates).slice(0, count).map((question, index) => ({
-    ...question,
-    number: index + 1,
-  }));
+
+  const questions = [];
+  for (const question of candidates) {
+    const segments = await segmentListeningSentence(question.sentence);
+    if (!isValidSegmentation(segments, question.answerText)) continue;
+    questions.push({
+      ...question,
+      segments,
+      number: questions.length + 1,
+    });
+
+    if (questions.length >= count) break;
+  }
+
+  return questions.length >= count ? questions : [];
 }
 
 export function getListeningPracticeQuestionCount(chapters) {
@@ -43,9 +66,8 @@ function collectListeningQuestionCandidates(chapters) {
         const sentence = String(question.sentence ?? '').trim();
         const translation = String(question.translation ?? '').trim();
         const answerText = normalizeListeningSentence(sentence);
-        const segments = segmentListeningSentence(sentence);
 
-        if (!sentence || !translation || !answerText || segments.length < 2) continue;
+        if (!sentence || !translation || !answerText) continue;
         if (seen.has(answerText)) continue;
         seen.add(answerText);
 
@@ -57,7 +79,6 @@ function collectListeningQuestionCandidates(chapters) {
           translation,
           ruby: question.ruby ?? {},
           answerText,
-          segments,
         });
       }
     }
@@ -66,24 +87,8 @@ function collectListeningQuestionCandidates(chapters) {
   return candidates;
 }
 
-function segmentWithIntl(text) {
-  try {
-    const segmenter = getJapaneseWordSegmenter();
-    if (!segmenter) return [];
-    return cleanSegments([...segmenter.segment(text)].map(part => part.segment));
-  } catch {
-    return [];
-  }
-}
-
-function getJapaneseWordSegmenter() {
-  if (!globalThis.Intl?.Segmenter) return null;
-  japaneseWordSegmenter ??= new Intl.Segmenter('ja-JP', { granularity: 'word' });
-  return japaneseWordSegmenter;
-}
-
 function cleanSegments(segments) {
-  return segments
+  return (Array.isArray(segments) ? segments : [])
     .map(segment => normalizeListeningSentence(segment))
     .filter(Boolean);
 }

@@ -11,7 +11,12 @@ import useListeningPracticeStore from '../store/listeningPracticeStore';
 import useWordReviewPracticeStore from '../store/wordReviewPracticeStore';
 import useWrongQuestionStore from '../store/wrongQuestionStore';
 import { getTtsConfigError } from '../lib/tts';
-import { buildListeningPracticeQuestions, getListeningPracticeQuestionCount } from '../lib/listening-practice';
+import {
+  TAURI_LISTENING_REQUIRED_MESSAGE,
+  buildListeningPracticeQuestions,
+  getListeningPracticeQuestionCount,
+  isNativeJapaneseSegmenterAvailable,
+} from '../lib/listening-practice';
 import { buildCourseReviewPracticeQuestions, getCourseReviewPracticeQuestionCount } from '../lib/course-review-practice';
 import { buildWordReviewPracticeQuestions, getWordReviewPracticeQuestionCount } from '../lib/word-review-practice';
 import { buildWrongReviewPracticeQuestions } from '../lib/wrong-review-practice';
@@ -58,12 +63,22 @@ export default function VocabPage() {
   const headerRef = useRef(null);
   const contentRef = useRef(null);
   const [notice, setNotice] = useState(null);
+  const [listeningStarting, setListeningStarting] = useState(false);
   const wrongQuestionCount = wrongQuestions.length;
   const practiceQuestionCounts = useMemo(() => ({
     listening: getListeningPracticeQuestionCount(chapters),
     courseReview: getCourseReviewPracticeQuestionCount(chapters),
     wordReview: getWordReviewPracticeQuestionCount(chapters),
   }), [chapters]);
+
+  const hasHeartsForPractice = () => {
+    useUserStore.getState().syncHearts();
+    if (useUserStore.getState().hearts === 0) {
+      setNotice('no-hearts');
+      return false;
+    }
+    return true;
+  };
 
   useGSAP(() => {
     const cards = contentRef.current?.querySelectorAll('[data-practice-card]');
@@ -99,20 +114,42 @@ export default function VocabPage() {
 
   }, []);
 
-  const handleListeningPractice = () => {
+  const handleListeningPractice = async () => {
+    if (listeningStarting) return;
+
+    if (!isNativeJapaneseSegmenterAvailable()) {
+      setNotice('tauri-required');
+      return;
+    }
+
     const ttsConfig = useTtsStore.getState().getConfig();
     if (getTtsConfigError(ttsConfig)) {
       setNotice('tts');
       return;
     }
 
-    const questions = buildListeningPracticeQuestions(chapters);
+    if (!hasHeartsForPractice()) return;
+
+    setListeningStarting(true);
+    let questions;
+    try {
+      questions = await buildListeningPracticeQuestions(chapters);
+    } catch (error) {
+      setNotice(error?.message === TAURI_LISTENING_REQUIRED_MESSAGE ? 'tauri-required' : 'segmenter-error');
+      return;
+    } finally {
+      setListeningStarting(false);
+    }
+
     if (questions.length === 0) {
       setNotice('too-few');
       return;
     }
 
-    startListeningPractice(questions);
+    if (!startListeningPractice(questions)) {
+      setNotice('no-hearts');
+      return;
+    }
     navigate('/practice/listening');
   };
 
@@ -123,11 +160,7 @@ export default function VocabPage() {
       return;
     }
 
-    useUserStore.getState().syncHearts();
-    if (useUserStore.getState().hearts === 0) {
-      setNotice('no-hearts');
-      return;
-    }
+    if (!hasHeartsForPractice()) return;
 
     startPracticeLesson({
       levelId: 'course-review',
@@ -145,7 +178,11 @@ export default function VocabPage() {
       return;
     }
 
-    startWordReviewPractice(questions);
+    if (!hasHeartsForPractice()) return;
+    if (!startWordReviewPractice(questions)) {
+      setNotice('no-hearts');
+      return;
+    }
     navigate('/practice/word-review');
   };
 
@@ -156,11 +193,7 @@ export default function VocabPage() {
       return;
     }
 
-    useUserStore.getState().syncHearts();
-    if (useUserStore.getState().hearts === 0) {
-      setNotice('no-hearts');
-      return;
-    }
+    if (!hasHeartsForPractice()) return;
 
     startPracticeLesson({
       levelId: 'wrong-review',
@@ -203,6 +236,7 @@ export default function VocabPage() {
                     ? handleWrongReviewPractice
                     : undefined
                 }
+                loading={entry.id === 'listening' && listeningStarting}
               />
             ))}
           </div>
@@ -229,7 +263,7 @@ export default function VocabPage() {
           onClose={() => setNotice(null)}
           onGoSettings={() => {
             setNotice(null);
-            navigate('/settings');
+            navigate('/settings?panel=tts');
           }}
         />
       )}
@@ -251,6 +285,18 @@ export default function VocabPage() {
           onClose={() => setNotice(null)}
         />
       )}
+      {notice === 'tauri-required' && (
+        <PracticeNoticeSheet
+          type="tauri-required"
+          onClose={() => setNotice(null)}
+        />
+      )}
+      {notice === 'segmenter-error' && (
+        <PracticeNoticeSheet
+          type="segmenter-error"
+          onClose={() => setNotice(null)}
+        />
+      )}
     </div>
   );
 }
@@ -261,6 +307,8 @@ function PracticeNoticeSheet({ type, onClose, onGoSettings }) {
   const sdFallImg = useIcon('sd/sd_fall.png');
   const sdNoBooksImg = useIcon('sd/sd_no_books.png');
   const isTts = type === 'tts';
+  const isTauriRequired = type === 'tauri-required';
+  const isSegmenterError = type === 'segmenter-error';
   const isWrongTooFew = type === 'wrong-too-few';
   const isTooFew = type === 'too-few' || isWrongTooFew;
 
@@ -309,7 +357,17 @@ function PracticeNoticeSheet({ type, onClose, onGoSettings }) {
             style={{ objectFit: 'contain', margin: '0 auto 6px' }}
           />
           <h2 style={{ fontSize: 18, fontWeight: 900, color: '#1E1B4B', marginBottom: 8 }}>
-            {isTts ? '尚未配置音频模型' : isWrongTooFew ? '错题还不够' : isTooFew ? '题库还不够' : '生命值耗尽'}
+            {isTts
+              ? '尚未配置音频模型'
+              : isTauriRequired
+              ? '请使用客户端'
+              : isSegmenterError
+              ? '听力练习暂不可用'
+              : isWrongTooFew
+              ? '错题还不够'
+              : isTooFew
+              ? '题库还不够'
+              : '生命值耗尽'}
           </h2>
           <p style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.6, margin: '0 8px' }}>
             {isTts ? (
@@ -317,6 +375,10 @@ function PracticeNoticeSheet({ type, onClose, onGoSettings }) {
                 听力练习需要先配置音频模型。<br />
                 请前往 <strong>「我的」→「设置」</strong> 中填写 TTS 配置。
               </>
+            ) : isTauriRequired ? (
+              '需要在 Tauri 客户端中使用'
+            ) : isSegmenterError ? (
+              '日语分词初始化失败，请重新启动 Tauri 客户端后再试。'
             ) : isTooFew ? (
               isWrongTooFew ? '当前错题太少啦，以后再回来吧~' : '当前题库太少啦，多闯几关后再回来吧~'
             ) : (
@@ -402,10 +464,11 @@ function withPracticeEntryBadge(entry, practiceQuestionCounts, wrongQuestionCoun
   };
 }
 
-function PracticeEntry({ entry, iconSrc, onClick }) {
+function PracticeEntry({ entry, iconSrc, onClick, loading = false }) {
   const resolvedIcon = useIcon(entry.icon);
   const src = iconSrc || resolvedIcon;
   const badgeStyle = getPracticeBadgeStyle(entry.badgeTone);
+  const disabled = loading || !onClick;
 
   if (entry.desc) {
     return (
@@ -420,7 +483,8 @@ function PracticeEntry({ entry, iconSrc, onClick }) {
         <button
           type="button"
           className="btn-press"
-          onClick={onClick}
+          onClick={disabled ? undefined : onClick}
+          disabled={disabled}
           style={{
             width: '100%',
             minHeight: 108,
@@ -434,7 +498,8 @@ function PracticeEntry({ entry, iconSrc, onClick }) {
             alignItems: 'flex-start',
             gap: 6,
             boxShadow: '0 3px 0 #E5E7EB',
-            cursor: onClick ? 'pointer' : 'default',
+            cursor: disabled ? 'default' : 'pointer',
+            opacity: loading ? 0.78 : 1,
             position: 'relative',
             overflow: 'visible',
             textAlign: 'left',
@@ -465,7 +530,7 @@ function PracticeEntry({ entry, iconSrc, onClick }) {
             )}
           </span>
           <span style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', lineHeight: 1.35 }}>
-            {entry.desc}
+            {loading ? '准备题目中...' : entry.desc}
           </span>
           <img
             data-practice-sd

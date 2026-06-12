@@ -3,10 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import useGameStore from '../../store/gameStore';
+import useUserStore from '../../store/userStore';
 import useWordReviewPracticeStore from '../../store/wordReviewPracticeStore';
 import LevelUpModal from '../Lesson/LevelUpModal';
+import RewardModal from '../UI/RewardModal';
 import { playSoundEffect, SOUND_EFFECT_TYPES } from '../../lib/sound-effects';
 import { useIcon } from '../../lib/icons';
+import { drawWordReviewGiftboxReward } from '../../lib/giftbox-rewards';
+import { LUCKY_CAT_PERFECT_CLEAR_BONUS_COINS, PERFECT_CLEAR_BONUS_COINS } from '../../lib/equipment-effects';
 
 gsap.registerPlugin(useGSAP);
 
@@ -15,6 +19,7 @@ export default function WordReviewPracticeComplete() {
   const practice = useWordReviewPracticeStore(s => s.practice);
   const exit = useWordReviewPracticeStore(s => s.exit);
   const totalXp = useGameStore(s => s.totalXp);
+  const grantReward = useUserStore(s => s.grantReward);
   const lvUpImg = useIcon('ui/level_up.png');
   const coinImg = useIcon('item/coin.png');
   const heartImg = useIcon('ui/heart.png');
@@ -22,8 +27,10 @@ export default function WordReviewPracticeComplete() {
   const collectStarImg = useIcon('ui/collect_star.png');
 
   const [showLevelUp, setShowLevelUp] = useState(false);
+  const [giftboxReward, setGiftboxReward] = useState(null);
   const [displayCoins, setDisplayCoins] = useState(0);
   const coinsProxy = useRef({ value: 0 });
+  const giftboxHandledRef = useRef(false);
   const titleRef = useRef(null);
   const starsRef = useRef([]);
   const xpRef = useRef(null);
@@ -38,10 +45,13 @@ export default function WordReviewPracticeComplete() {
     correctCount = 0,
     questions = [],
     hearts = 0,
+    coinsEarned = 0,
     leveledUp = false,
     oldLevel = 1,
     newLevel = 1,
   } = practice ?? {};
+  const bonusCoins = finalStars === 3 ? Math.max(0, finalCoins - coinsEarned) : 0;
+  const bonusLabel = bonusCoins >= LUCKY_CAT_PERFECT_CLEAR_BONUS_COINS ? '招财猫奖励' : '完美奖励';
 
   useGSAP(() => {
     gsap.set([titleRef.current, xpRef.current, coinRef.current, statsRef.current, btnRef.current], { opacity: 0 });
@@ -88,9 +98,23 @@ export default function WordReviewPracticeComplete() {
     return () => clearTimeout(timer);
   }, [leveledUp]);
 
-  const handleContinue = () => {
+  const finishNavigation = () => {
     exit();
     navigate('/vocab');
+  };
+
+  const handleContinue = () => {
+    if (!giftboxHandledRef.current) {
+      giftboxHandledRef.current = true;
+      const reward = drawWordReviewGiftboxReward();
+      if (reward) {
+        grantReward(reward);
+        setGiftboxReward(reward);
+        return;
+      }
+    }
+
+    finishNavigation();
   };
 
   return (
@@ -159,6 +183,12 @@ export default function WordReviewPracticeComplete() {
               <img src={coinImg} alt="金币" width={26} height={26} style={{ objectFit: 'contain' }} />
               <p className="text-[26px] font-extrabold leading-none text-[#D97706]">{displayCoins}</p>
             </div>
+            {bonusCoins > 0 && (
+              <p className="mb-1 inline-flex items-center gap-1 rounded-full bg-[#FEF3C7] px-2 py-0.5 text-[10px] font-extrabold text-[#B45309]">
+                <img src={collectStarImg} alt="" width={13} height={13} style={{ objectFit: 'contain' }} />
+                +{bonusCoins || PERFECT_CLEAR_BONUS_COINS} {bonusLabel}
+              </p>
+            )}
             <p className="mt-1 text-xs font-medium text-[#9CA3AF]">本关金币</p>
           </div>
         </div>
@@ -197,6 +227,18 @@ export default function WordReviewPracticeComplete() {
           newLevel={newLevel}
           totalXp={totalXp}
           onContinue={handleContinue}
+        />
+      )}
+      {giftboxReward && (
+        <RewardModal
+          reward={giftboxReward}
+          title="获得礼物！"
+          subtitle="奖励已放入背包"
+          sourceLabel="惊喜奖励"
+          onDismiss={() => {
+            setGiftboxReward(null);
+            finishNavigation();
+          }}
         />
       )}
     </div>

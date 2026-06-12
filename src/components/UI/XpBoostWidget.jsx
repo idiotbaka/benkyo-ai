@@ -14,9 +14,12 @@ const BOOST_DURATION_MS = 15 * 60 * 1000;
  */
 export default function XpBoostWidget() {
   const xpBoost     = useUserStore(s => s.xpBoost);
+  const coinBoost   = useUserStore(s => s.coinBoost);
   const syncXpBoost = useUserStore(s => s.syncXpBoost);
   const exp2Img = useIcon('item/exp2.png');
   const exp3Img = useIcon('item/exp3.png');
+  const coin2Img = useIcon('item/coin2.png');
+  const coin3Img = useIcon('item/coin3.png');
 
   const [now, setNow] = useState(() => Date.now());
   const [isDragging, setIsDragging] = useState(false);
@@ -33,17 +36,17 @@ export default function XpBoostWidget() {
 
   // ── Countdown ticker ────────────────────────────────────────────────
   useEffect(() => {
-    if (!xpBoost) return;
+    if (!xpBoost && !coinBoost) return;
     const id = setInterval(() => {
       syncXpBoost();
       setNow(Date.now());
     }, 1000);
     return () => clearInterval(id);
-  }, [!!xpBoost, syncXpBoost]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [!!xpBoost, !!coinBoost, syncXpBoost]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Entrance animation when boost activates ──────────────────────────
   useGSAP(() => {
-    if (!xpBoost || !widgetRef.current) return;
+    if ((!xpBoost && !coinBoost) || !widgetRef.current) return;
     if (prevBoost.current === null) {
       // Fresh appearance
       gsap.fromTo(widgetRef.current,
@@ -51,17 +54,17 @@ export default function XpBoostWidget() {
         { scale: 1, opacity: 1, duration: 0.5, ease: 'back.out(2.5)' }
       );
     }
-    prevBoost.current = xpBoost;
-  }, [!!xpBoost]);
+    prevBoost.current = xpBoost ?? coinBoost;
+  }, [!!xpBoost, !!coinBoost]);
 
   // ── Exit animation when boost expires ────────────────────────────────
   useGSAP(() => {
-    if (xpBoost || !widgetRef.current || prevBoost.current === null) return;
+    if (xpBoost || coinBoost || !widgetRef.current || prevBoost.current === null) return;
     gsap.to(widgetRef.current, {
       scale: 0.6, opacity: 0, duration: 0.4, ease: 'back.in(2)',
     });
     prevBoost.current = null;
-  }, [!!xpBoost]);
+  }, [!!xpBoost, !!coinBoost]);
 
   // ── Drag handlers ────────────────────────────────────────────────────
   const handlePointerDown = (e) => {
@@ -94,14 +97,31 @@ export default function XpBoostWidget() {
     setIsDragging(false);
   };
 
-  if (!xpBoost) return null;
+  const activeBoost = xpBoost ? { ...xpBoost, boostType: 'xp' } : coinBoost ? { ...coinBoost, boostType: 'coin' } : null;
+  if (!activeBoost) return null;
 
-  const remaining  = Math.max(0, Math.min(BOOST_DURATION_MS, xpBoost.expiresAt - now));
+  const remaining  = Math.max(0, activeBoost.expiresAt - now);
   const min        = Math.floor(remaining / 60000);
   const sec        = Math.floor((remaining % 60000) / 1000);
   const countdown  = `${min}:${sec.toString().padStart(2, '0')}`;
-  const isDouble   = xpBoost.multiplier === 2;
-  const pct        = remaining / BOOST_DURATION_MS; // progress fraction 0→1
+  const isDouble   = activeBoost.multiplier === 2;
+  const isCoinBoost = activeBoost.boostType === 'coin';
+  const pct        = Math.min(1, remaining / BOOST_DURATION_MS); // progress fraction 0→1
+  const iconSrc = isCoinBoost
+    ? (isDouble ? coin2Img : coin3Img)
+    : (isDouble ? exp2Img : exp3Img);
+  const bg = isCoinBoost
+    ? (isDouble ? '#ECFDF5' : '#EFF6FF')
+    : (isDouble ? '#FFFBEB' : '#F5F3FF');
+  const border = isCoinBoost
+    ? (isDouble ? '#A7F3D0' : '#BFDBFE')
+    : (isDouble ? '#FDE68A' : '#DDD6FE');
+  const accent = isCoinBoost
+    ? (isDouble ? '#047857' : '#1D4ED8')
+    : (isDouble ? '#92400E' : '#5B21B6');
+  const progress = isCoinBoost
+    ? (isDouble ? '#34D399' : '#60A5FA')
+    : (isDouble ? '#FCD34D' : '#A78BFA');
 
   return (
     <div
@@ -121,11 +141,11 @@ export default function XpBoostWidget() {
     >
       <div
         style={{
-          background: isDouble ? '#FFFBEB' : '#F5F3FF',
+          background: bg,
           borderRadius: 12,
           padding: '7px 12px 6px',
           display: 'flex', alignItems: 'center', gap: 8,
-          border: `1.5px solid ${isDouble ? '#FDE68A' : '#DDD6FE'}`,
+          border: `1.5px solid ${border}`,
           minWidth: 130,
           overflow: 'hidden',
           position: 'relative',
@@ -135,21 +155,21 @@ export default function XpBoostWidget() {
         <div style={{
           position: 'absolute', left: 0, bottom: 0, height: 2,
           width: `${pct * 100}%`,
-          background: isDouble ? '#FCD34D' : '#A78BFA',
+          background: progress,
           transition: 'width 1s linear',
         }} />
 
-        <img src={isDouble ? exp2Img : exp3Img} alt="XP加速" width={28} height={28} style={{ objectFit: 'contain', flexShrink: 0 }} />
+        <img src={iconSrc} alt={isCoinBoost ? '金币加成' : 'XP加速'} width={28} height={28} style={{ objectFit: 'contain', flexShrink: 0 }} />
         <div>
           <div style={{
             fontSize: 12, fontWeight: 700, lineHeight: 1.3,
-            color: isDouble ? '#92400E' : '#5B21B6',
+            color: accent,
           }}>
-            {xpBoost.multiplier}× 经验加成
+            {activeBoost.multiplier}× {isCoinBoost ? '金币加成' : '经验加成'}
           </div>
           <div style={{
             fontSize: 11, fontWeight: 500,
-            color: isDouble ? '#B45309' : '#7C3AED',
+            color: accent,
             fontVariantNumeric: 'tabular-nums',
           }}>
             {countdown}

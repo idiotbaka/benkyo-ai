@@ -3,14 +3,14 @@ export const OMAMORI_GACHA_COST = 200;
 export const OMAMORI_RARITIES = {
   N: {
     label: 'N',
-    rate: 72,
+    rate: 62,
     color: '#64748B',
     bg: 'linear-gradient(135deg, #F8FAFC, #E2E8F0)',
     glow: 'rgba(148, 163, 184, 0.34)',
   },
   R: {
     label: 'R',
-    rate: 15,
+    rate: 25,
     color: '#0D9488',
     bg: 'linear-gradient(135deg, #CCFBF1, #99F6E4)',
     glow: 'rgba(20, 184, 166, 0.34)',
@@ -64,6 +64,20 @@ export const OMAMORI_LORE = {
   'ssr-fujisan': '富士山在初梦文化里很吉利，“一富士二鷹三茄子”被认为是好兆头。高山不急着抵达，它只是每天安静地站在那里。',
 };
 
+export const OMAMORI_EFFECTS = {
+  'n-bakusui': { label: '商店中解锁罐装咖啡' },
+  'n-kenko': { label: '商店中解锁日式点心套装' },
+  'n-teruteru': { label: '商店中解锁团扇' },
+  'n-gakugyo': { label: '商店中解锁绘马' },
+  'n-ryoko': { label: '商店中解锁和伞' },
+  'r-enmusubi': { label: '商店中解锁风铃' },
+  'r-gokaku': { label: '商店中解锁樱花花瓣' },
+  'r-shobai': { label: '商店中解锁招财猫' },
+  'sr-tengu': { label: '商店中解锁天狗的面具' },
+  'sr-shogan': { label: '商店中解锁达摩不倒翁' },
+  'ssr-fujisan': { label: '商店中解锁迷你富士山' },
+};
+
 export const OMAMORI_ITEMS = [
   { id: 'n-bakusui', rarity: 'N', name: '爆睡祈願', iconPath: 'sd/n-爆睡祈願.png' },
   { id: 'n-fufu', rarity: 'N', name: '夫婦円満', iconPath: 'sd/n-夫婦円満.png' },
@@ -105,6 +119,10 @@ export function getOmamoriRarity(rarity) {
 
 export function getOmamoriLore(itemId) {
   return OMAMORI_LORE[itemId] ?? '这枚御守静静守护着你的学习旅程。愿你在每一次练习里，都遇见一点新的勇气。';
+}
+
+export function getOmamoriEffect(itemId) {
+  return OMAMORI_EFFECTS[itemId] ?? null;
 }
 
 export function drawOmamori() {

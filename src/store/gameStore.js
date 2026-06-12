@@ -6,8 +6,9 @@ import useVocabStore from './vocabStore';
 import useWrongQuestionStore, { getWrongQuestionId } from './wrongQuestionStore';
 import useDailyTaskStore, { DAILY_TASK_EVENTS } from './dailyTaskStore';
 import useBadgeStore from './badgeStore';
+import { applyEmaStarFloor, canUseSakuraPetalShield, canUseUmbrellaShield, getPerfectClearBonusCoins, getXpStars } from '../lib/equipment-effects';
 
-export const XP_PER_LEVEL = 200;
+export const XP_PER_LEVEL = 400;
 export const BASE_XP = 60;
 export const computeLevel = (totalXp) => Math.floor(totalXp / XP_PER_LEVEL) + 1;
 
@@ -22,6 +23,8 @@ const getActiveXpMultiplier = () => {
   const boost = useUserStore.getState().xpBoost;
   return (boost && Date.now() < boost.expiresAt) ? boost.multiplier : 1;
 };
+
+const awardBoostedCoins = (amount) => useUserStore.getState().addBoostedCoins(amount);
 
 const findLevel = (chapterId, levelId) => {
   const chapters = useCourseStore.getState().chapters;
@@ -54,12 +57,53 @@ const removeWrongQuestionFromLesson = (lesson, question) => {
   );
 };
 
+const normalizeSentenceAnswer = (answer) => (
+  Array.isArray(answer) ? answer.join('') : String(answer ?? '')
+);
+
+const getSentenceAnswerCacheKey = (lesson, question) => {
+  if (question?.type !== 'sentence-translate') return null;
+
+  const chapterId = question._sourceChapterId ?? lesson?.chapterId;
+  const levelId = question._sourceLevelId ?? lesson?.levelId;
+  if (!chapterId || !levelId || chapterId === '__practice__') return null;
+
+  const questionId = question._sourceQuestionId ?? question.id;
+  if (questionId === undefined || questionId === null || questionId === '') return null;
+
+  return `${String(chapterId)}::${String(levelId)}::${String(questionId)}`;
+};
+
+const hasAcceptedSentenceAnswer = (acceptedSentenceAnswers, lesson, question, answer) => {
+  const cacheKey = getSentenceAnswerCacheKey(lesson, question);
+  if (!cacheKey) return false;
+  const normalizedAnswer = normalizeSentenceAnswer(answer);
+  return Array.isArray(acceptedSentenceAnswers?.[cacheKey]) && acceptedSentenceAnswers[cacheKey].includes(normalizedAnswer);
+};
+
+const addAcceptedSentenceAnswer = (acceptedSentenceAnswers, lesson, question, answer) => {
+  const cacheKey = getSentenceAnswerCacheKey(lesson, question);
+  if (!cacheKey) return acceptedSentenceAnswers;
+
+  const normalizedAnswer = normalizeSentenceAnswer(answer);
+  if (!normalizedAnswer) return acceptedSentenceAnswers;
+
+  const currentAnswers = Array.isArray(acceptedSentenceAnswers?.[cacheKey]) ? acceptedSentenceAnswers[cacheKey] : [];
+  if (currentAnswers.includes(normalizedAnswer)) return acceptedSentenceAnswers;
+
+  return {
+    ...acceptedSentenceAnswers,
+    [cacheKey]: [...currentAnswers, normalizedAnswer],
+  };
+};
+
 const useGameStore = create(
   persist(
     (set, get) => ({
       // Persisted
       levelProgress: {},
       totalXp: 0,
+      acceptedSentenceAnswers: {},
 
       // Ephemeral: current active lesson state (not persisted)
       lesson: null,
@@ -108,6 +152,9 @@ const useGameStore = create(
             isFailed: false,
             coinsEarned: 0,
             coinPop: null,
+            umbrellaShieldUsed: false,
+            umbrellaShieldQuestionIndex: null,
+            sakuraPetalShieldedQuestionIndex: null,
             finalStars: 0,
             finalXp: 0,
             finalCoins: 0,
@@ -143,6 +190,7 @@ const useGameStore = create(
             isFailed: false,
             coinsEarned: 0,
             coinPop: null,
+            sakuraPetalShieldedQuestionIndex: null,
             finalStars: 0,
             finalXp: 0,
             finalCoins: 0,
@@ -154,7 +202,7 @@ const useGameStore = create(
       },
 
       submitAnswer(answer) {
-        const { lesson } = get();
+        const { lesson, acceptedSentenceAnswers } = get();
         if (!lesson || lesson.feedbackState !== null) return;
 
         const question = lesson.questions[lesson.currentIndex];
@@ -162,7 +210,9 @@ const useGameStore = create(
         let isCorrect;
         if (question.type === 'sentence-translate') {
           // answer is an array of selected words; compare joined strings
-          isCorrect = Array.isArray(answer) && answer.join('') === question.answers.join('');
+          isCorrect =
+            Array.isArray(answer) && answer.join('') === question.answers.join('') ||
+            hasAcceptedSentenceAnswer(acceptedSentenceAnswers, lesson, question, answer);
         } else if (question.type === 'word-match') {
           // called only after all pairs matched — always correct
           isCorrect = true;
@@ -175,9 +225,9 @@ const useGameStore = create(
           let newCoinsEarned = lesson.coinsEarned;
           let coinPop = null;
           if (isCorrect && question.type !== 'word-match') {
-            useUserStore.getState().addCoins(5);
-            newCoinsEarned += 5;
-            coinPop = createCoinPop(5);
+            const awardedCoins = awardBoostedCoins(5);
+            newCoinsEarned += awardedCoins;
+            coinPop = createCoinPop(awardedCoins);
           }
           set({
             lesson: {
@@ -193,23 +243,29 @@ const useGameStore = create(
           return;
         }
 
-        const newHearts = isCorrect ? lesson.hearts : Math.max(0, lesson.hearts - 1);
+        const equippedItems = useUserStore.getState().equippedItems;
+        const shouldUseUmbrellaShield = !isCorrect && canUseUmbrellaShield(lesson, question, equippedItems);
+        const shouldUseSakuraPetalShield = !isCorrect && canUseSakuraPetalShield(lesson, question, equippedItems);
+        const shouldPreventHeartLoss = shouldUseUmbrellaShield || shouldUseSakuraPetalShield;
+        const newHearts = isCorrect || shouldPreventHeartLoss ? lesson.hearts : Math.max(0, lesson.hearts - 1);
         if (isCorrect) {
           if (lesson.practiceType === 'wrong-review') {
             removeWrongQuestionFromLesson(lesson, question);
           }
         } else {
           addWrongQuestionFromLesson(lesson, question);
-          useUserStore.getState().deductHeart();
+          if (!shouldPreventHeartLoss) {
+            useUserStore.getState().deductHeart();
+          }
         }
 
         // Award 5 coins immediately for correct non-word-match answers
         let newCoinsEarned = lesson.coinsEarned;
         let coinPop = null;
         if (isCorrect && question.type !== 'word-match') {
-          useUserStore.getState().addCoins(5);
-          newCoinsEarned += 5;
-          coinPop = createCoinPop(5);
+          const awardedCoins = awardBoostedCoins(5);
+          newCoinsEarned += awardedCoins;
+          coinPop = createCoinPop(awardedCoins);
         }
 
         set({
@@ -221,6 +277,9 @@ const useGameStore = create(
             correctCount: isCorrect ? lesson.correctCount + 1 : lesson.correctCount,
             coinsEarned: newCoinsEarned,
             coinPop,
+            umbrellaShieldUsed: shouldUseUmbrellaShield ? true : lesson.umbrellaShieldUsed,
+            umbrellaShieldQuestionIndex: shouldUseUmbrellaShield ? lesson.currentIndex : lesson.umbrellaShieldQuestionIndex,
+            sakuraPetalShieldedQuestionIndex: shouldUseSakuraPetalShield ? lesson.currentIndex : lesson.sakuraPetalShieldedQuestionIndex,
           },
         });
       },
@@ -249,14 +308,16 @@ const useGameStore = create(
           // 排除巩固复习题，仅用普通题目数计算星数
           const normalQCount = lesson.questions.filter(q => !q._isReview).length;
           const wrongCount = normalQCount - lesson.correctCount;
-          const stars = wrongCount === 0 ? 3 : wrongCount === 1 ? 2 : 1;
+          const rawStars = wrongCount === 0 ? 3 : wrongCount === 1 ? 2 : 1;
+          const equippedItems = useUserStore.getState().equippedItems;
+          const stars = applyEmaStarFloor(rawStars, equippedItems);
 
           // Apply active XP boost (card must still be valid at settlement time)
           const boostMult = getActiveXpMultiplier();
-          const xp = Math.round(BASE_XP * stars * boostMult);
+          const xpStars = getXpStars(stars, equippedItems);
+          const xp = Math.round(BASE_XP * xpStars * boostMult);
 
-          // Perfect clear bonus: +10 coins
-          const bonusCoins = stars === 3 ? 10 : 0;
+          const bonusCoins = getPerfectClearBonusCoins(stars, equippedItems);
           if (bonusCoins > 0) useUserStore.getState().addCoins(bonusCoins);
           const finalCoins = lesson.coinsEarned + bonusCoins;
 
@@ -328,23 +389,48 @@ const useGameStore = create(
 
       // Called when AI overturns a wrong answer on sentence-translate:
       // fixes correctCount so star calculation treats it as correct,
-      // restores the heart deducted for that wrong answer, and updates
-      // the visible feedback state so the lesson UI reacts as correct.
+      // restores the deducted heart when one was actually deducted, and
+      // updates the visible feedback state so the lesson UI reacts as correct.
       overturnWrongAnswer() {
-        const { lesson } = get();
-        if (!lesson) return;
+        const { lesson, acceptedSentenceAnswers } = get();
+        if (!lesson) return { restoredHeart: false };
         const question = lesson.questions[lesson.currentIndex];
+        const wasUmbrellaShieldedWrong = Boolean(
+          lesson.umbrellaShieldUsed &&
+          lesson.umbrellaShieldQuestionIndex === lesson.currentIndex
+        );
+        const wasSakuraPetalShieldedWrong = lesson.sakuraPetalShieldedQuestionIndex === lesson.currentIndex;
+        const shouldRestoreHeart = !wasUmbrellaShieldedWrong && !wasSakuraPetalShieldedWrong;
         removeWrongQuestionFromLesson(lesson, question);
-        useUserStore.getState().restoreHeart();
+        if (shouldRestoreHeart) {
+          useUserStore.getState().restoreHeart();
+        }
         useBadgeStore.getState().recordAppealSuccess(1);
         set({
+          acceptedSentenceAnswers: addAcceptedSentenceAnswer(
+            acceptedSentenceAnswers,
+            lesson,
+            question,
+            lesson.selectedAnswer
+          ),
           lesson: {
             ...lesson,
             correctCount: lesson.correctCount + 1,
-            hearts: lesson.hearts + 1,
+            hearts: shouldRestoreHeart ? lesson.hearts + 1 : lesson.hearts,
             feedbackState: 'correct',
+            umbrellaShieldUsed: wasUmbrellaShieldedWrong ? false : lesson.umbrellaShieldUsed,
+            umbrellaShieldQuestionIndex: wasUmbrellaShieldedWrong ? null : lesson.umbrellaShieldQuestionIndex,
+            sakuraPetalShieldedQuestionIndex: wasSakuraPetalShieldedWrong ? null : lesson.sakuraPetalShieldedQuestionIndex,
           },
         });
+        return {
+          restoredHeart: shouldRestoreHeart,
+          noRestoreReason: wasUmbrellaShieldedWrong
+            ? 'umbrella'
+            : wasSakuraPetalShieldedWrong
+              ? 'sakura-petal'
+              : null,
+        };
       },
 
       // Restore lesson after user uses a Cake item to revive mid-lesson.
@@ -367,8 +453,14 @@ const useGameStore = create(
         if (!lesson || lesson.hearts <= 0) return;
         const question = lesson.questions[lesson.currentIndex];
         addWrongQuestionFromLesson(lesson, question);
-        const newHearts = Math.max(0, lesson.hearts - 1);
-        useUserStore.getState().deductHeart();
+        const equippedItems = useUserStore.getState().equippedItems;
+        const shouldUseUmbrellaShield = canUseUmbrellaShield(lesson, question, equippedItems);
+        const shouldUseSakuraPetalShield = canUseSakuraPetalShield(lesson, question, equippedItems);
+        const shouldPreventHeartLoss = shouldUseUmbrellaShield || shouldUseSakuraPetalShield;
+        const newHearts = shouldPreventHeartLoss ? lesson.hearts : Math.max(0, lesson.hearts - 1);
+        if (!shouldPreventHeartLoss) {
+          useUserStore.getState().deductHeart();
+        }
 
         if (newHearts === 0) {
           // Word-match has no FeedbackPanel → fail immediately
@@ -381,7 +473,15 @@ const useGameStore = create(
             lesson: { ...lesson, hearts: 0, isFailed: true, finalXp: partialXp, finalCoins: lesson.coinsEarned },
           });
         } else {
-          set({ lesson: { ...lesson, hearts: newHearts } });
+          set({
+            lesson: {
+              ...lesson,
+              hearts: newHearts,
+              umbrellaShieldUsed: shouldUseUmbrellaShield ? true : lesson.umbrellaShieldUsed,
+              umbrellaShieldQuestionIndex: shouldUseUmbrellaShield ? lesson.currentIndex : lesson.umbrellaShieldQuestionIndex,
+              sakuraPetalShieldedQuestionIndex: shouldUseSakuraPetalShield ? lesson.currentIndex : lesson.sakuraPetalShieldedQuestionIndex,
+            },
+          });
         }
       },
 
@@ -389,12 +489,12 @@ const useGameStore = create(
       awardPairCoin() {
         const { lesson } = get();
         if (!lesson) return;
-        useUserStore.getState().addCoins(1);
+        const awardedCoins = awardBoostedCoins(1);
         set({
           lesson: {
             ...lesson,
-            coinsEarned: lesson.coinsEarned + 1,
-            coinPop: createCoinPop(1),
+            coinsEarned: lesson.coinsEarned + awardedCoins,
+            coinPop: createCoinPop(awardedCoins),
           },
         });
       },
@@ -420,12 +520,33 @@ const useGameStore = create(
           leveledUp: newLevel > oldLevel,
         };
       },
+
+      awardPartialPracticeXp(amount) {
+        const xp = Math.max(0, Number(amount) || 0);
+        const { totalXp } = get();
+        const oldLevel = computeLevel(totalXp);
+        const newTotalXp = totalXp + xp;
+        const newLevel = computeLevel(newTotalXp);
+
+        set({ totalXp: newTotalXp });
+        recordDailyTaskEvent(DAILY_TASK_EVENTS.XP_EARNED, xp);
+        return {
+          xp,
+          baseXp: xp,
+          multiplier: 1,
+          totalXp: newTotalXp,
+          oldLevel,
+          newLevel,
+          leveledUp: newLevel > oldLevel,
+        };
+      },
     }),
     {
       name: 'benkyo-ai-progress',
       partialize: (state) => ({
         levelProgress: state.levelProgress,
         totalXp: state.totalXp,
+        acceptedSentenceAnswers: state.acceptedSentenceAnswers,
       }),
     }
   )

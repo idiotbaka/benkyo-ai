@@ -1,6 +1,6 @@
 import { BADGES } from '../data/badges';
 
-const XP_PER_LEVEL = 200;
+const XP_PER_LEVEL = 400;
 
 function sumInventory(inventory) {
   if (!inventory || typeof inventory !== 'object') return 0;

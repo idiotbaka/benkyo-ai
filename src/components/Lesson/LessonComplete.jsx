@@ -3,21 +3,28 @@ import { useNavigate } from 'react-router-dom';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import useGameStore from '../../store/gameStore';
+import useUserStore from '../../store/userStore';
 import LevelUpModal from './LevelUpModal';
+import RewardModal from '../UI/RewardModal';
 import { playSoundEffect, SOUND_EFFECT_TYPES } from '../../lib/sound-effects';
 import { useIcon } from '../../lib/icons';
+import { drawLessonGiftboxReward } from '../../lib/giftbox-rewards';
+import { LUCKY_CAT_PERFECT_CLEAR_BONUS_COINS, PERFECT_CLEAR_BONUS_COINS } from '../../lib/equipment-effects';
 
 export default function LessonComplete() {
   const navigate = useNavigate();
   const { lesson, exitLesson, totalXp } = useGameStore();
+  const grantReward = useUserStore(s => s.grantReward);
   const heartImg = useIcon('ui/heart.png');
   const lvUpImg = useIcon('ui/level_up.png');
   const coinImg = useIcon('item/coin.png');
   const sdCompleteImg = useIcon('sd/sd_complete.png');
   const collectStarImg = useIcon('ui/collect_star.png');
   const [showLevelUp, setShowLevelUp] = useState(false);
+  const [giftboxReward, setGiftboxReward] = useState(null);
   const [displayCoins, setDisplayCoins] = useState(0);
   const coinsProxy = useRef({ value: 0 });
+  const giftboxHandledRef = useRef(false);
 
   const containerRef = useRef(null);
   const star1Ref = useRef(null);
@@ -31,7 +38,8 @@ export default function LessonComplete() {
 
   const starRefs = [star1Ref, star2Ref, star3Ref];
   const { finalStars = 0, finalXp = 0, finalCoins = 0, leveledUp = false, oldLevel = 1, newLevel = 1 } = lesson ?? {};
-  const bonusCoins = finalStars === 3 ? 10 : 0;
+  const bonusCoins = finalStars === 3 ? Math.max(0, finalCoins - (lesson?.coinsEarned ?? 0)) : 0;
+  const bonusLabel = bonusCoins >= LUCKY_CAT_PERFECT_CLEAR_BONUS_COINS ? '招财猫奖励' : '完美奖励';
 
   // Prevent FOUC
   useGSAP(() => {
@@ -115,9 +123,23 @@ export default function LessonComplete() {
     return () => clearTimeout(timer);
   }, []);
 
-  const handleContinue = () => {
+  const finishNavigation = () => {
     exitLesson();
     navigate(lesson?.returnPath ?? '/');
+  };
+
+  const handleContinue = () => {
+    if (!giftboxHandledRef.current) {
+      giftboxHandledRef.current = true;
+      const reward = drawLessonGiftboxReward(finalStars);
+      if (reward) {
+        grantReward(reward);
+        setGiftboxReward(reward);
+        return;
+      }
+    }
+
+    finishNavigation();
   };
 
   const getMessage = () => {
@@ -215,7 +237,7 @@ export default function LessonComplete() {
             {bonusCoins > 0 && (
               <p className="mb-1 inline-flex items-center gap-1 rounded-full bg-[#FEF3C7] px-2 py-0.5 text-[10px] font-extrabold text-[#B45309]">
                 <img src={collectStarImg} alt="" width={13} height={13} style={{ objectFit: 'contain' }} />
-                +10 完美奖励
+                +{bonusCoins || PERFECT_CLEAR_BONUS_COINS} {bonusLabel}
               </p>
             )}
             <p className="mt-1 text-xs font-medium text-[#9CA3AF]">本关金币</p>
@@ -256,6 +278,18 @@ export default function LessonComplete() {
           newLevel={newLevel}
           totalXp={totalXp}
           onContinue={handleContinue}
+        />
+      )}
+      {giftboxReward && (
+        <RewardModal
+          reward={giftboxReward}
+          title="获得礼物！"
+          subtitle="奖励已放入背包"
+          sourceLabel="惊喜奖励"
+          onDismiss={() => {
+            setGiftboxReward(null);
+            finishNavigation();
+          }}
         />
       )}
     </div>

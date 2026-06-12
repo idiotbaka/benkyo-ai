@@ -1,15 +1,20 @@
-import { useState, useRef } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import JapaneseSpeechButton from '../UI/JapaneseSpeechButton';
 import { toKanaReading } from '../../lib/japanese-text';
 import { playSoundEffect, SOUND_EFFECT_TYPES } from '../../lib/sound-effects';
+import { animateWordChipLayout, captureWordChipRects } from '../../lib/word-chip-motion';
+import useAppearanceStore from '../../store/appearanceStore';
 
 gsap.registerPlugin(useGSAP);
 
 export default function ListeningQuestion({ question, onAnswer, feedbackState }) {
+  const wordChipMotion = useAppearanceStore(s => s.wordChipMotion);
+  const shouldAnimateWordChips = wordChipMotion !== 'none';
   const [selectedWords, setSelectedWords] = useState([]);
   const cardRef = useRef(null);
+  const previousChipRectsRef = useRef(null);
   const zoneRef = useRef(null);
 
   const [shuffledSegments] = useState(() => {
@@ -43,17 +48,30 @@ export default function ListeningQuestion({ question, onAnswer, feedbackState })
       .to(zoneRef.current, { x: 0, duration: 0.05 });
   }, { dependencies: [feedbackState] });
 
+  useLayoutEffect(() => {
+    if (!shouldAnimateWordChips) return;
+    animateWordChipLayout(cardRef.current, previousChipRectsRef.current);
+    previousChipRectsRef.current = null;
+  }, [selectedWords, shouldAnimateWordChips]);
+
+  const captureChipLayout = () => {
+    if (!shouldAnimateWordChips) return;
+    previousChipRectsRef.current = captureWordChipRects(cardRef.current);
+  };
+
   const handleBankClick = (word, idx) => {
     if (feedbackState !== null) return;
+    captureChipLayout();
     playSoundEffect(SOUND_EFFECT_TYPES.WORD_SELECTED);
     setSelectedWords(prev => [
       ...prev,
-      { word, bankIdx: idx, uid: `${idx}-${Date.now()}` },
+      { word, bankIdx: idx, uid: `bank-${idx}` },
     ]);
   };
 
   const handleZoneClick = (uid) => {
     if (feedbackState !== null) return;
+    captureChipLayout();
     playSoundEffect(SOUND_EFFECT_TYPES.WORD_UNSELECTED);
     setSelectedWords(prev => prev.filter(w => w.uid !== uid));
   };
@@ -64,6 +82,9 @@ export default function ListeningQuestion({ question, onAnswer, feedbackState })
   };
 
   const usedBankIndices = new Set(selectedWords.map(w => w.bankIdx));
+  const availableSegments = shuffledSegments
+    .map((word, idx) => ({ word, idx }))
+    .filter(({ idx }) => shouldAnimateWordChips ? !usedBankIndices.has(idx) : true);
   const zoneCorrect = feedbackState === 'correct';
   const zoneWrong = feedbackState === 'wrong';
 
@@ -83,6 +104,11 @@ export default function ListeningQuestion({ question, onAnswer, feedbackState })
         <p className="text-sm font-bold text-[#6B7280]">
           听音频，拼出完整日语句子
         </p>
+        {question.translation && (
+          <p className="max-w-full rounded-2xl bg-[#F5F3FF] px-3 py-2 text-sm font-bold leading-relaxed text-[#4B5563]">
+            {question.translation}
+          </p>
+        )}
       </div>
 
       <div className="flex flex-1 flex-col justify-center">
@@ -106,6 +132,7 @@ export default function ListeningQuestion({ question, onAnswer, feedbackState })
                 key={uid}
                 onClick={() => handleZoneClick(uid)}
                 disabled={feedbackState !== null}
+                data-word-chip-id={uid}
                 className={[
                   'zone-chip jp',
                   zoneCorrect ? 'zone-chip--correct' : '',
@@ -120,12 +147,13 @@ export default function ListeningQuestion({ question, onAnswer, feedbackState })
       </div>
 
       <div className="mb-3 flex flex-wrap justify-center gap-2">
-        {shuffledSegments.map((word, idx) => (
+        {availableSegments.map(({ word, idx }) => (
           <button
             key={idx}
             onClick={() => handleBankClick(word, idx)}
             disabled={feedbackState !== null || usedBankIndices.has(idx)}
-            className={`bank-chip jp ${usedBankIndices.has(idx) ? 'bank-chip--used' : ''}`}
+            data-word-chip-id={`bank-${idx}`}
+            className={`bank-chip jp ${!shouldAnimateWordChips && usedBankIndices.has(idx) ? 'bank-chip--used' : ''}`}
           >
             {word}
           </button>

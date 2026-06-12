@@ -14,6 +14,7 @@ function cloneQuestion(question) {
   delete cloned._wrongQuestionId;
   delete cloned._sourceChapterId;
   delete cloned._sourceLevelId;
+  delete cloned._sourceQuestionId;
   return cloned;
 }
 

@@ -27,6 +27,7 @@ function collectQuestionCandidates(chapters) {
           id: `${chapter.id}-${level.id}-${question.id ?? questionIndex}`,
           _sourceChapterId: chapter.id,
           _sourceLevelId: level.id,
+          _sourceQuestionId: question.id ?? questionIndex,
         });
       }
     }

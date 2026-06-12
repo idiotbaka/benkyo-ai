@@ -4,6 +4,7 @@ import { applyTheme } from './lib/theme';
 import HomePage from './pages/HomePage';
 import LessonPage from './pages/LessonPage';
 import GrammarPage from './pages/GrammarPage';
+import LevelKnowledgePage from './pages/LevelKnowledgePage';
 import ProfileSetupPage from './pages/ProfileSetupPage';
 import ProfilePage from './pages/ProfilePage';
 import ShopPage from './pages/ShopPage';
@@ -17,6 +18,7 @@ import WrongReviewPracticePage from './pages/WrongReviewPracticePage';
 import MainLayout from './components/Layout/MainLayout';
 import useUserStore from './store/userStore';
 import useDailyTaskStore from './store/dailyTaskStore';
+import useNextChapterRecommendationStore from './store/nextChapterRecommendationStore';
 import XpBoostWidget from './components/UI/XpBoostWidget';
 import SoundEffectProvider from './components/UI/SoundEffectProvider';
 import DailyTaskToast from './components/UI/DailyTaskToast';
@@ -42,20 +44,27 @@ function AppInit() {
   const syncHearts  = useUserStore(s => s.syncHearts);
   const syncXpBoost = useUserStore(s => s.syncXpBoost);
   const ensureDailyTasks = useDailyTaskStore(s => s.ensureToday);
+  const resetRecommendationRuntime = useNextChapterRecommendationStore(s => s.resetRuntimeState);
   useEffect(() => {
     checkStreak();
     syncHearts();
     syncXpBoost();
     ensureDailyTasks();
-  }, [checkStreak, ensureDailyTasks, syncHearts, syncXpBoost]);
+    resetRecommendationRuntime();
+  }, [checkStreak, ensureDailyTasks, resetRecommendationRuntime, syncHearts, syncXpBoost]);
 
   useEffect(() => {
     window.benkyoDebugDailyTaskToast = (selector = 'small') => (
       useDailyTaskStore.getState().debugCompleteToast(selector)
     );
 
+    window.benkyoDebugCompleteDailyTask = (selector = 'small') => (
+      useDailyTaskStore.getState().debugResetAndCompleteTask(selector)
+    );
+
     return () => {
       delete window.benkyoDebugDailyTaskToast;
+      delete window.benkyoDebugCompleteDailyTask;
     };
   }, []);
 
@@ -64,6 +73,7 @@ function AppInit() {
 
 function DebugConsoleCommands() {
   const [xpBoostModal, setXpBoostModal] = useState(null);
+  const [coinBoostModal, setCoinBoostModal] = useState(null);
 
   useEffect(() => {
     window.benkyoDebugXpBoost = (multiplier = 2) => {
@@ -80,19 +90,41 @@ function DebugConsoleCommands() {
       useUserStore.getState().debugAddCoins(amount)
     );
 
+    window.benkyoDebugCoinBoost = (multiplier = 2) => {
+      const result = useUserStore.getState().debugActivateCoinBoost(multiplier);
+      setCoinBoostModal(result.multiplier);
+      return {
+        ok: true,
+        multiplier: result.multiplier,
+        expiresAt: new Date(result.expiresAt).toLocaleString(),
+      };
+    };
+
     return () => {
       delete window.benkyoDebugXpBoost;
       delete window.benkyoDebugAddCoins;
+      delete window.benkyoDebugCoinBoost;
     };
   }, []);
 
-  if (xpBoostModal === null) return null;
+  if (xpBoostModal === null && coinBoostModal === null) return null;
 
   return (
-    <XpBoostActivationModal
-      multiplier={xpBoostModal}
-      onDismiss={() => setXpBoostModal(null)}
-    />
+    <>
+      {xpBoostModal !== null && (
+        <XpBoostActivationModal
+          multiplier={xpBoostModal}
+          onDismiss={() => setXpBoostModal(null)}
+        />
+      )}
+      {coinBoostModal !== null && (
+        <XpBoostActivationModal
+          multiplier={coinBoostModal}
+          boostType="coin"
+          onDismiss={() => setCoinBoostModal(null)}
+        />
+      )}
+    </>
   );
 }
 
@@ -121,6 +153,7 @@ export default function App() {
           <Route path="/practice/word-review" element={<WordReviewPracticePage />} />
           <Route path="/practice/wrong-review" element={<WrongReviewPracticePage />} />
           <Route path="/grammar/:chapterId" element={<GrammarPage />} />
+          <Route path="/level-knowledge/:chapterId/:levelId" element={<LevelKnowledgePage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Routes>

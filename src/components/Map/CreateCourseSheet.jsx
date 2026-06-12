@@ -149,10 +149,10 @@ const QUESTIONS = [
     title: '希望的学习节奏？',
     emoji: '⏱️',
     options: [
-      { value: 'relaxed',    label: '轻松随意', desc: '每章 1 个语法 · 5 节课' },
-      { value: 'steady',     label: '稳步推进', desc: '每章 2 个语法 · 6 节课' },
-      { value: 'fast',       label: '快速入门', desc: '每章 3 个语法 · 7 节课' },
-      { value: 'intensive',  label: '密集冲刺', desc: '每章 4 个语法 · 8 节课' },
+      { value: 'relaxed',    label: '轻松随意', desc: '适合轻松日常的学习难度，推荐选择' },
+      { value: 'steady',     label: '稳步推进', desc: '适合稳步提升的学习节奏，节奏略高' },
+      { value: 'fast',       label: '快速入门', desc: '适合希望快速的掌握基础，节奏较快' },
+      { value: 'intensive',  label: '密集冲刺', desc: '适合已有日语基础的玩家，快速复习' },
     ],
   },
   {
@@ -221,6 +221,7 @@ export default function CreateCourseSheet({ onClose, onDone }) {
   const sheetRef = useRef(null);
   const contentRef = useRef(null);
   const abortRef = useRef(null);
+  const generationCheckpointRef = useRef(null);
 
   const setChapters = useCourseStore(s => s.setChapters);
   const setLearningProfile = useUserStore(s => s.setLearningProfile);
@@ -311,9 +312,11 @@ export default function CreateCourseSheet({ onClose, onDone }) {
     });
 
     setPhase('generating');
-    setGenStep(0);
-    setGenMsg(GEN_STEPS[0].label);
-    setGenProgress(0);
+    const savedCheckpoint = generationCheckpointRef.current;
+    const resumeStep = savedCheckpoint?.grammarSections ? 2 : savedCheckpoint?.scaffold ? 1 : 0;
+    setGenStep(resumeStep);
+    setGenMsg(GEN_STEPS[resumeStep]?.label || GEN_STEPS[0].label);
+    setGenProgress(savedCheckpoint?.grammarSections ? 2 / 3 : savedCheckpoint?.scaffold ? 1 / 3 : 0);
 
     const controller = new AbortController();
     abortRef.current = controller;
@@ -329,10 +332,18 @@ export default function CreateCourseSheet({ onClose, onDone }) {
             setGenProgress(overallProgress);
             setGenMsg(message || GEN_STEPS[stepIndex]?.label || '');
           },
+          resumeState: savedCheckpoint,
+          onCheckpoint: checkpoint => {
+            generationCheckpointRef.current = {
+              ...(generationCheckpointRef.current ?? {}),
+              ...checkpoint,
+            };
+          },
           signal: controller.signal,
         }
       );
 
+      generationCheckpointRef.current = null;
       setChapters([chapter]);
       doDone();
     } catch (err) {
@@ -349,9 +360,8 @@ export default function CreateCourseSheet({ onClose, onDone }) {
   };
 
   const handleRetry = () => {
-    setPhase('wizard');
-    setStep(TOTAL_STEPS - 1); // back to last question
     setError('');
+    void handleGenerate();
   };
 
   // ── Topic options (dynamic based on level answer, paginated) ───────────────
@@ -801,7 +811,7 @@ function ErrorContent({ error, onRetry, onClose }) {
             fontWeight: 700, fontSize: 15, color: '#fff',
           }}
         >
-          重新生成 →
+          重试一次 →
         </button>
       </div>
     </div>

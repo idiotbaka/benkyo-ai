@@ -9,6 +9,8 @@ export default function RewardModal({
   title = '获得奖励！',
   subtitle = '奖励已放入背包',
   sourceLabel = '奖励',
+  zIndex = 140,
+  playSound = true,
   onDismiss,
 }) {
   const rewardIcon = useIcon(reward?.iconPath);
@@ -21,11 +23,12 @@ export default function RewardModal({
 
   const amount = Math.max(0, Number(reward?.amount) || 0);
   const rewardLabel = reward?.label ?? (reward?.type === 'coins' ? '金币' : '道具');
-  const amountText = reward?.type === 'coins' ? `+${amount}` : `x${amount}`;
   const isCoins = reward?.type === 'coins';
 
   useEffect(() => {
-    playSoundEffect(SOUND_EFFECT_TYPES.LEVEL_COMPLETE);
+    if (playSound) {
+      playSoundEffect(SOUND_EFFECT_TYPES.LEVEL_COMPLETE);
+    }
 
     const overlay = overlayRef.current;
     const card = cardRef.current;
@@ -99,7 +102,7 @@ export default function RewardModal({
       tl.kill();
       particle.replaceChildren();
     };
-  }, [amount, isCoins, rewardIcon]);
+  }, [amount, isCoins, playSound, rewardIcon]);
 
   const handleDismiss = () => {
     const tl = gsap.timeline({ onComplete: onDismiss });
@@ -113,7 +116,7 @@ export default function RewardModal({
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 140,
+        zIndex,
         background: 'rgba(17, 24, 39, 0.58)',
         backdropFilter: 'blur(7px)',
         display: 'flex',
@@ -214,7 +217,7 @@ export default function RewardModal({
                 fontVariantNumeric: 'tabular-nums',
               }}
             >
-              {amountText}
+              {''}
             </div>
             <div
               style={{

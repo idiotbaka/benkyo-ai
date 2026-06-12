@@ -1,11 +1,12 @@
 import { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import { generateText } from 'ai';
+import tauriConfig from '../../src-tauri/tauri.conf.json';
 import useAiStore, { PROVIDER_PRESETS } from '../store/aiStore';
 import useTtsStore, { TTS_PROVIDER_PRESETS } from '../store/ttsStore';
-import useAppearanceStore, { DEFAULT_ICON_SKIN, ICON_SKINS, isIconSkin } from '../store/appearanceStore';
+import useAppearanceStore, { DEFAULT_ICON_SKIN, DEFAULT_WORD_CHIP_MOTION, ICON_SKINS, WORD_CHIP_MOTION_OPTIONS, isIconSkin, isWordChipMotion } from '../store/appearanceStore';
 import { getModel } from '../lib/ai-providers';
 import { getAiErrorContent, logAiGeneratedContent } from '../lib/ai-debug';
 import { requestTtsAudioBlob } from '../lib/tts';
@@ -41,11 +42,70 @@ const THINKING_DEPTH_OPTIONS = [
   },
 ];
 
+const REQUEST_MODE_OPTIONS = [
+  { id: 'stream', label: '流式传输（默认）' },
+  { id: 'object', label: '非流式传输' },
+];
+
 const TTS_PROVIDER_OPTIONS = Object.entries(TTS_PROVIDER_PRESETS).map(([id, info]) => ({
   id,
   label: info.label,
   defaultBaseUrl: info.baseUrl,
 }));
+
+const SETTINGS_PANEL_IDS = new Set(['appearance', 'ai', 'tts', 'thinking']);
+
+const APP_INFO = {
+  name: tauriConfig.productName || '日学',
+  version: tauriConfig.version || '0.2.3',
+  githubLabel: 'idiotbaka/benkyo-ai',
+  githubUrl: 'https://github.com/idiotbaka/benkyo-ai',
+};
+
+const SOUND_CREDITS = [
+  { label: '効果音ラボ', url: 'https://soundeffect-lab.info/' },
+  { label: 'Kenney', url: 'https://kenney.nl/' },
+];
+
+const labelStyle = {
+  fontSize: 12,
+  fontWeight: 700,
+  color: '#6B7280',
+  display: 'block',
+  marginBottom: 8,
+};
+
+const inputStyle = {
+  width: '100%',
+  padding: '11px 14px',
+  background: '#F9FAFB',
+  border: '1.5px solid #E5E7EB',
+  borderRadius: 12,
+  outline: 'none',
+  fontSize: 13,
+  color: '#1E1B4B',
+  boxSizing: 'border-box',
+};
+
+const selectShellStyle = {
+  position: 'relative',
+  background: '#F9FAFB',
+  borderRadius: 12,
+  border: '1.5px solid #E5E7EB',
+};
+
+const selectStyle = {
+  width: '100%',
+  padding: '11px 14px',
+  background: 'transparent',
+  border: 'none',
+  outline: 'none',
+  fontSize: 14,
+  fontWeight: 600,
+  color: '#1E1B4B',
+  cursor: 'pointer',
+  appearance: 'none',
+};
 
 function VisibilityIcon({ visible }) {
   return visible ? (
@@ -63,8 +123,218 @@ function VisibilityIcon({ visible }) {
   );
 }
 
+function SelectChevron() {
+  return (
+    <span
+      style={{
+        position: 'absolute',
+        right: 14,
+        top: '50%',
+        transform: 'translateY(-50%)',
+        pointerEvents: 'none',
+        fontSize: 12,
+        color: '#9CA3AF',
+      }}
+    >
+      ▼
+    </span>
+  );
+}
+
+function normalizeSettingsPanel(panel) {
+  return SETTINGS_PANEL_IDS.has(panel) ? panel : null;
+}
+
+function getSettingsPanelFromLocation(location) {
+  const params = new URLSearchParams(location.search);
+  return normalizeSettingsPanel(
+    params.get('panel') ||
+    params.get('section') ||
+    location.state?.panel ||
+    location.state?.section,
+  );
+}
+
+function SettingsPanel({ panelRef, title, summary, tone = 'var(--tp)', open, onToggle, children }) {
+  return (
+    <section
+      ref={panelRef}
+      style={{
+        background: 'white',
+        borderRadius: 18,
+        border: `1.5px solid ${open ? tone : '#EDE9FE'}`,
+        boxShadow: open ? '0 8px 28px rgba(91,79,233,0.14)' : '0 4px 18px rgba(91,79,233,0.08)',
+        overflow: 'hidden',
+        marginBottom: 12,
+        transition: 'border-color 0.18s, box-shadow 0.18s',
+      }}
+    >
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        style={{
+          width: '100%',
+          border: 'none',
+          background: 'transparent',
+          padding: '15px 16px',
+          cursor: 'pointer',
+          display: 'grid',
+          gridTemplateColumns: '1fr auto',
+          gap: 12,
+          alignItems: 'center',
+          textAlign: 'left',
+        }}
+      >
+        <span style={{ minWidth: 0 }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
+            <span
+              aria-hidden="true"
+              style={{
+                width: 8,
+                height: 22,
+                borderRadius: 99,
+                background: tone,
+                flexShrink: 0,
+              }}
+            />
+            <span style={{ fontSize: 16, fontWeight: 900, color: '#1E1B4B' }}>{title}</span>
+          </span>
+          <span
+            style={{
+              display: 'block',
+              fontSize: 12,
+              fontWeight: 700,
+              color: '#6B7280',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              paddingLeft: 16,
+            }}
+          >
+            {summary}
+          </span>
+        </span>
+        <span
+          aria-hidden="true"
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: '50%',
+            background: open ? '#F0EEFF' : '#F8FAFC',
+            color: open ? 'var(--tp)' : '#6B7280',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'background 0.18s, color 0.18s',
+          }}
+        >
+          <span
+            style={{
+              width: 9,
+              height: 9,
+              borderRight: `2.5px solid ${open ? 'var(--tp)' : '#64748B'}`,
+              borderBottom: `2.5px solid ${open ? 'var(--tp)' : '#64748B'}`,
+              borderRadius: 2,
+              transform: open ? 'translateY(2px) rotate(225deg)' : 'translateY(-2px) rotate(45deg)',
+              transition: 'transform 0.18s, border-color 0.18s',
+            }}
+          />
+        </span>
+      </button>
+      {open && (
+        <div style={{ padding: '0 16px 18px', borderTop: '1px solid #F1F5F9' }}>
+          <div style={{ paddingTop: 16 }}>{children}</div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function AboutInfoRow({ label, children }) {
+  return (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: '76px 1fr',
+      gap: 10,
+      alignItems: 'start',
+      padding: '10px 0',
+      borderTop: '1px solid #F1F5F9',
+    }}>
+      <span style={{ fontSize: 12, fontWeight: 800, color: '#94A3B8' }}>{label}</span>
+      <div style={{ fontSize: 13, fontWeight: 700, color: '#1E1B4B', lineHeight: 1.6 }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function ExternalInfoLink({ href, children }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      style={{
+        color: 'var(--tp)',
+        fontWeight: 800,
+        textDecoration: 'none',
+      }}
+    >
+      {children}
+    </a>
+  );
+}
+
+function AboutAppSection() {
+  return (
+    <section
+      style={{
+        background: 'white',
+        borderRadius: 18,
+        border: '1.5px solid #EDE9FE',
+        boxShadow: '0 4px 18px rgba(91,79,233,0.08)',
+        padding: '16px',
+        marginTop: 18,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 4 }}>
+        <div>
+          <p style={{ fontSize: 12, fontWeight: 800, color: '#94A3B8', margin: '0 0 4px' }}>关于 APP</p>
+          <h2 style={{ fontSize: 20, fontWeight: 900, color: '#1E1B4B', margin: 0 }}>{APP_INFO.name}</h2>
+        </div>
+        <span style={{
+          padding: '6px 10px',
+          borderRadius: 999,
+          background: '#F0EEFF',
+          color: 'var(--tp)',
+          fontSize: 12,
+          fontWeight: 900,
+          whiteSpace: 'nowrap',
+        }}>
+          v{APP_INFO.version}
+        </span>
+      </div>
+
+      <AboutInfoRow label="仓库">
+        <ExternalInfoLink href={APP_INFO.githubUrl}>{APP_INFO.githubLabel}</ExternalInfoLink>
+      </AboutInfoRow>
+
+      <AboutInfoRow label="音效鸣谢">
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 12px' }}>
+          {SOUND_CREDITS.map(item => (
+            <ExternalInfoLink key={item.url} href={item.url}>{item.label}</ExternalInfoLink>
+          ))}
+        </div>
+      </AboutInfoRow>
+    </section>
+  );
+}
+
 export default function SettingsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const targetPanel = getSettingsPanelFromLocation(location);
   const savedConfig = useAiStore(s => s.getConfig)();
   const setConfig = useAiStore(s => s.setConfig);
   const thinkingDepth = useAiStore(s => s.thinkingDepth);
@@ -73,8 +343,11 @@ export default function SettingsPage() {
   const setTtsConfigStore = useTtsStore(s => s.setConfig);
   const iconSkin = useAppearanceStore(s => s.iconSkin);
   const setIconSkin = useAppearanceStore(s => s.setIconSkin);
+  const wordChipMotion = useAppearanceStore(s => s.wordChipMotion);
+  const setWordChipMotion = useAppearanceStore(s => s.setWordChipMotion);
   const settingImg = useIcon('ui/setting.png');
   const activeIconSkin = isIconSkin(iconSkin) ? iconSkin : DEFAULT_ICON_SKIN;
+  const activeWordChipMotion = isWordChipMotion(wordChipMotion) ? wordChipMotion : DEFAULT_WORD_CHIP_MOTION;
   const savedTtsProvider = TTS_PROVIDER_PRESETS[savedTtsConfig.provider]
     ? savedTtsConfig.provider
     : 'aliyun-cosyvoice';
@@ -84,6 +357,7 @@ export default function SettingsPage() {
   const [apiKey, setApiKey] = useState(savedConfig.apiKey || '');
   const [modelId, setModelId] = useState(savedConfig.modelId || '');
   const [baseUrl, setBaseUrl] = useState(savedConfig.baseUrl || '');
+  const [requestMode, setRequestMode] = useState(savedConfig.requestMode || 'stream');
   const [showKey, setShowKey] = useState(false);
   const [ttsProvider, setTtsProvider] = useState(savedTtsProvider);
   const [ttsBaseUrl, setTtsBaseUrl] = useState(savedTtsConfig.baseUrl || savedTtsPreset.baseUrl);
@@ -91,6 +365,7 @@ export default function SettingsPage() {
   const [ttsApiKey, setTtsApiKey] = useState(savedTtsConfig.apiKey || '');
   const [ttsVoice, setTtsVoice] = useState(savedTtsConfig.voice || savedTtsPreset.voice);
   const [showTtsKey, setShowTtsKey] = useState(false);
+  const [openPanels, setOpenPanels] = useState(() => new Set(targetPanel ? [targetPanel] : []));
 
   const [testStatus, setTestStatus] = useState(null); // null | 'loading' | 'ok' | 'error'
   const [testMessage, setTestMessage] = useState('');
@@ -99,6 +374,7 @@ export default function SettingsPage() {
 
   const pageRef = useRef(null);
   const backBtnRef = useRef(null);
+  const panelRefs = useRef({});
   const ttsAudioRef = useRef(null);
   const ttsAudioUrlRef = useRef(null);
 
@@ -111,6 +387,69 @@ export default function SettingsPage() {
 
   const currentPreset = PROVIDER_PRESETS[provider];
   const currentTtsPreset = TTS_PROVIDER_PRESETS[ttsProvider];
+  const providerLabel = currentPreset?.label || provider || '未选择';
+  const ttsProviderLabel = currentTtsPreset?.label || ttsProvider || '未选择';
+  const activeIconSkinLabel = ICON_SKINS.find(opt => opt.id === activeIconSkin)?.label || activeIconSkin;
+  const activeWordChipMotionLabel = WORD_CHIP_MOTION_OPTIONS.find(opt => opt.id === activeWordChipMotion)?.label || activeWordChipMotion;
+  const activeThinkingDepthLabel = THINKING_DEPTH_OPTIONS.find(opt => opt.id === thinkingDepth)?.label || '深度思考';
+  const isAiConfigured = Boolean(
+    provider &&
+    apiKey.trim() &&
+    modelId.trim() &&
+    (provider !== 'openai-compatible' || baseUrl.trim()),
+  );
+  const isTtsConfigured = Boolean(
+    ttsProvider &&
+    ttsBaseUrl.trim() &&
+    ttsModelId.trim() &&
+    ttsApiKey.trim() &&
+    ttsVoice.trim(),
+  );
+
+  function isPanelOpen(panelId) {
+    return openPanels.has(panelId);
+  }
+
+  function togglePanel(panelId) {
+    setOpenPanels(prev => {
+      const next = new Set(prev);
+      if (next.has(panelId)) {
+        next.delete(panelId);
+      } else {
+        next.add(panelId);
+      }
+      return next;
+    });
+  }
+
+  function setPanelRef(panelId, node) {
+    if (node) {
+      panelRefs.current[panelId] = node;
+    }
+  }
+
+  useEffect(() => {
+    if (!targetPanel) return undefined;
+
+    let scrollTimer;
+    const openTimer = window.setTimeout(() => {
+      setOpenPanels(prev => {
+        if (prev.has(targetPanel)) return prev;
+        const next = new Set(prev);
+        next.add(targetPanel);
+        return next;
+      });
+
+      scrollTimer = window.setTimeout(() => {
+        panelRefs.current[targetPanel]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 120);
+    }, 0);
+
+    return () => {
+      window.clearTimeout(openTimer);
+      if (scrollTimer) window.clearTimeout(scrollTimer);
+    };
+  }, [targetPanel]);
 
   useEffect(() => {
     setConfig({
@@ -118,8 +457,9 @@ export default function SettingsPage() {
       apiKey: apiKey.trim(),
       modelId: modelId.trim(),
       baseUrl: baseUrl.trim(),
+      requestMode,
     });
-  }, [provider, apiKey, modelId, baseUrl, setConfig]);
+  }, [provider, apiKey, modelId, baseUrl, requestMode, setConfig]);
 
   useEffect(() => {
     setTtsConfigStore({
@@ -303,10 +643,13 @@ export default function SettingsPage() {
   }
 
   const showRequiredHint = provider === 'openai-compatible';
+  const appearanceSummary = `${activeIconSkinLabel} · ${activeWordChipMotionLabel}`;
+  const aiSummary = isAiConfigured ? `${providerLabel} · ${modelId.trim()}` : '尚未配置模型或密钥';
+  const ttsSummary = isTtsConfigured ? `${ttsProviderLabel} · ${ttsVoice.trim()}` : '尚未配置音频模型';
+  const thinkingSummary = `当前：${activeThinkingDepthLabel}`;
 
   return (
-    <div style={{ height: '100vh', overflowY: 'auto', background: '#F5F3FF' }}>
-      {/* Header */}
+    <div className="scroll-y" style={{ height: '100vh', overflowY: 'auto', background: 'linear-gradient(180deg, #F5F3FF 0%, #EEF2FF 100%)' }}>
       <div style={{
         background: 'linear-gradient(155deg, var(--tp) 0%, var(--tp-from) 100%)',
         padding: '14px 16px 16px',
@@ -320,6 +663,7 @@ export default function SettingsPage() {
       }}>
         <button
           ref={backBtnRef}
+          type="button"
           onClick={() => {
             gsap.timeline()
               .to(backBtnRef.current, { scale: 0.88, duration: 0.08, ease: 'power2.in' })
@@ -343,87 +687,92 @@ export default function SettingsPage() {
         <div aria-hidden="true" />
       </div>
 
-      {/* Content */}
-      <div ref={pageRef} style={{ padding: '20px 16px 40px' }}>
-
-        {/* Appearance Section */}
-        <div style={{ marginBottom: 8 }}>
-          <h2 style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
-            界面皮肤
-          </h2>
+      <div ref={pageRef} style={{ padding: '18px 16px 40px', maxWidth: 720, margin: '0 auto' }}>
+        <div style={{
+          background: 'rgba(255,255,255,0.76)',
+          border: '1.5px solid rgba(237,233,254,0.95)',
+          borderRadius: 16,
+          padding: '12px 14px',
+          marginBottom: 14,
+          boxShadow: '0 4px 16px rgba(91,79,233,0.07)',
+        }}>
+          <p style={{ fontSize: 12, color: '#5B21B6', fontWeight: 800, margin: '0 0 4px' }}>本地配置</p>
+          <p style={{ fontSize: 12, color: '#4B5563', lineHeight: 1.6, margin: 0 }}>
+            API 密钥仅保存在本地设备，不会上传至任何服务器。
+          </p>
         </div>
 
-        <div className="bg-white rounded-2xl" style={{ padding: '20px 16px', boxShadow: '0 4px 24px rgba(91,79,233,0.10)', marginBottom: 16 }}>
-          <label style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', display: 'block', marginBottom: 8 }}>
-            图标组
-          </label>
-          <div style={{
-            position: 'relative',
-            background: '#F9FAFB',
-            borderRadius: 12,
-            border: '1.5px solid #E5E7EB',
-          }}>
-            <select
-              value={activeIconSkin}
-              onChange={e => setIconSkin(e.target.value)}
-              style={{
-                width: '100%', padding: '11px 14px',
-                background: 'transparent', border: 'none', outline: 'none',
-                fontSize: 14, fontWeight: 600, color: '#1E1B4B',
-                cursor: 'pointer', appearance: 'none',
-              }}
-            >
-              {ICON_SKINS.map(opt => (
-                <option key={opt.id} value={opt.id}>
-                  {opt.label}{opt.isDefault ? '（默认）' : ''}
-                </option>
-              ))}
-            </select>
-            <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: 12, color: '#9CA3AF' }}>▼</span>
-          </div>
-        </div>
-
-        {/* AI Model Section */}
-        <div style={{ marginBottom: 8 }}>
-          <h2 style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
-            配置 AI 模型（LLM）
-          </h2>
-        </div>
-
-        <div className="bg-white rounded-2xl" style={{ padding: '20px 16px', boxShadow: '0 4px 24px rgba(91,79,233,0.10)', marginBottom: 16 }}>
-
-          {/* Provider */}
+        <SettingsPanel
+          panelRef={node => setPanelRef('appearance', node)}
+          title="界面设置"
+          summary={appearanceSummary}
+          tone="#8B5CF6"
+          open={isPanelOpen('appearance')}
+          onToggle={() => togglePanel('appearance')}
+        >
           <div style={{ marginBottom: 18 }}>
-            <label style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', display: 'block', marginBottom: 8 }}>
-              模型提供商
-            </label>
-            <div style={{
-              position: 'relative',
-              background: '#F9FAFB',
-              borderRadius: 12,
-              border: '1.5px solid #E5E7EB',
-            }}>
+            <label style={labelStyle}>图标组</label>
+            <div style={selectShellStyle}>
+              <select
+                value={activeIconSkin}
+                onChange={e => setIconSkin(e.target.value)}
+                style={selectStyle}
+              >
+                {ICON_SKINS.map(opt => (
+                  <option key={opt.id} value={opt.id}>
+                    {opt.label}{opt.isDefault ? '（默认）' : ''}
+                  </option>
+                ))}
+              </select>
+              <SelectChevron />
+            </div>
+          </div>
+
+          <div>
+            <label style={labelStyle}>选词交互类型</label>
+            <div style={selectShellStyle}>
+              <select
+                value={activeWordChipMotion}
+                onChange={e => setWordChipMotion(e.target.value)}
+                style={selectStyle}
+              >
+                {WORD_CHIP_MOTION_OPTIONS.map(opt => (
+                  <option key={opt.id} value={opt.id}>
+                    {opt.label}{opt.isDefault ? '（默认）' : ''}
+                  </option>
+                ))}
+              </select>
+              <SelectChevron />
+            </div>
+          </div>
+        </SettingsPanel>
+
+        <SettingsPanel
+          panelRef={node => setPanelRef('ai', node)}
+          title="LLM 模型配置"
+          summary={aiSummary}
+          tone="#6366F1"
+          open={isPanelOpen('ai')}
+          onToggle={() => togglePanel('ai')}
+        >
+          <div style={{ marginBottom: 18 }}>
+            <label style={labelStyle}>模型提供商</label>
+            <div style={selectShellStyle}>
               <select
                 value={provider}
                 onChange={e => handleProviderChange(e.target.value)}
-                style={{
-                  width: '100%', padding: '11px 14px',
-                  background: 'transparent', border: 'none', outline: 'none',
-                  fontSize: 14, fontWeight: 600, color: '#1E1B4B',
-                  cursor: 'pointer', appearance: 'none',
-                }}
+                style={selectStyle}
               >
                 {PROVIDER_OPTIONS.map(opt => (
                   <option key={opt.id} value={opt.id}>{opt.label}</option>
                 ))}
               </select>
-              <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: 12, color: '#9CA3AF' }}>▼</span>
+              <SelectChevron />
             </div>
           </div>
 
-          {/* Base URL */}
           <div style={{ marginBottom: 18 }}>
-            <label style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', display: 'block', marginBottom: 8 }}>
+            <label style={labelStyle}>
               Base URL
               {showRequiredHint && <span style={{ color: '#EF4444', marginLeft: 4 }}>*必填</span>}
               {!showRequiredHint && <span style={{ color: '#9CA3AF', marginLeft: 4, fontWeight: 500 }}>（可覆盖默认地址）</span>}
@@ -433,41 +782,23 @@ export default function SettingsPage() {
               value={baseUrl}
               onChange={e => setBaseUrl(e.target.value)}
               placeholder={currentPreset?.baseUrl || '例如 https://api.openai.com/v1'}
-              style={{
-                width: '100%', padding: '11px 14px',
-                background: '#F9FAFB', border: '1.5px solid #E5E7EB',
-                borderRadius: 12, outline: 'none',
-                fontSize: 13, color: '#1E1B4B',
-                boxSizing: 'border-box',
-              }}
+              style={inputStyle}
             />
           </div>
 
-          {/* Model ID */}
           <div style={{ marginBottom: 18 }}>
-            <label style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', display: 'block', marginBottom: 8 }}>
-              模型 ID
-            </label>
+            <label style={labelStyle}>模型 ID</label>
             <input
               type="text"
               value={modelId}
               onChange={e => setModelId(e.target.value)}
               placeholder={getModelIdPlaceholder(provider)}
-              style={{
-                width: '100%', padding: '11px 14px',
-                background: '#F9FAFB', border: '1.5px solid #E5E7EB',
-                borderRadius: 12, outline: 'none',
-                fontSize: 13, color: '#1E1B4B',
-                boxSizing: 'border-box',
-              }}
+              style={inputStyle}
             />
           </div>
 
-          {/* API Key */}
           <div style={{ marginBottom: 24 }}>
-            <label style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', display: 'block', marginBottom: 8 }}>
-              API 密钥
-            </label>
+            <label style={labelStyle}>API 密钥</label>
             <div style={{ position: 'relative' }}>
               <input
                 type={showKey ? 'text' : 'password'}
@@ -475,13 +806,7 @@ export default function SettingsPage() {
                 onChange={e => setApiKey(e.target.value)}
                 placeholder="sk-..."
                 autoComplete="off"
-                style={{
-                  width: '100%', padding: '11px 44px 11px 14px',
-                  background: '#F9FAFB', border: '1.5px solid #E5E7EB',
-                  borderRadius: 12, outline: 'none',
-                  fontSize: 13, color: '#1E1B4B',
-                  boxSizing: 'border-box',
-                }}
+                style={{ ...inputStyle, padding: '11px 44px 11px 14px' }}
               />
               <button
                 type="button"
@@ -499,8 +824,24 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Test Button */}
+          <div style={{ marginBottom: 24 }}>
+            <label style={labelStyle}>API 请求类型</label>
+            <div style={selectShellStyle}>
+              <select
+                value={requestMode}
+                onChange={e => setRequestMode(e.target.value)}
+                style={selectStyle}
+              >
+                {REQUEST_MODE_OPTIONS.map(opt => (
+                  <option key={opt.id} value={opt.id}>{opt.label}</option>
+                ))}
+              </select>
+              <SelectChevron />
+            </div>
+          </div>
+
           <button
+            type="button"
             onClick={handleTest}
             disabled={testStatus === 'loading'}
             className="btn-press"
@@ -517,7 +858,6 @@ export default function SettingsPage() {
             {testStatus === 'loading' ? '⏳ 测试中...' : '🔌 测试模型是否生效'}
           </button>
 
-          {/* Test Result */}
           {testStatus && testStatus !== 'loading' && (
             <div style={{
               padding: '10px 14px',
@@ -531,92 +871,56 @@ export default function SettingsPage() {
               </span>
             </div>
           )}
+        </SettingsPanel>
 
-        </div>
-
-        {/* TTS Section */}
-        <div style={{ marginBottom: 8, marginTop: 4 }}>
-          <h2 style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
-            配置音频模型（TTS）
-          </h2>
-        </div>
-
-        <div className="bg-white rounded-2xl" style={{ padding: '20px 16px', boxShadow: '0 4px 24px rgba(91,79,233,0.10)', marginBottom: 16 }}>
-
-          {/* TTS Provider */}
+        <SettingsPanel
+          panelRef={node => setPanelRef('tts', node)}
+          title="TTS 模型配置"
+          summary={ttsSummary}
+          tone="#0EA5E9"
+          open={isPanelOpen('tts')}
+          onToggle={() => togglePanel('tts')}
+        >
           <div style={{ marginBottom: 18 }}>
-            <label style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', display: 'block', marginBottom: 8 }}>
-              音频提供商
-            </label>
-            <div style={{
-              position: 'relative',
-              background: '#F9FAFB',
-              borderRadius: 12,
-              border: '1.5px solid #E5E7EB',
-            }}>
+            <label style={labelStyle}>音频提供商</label>
+            <div style={selectShellStyle}>
               <select
                 value={ttsProvider}
                 onChange={e => handleTtsProviderChange(e.target.value)}
-                style={{
-                  width: '100%', padding: '11px 14px',
-                  background: 'transparent', border: 'none', outline: 'none',
-                  fontSize: 14, fontWeight: 600, color: '#1E1B4B',
-                  cursor: 'pointer', appearance: 'none',
-                }}
+                style={selectStyle}
               >
                 {TTS_PROVIDER_OPTIONS.map(opt => (
                   <option key={opt.id} value={opt.id}>{opt.label}</option>
                 ))}
               </select>
-              <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: 12, color: '#9CA3AF' }}>▼</span>
+              <SelectChevron />
             </div>
           </div>
 
-          {/* TTS Base URL */}
           <div style={{ marginBottom: 18 }}>
-            <label style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', display: 'block', marginBottom: 8 }}>
-              Base URL
-            </label>
+            <label style={labelStyle}>Base URL</label>
             <input
               type="text"
               value={ttsBaseUrl}
               onChange={e => setTtsBaseUrl(e.target.value)}
               placeholder={currentTtsPreset?.baseUrl || ''}
-              style={{
-                width: '100%', padding: '11px 14px',
-                background: '#F9FAFB', border: '1.5px solid #E5E7EB',
-                borderRadius: 12, outline: 'none',
-                fontSize: 13, color: '#1E1B4B',
-                boxSizing: 'border-box',
-              }}
+              style={inputStyle}
             />
           </div>
 
-          {/* TTS Model ID */}
           <div style={{ marginBottom: 18 }}>
-            <label style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', display: 'block', marginBottom: 8 }}>
-              模型 ID
-            </label>
+            <label style={labelStyle}>模型 ID</label>
             <input
               type="text"
               value={ttsModelId}
               onChange={e => setTtsModelId(e.target.value)}
               placeholder={currentTtsPreset?.modelId || '模型 ID'}
-              style={{
-                width: '100%', padding: '11px 14px',
-                background: '#F9FAFB', border: '1.5px solid #E5E7EB',
-                borderRadius: 12, outline: 'none',
-                fontSize: 13, color: '#1E1B4B',
-                boxSizing: 'border-box',
-              }}
+              style={inputStyle}
             />
           </div>
 
-          {/* TTS API Key */}
           <div style={{ marginBottom: 18 }}>
-            <label style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', display: 'block', marginBottom: 8 }}>
-              TTS API 密钥
-            </label>
+            <label style={labelStyle}>TTS API 密钥</label>
             <div style={{ position: 'relative' }}>
               <input
                 type={showTtsKey ? 'text' : 'password'}
@@ -624,13 +928,7 @@ export default function SettingsPage() {
                 onChange={e => setTtsApiKey(e.target.value)}
                 placeholder="sk-..."
                 autoComplete="off"
-                style={{
-                  width: '100%', padding: '11px 44px 11px 14px',
-                  background: '#F9FAFB', border: '1.5px solid #E5E7EB',
-                  borderRadius: 12, outline: 'none',
-                  fontSize: 13, color: '#1E1B4B',
-                  boxSizing: 'border-box',
-                }}
+                style={{ ...inputStyle, padding: '11px 44px 11px 14px' }}
               />
               <button
                 type="button"
@@ -648,23 +946,14 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Voice */}
           <div style={{ marginBottom: 16 }}>
-            <label style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', display: 'block', marginBottom: 8 }}>
-              音色 Voice
-            </label>
+            <label style={labelStyle}>音色 Voice</label>
             <input
               type="text"
               value={ttsVoice}
               onChange={e => setTtsVoice(e.target.value)}
               placeholder={currentTtsPreset?.voice || '音色 Voice'}
-              style={{
-                width: '100%', padding: '11px 14px',
-                background: '#F9FAFB', border: '1.5px solid #E5E7EB',
-                borderRadius: 12, outline: 'none',
-                fontSize: 13, color: '#1E1B4B',
-                boxSizing: 'border-box',
-              }}
+              style={inputStyle}
             />
           </div>
 
@@ -672,8 +961,8 @@ export default function SettingsPage() {
             {getTtsProviderHint(ttsProvider)}
           </p>
 
-          {/* TTS Test Button */}
           <button
+            type="button"
             onClick={handleTtsTest}
             disabled={ttsTestStatus === 'loading'}
             className="btn-press"
@@ -690,7 +979,6 @@ export default function SettingsPage() {
             {ttsTestStatus === 'loading' ? '⏳ 试音中...' : '🔊 测试音色（こんにちは！）'}
           </button>
 
-          {/* TTS Test Result */}
           {ttsTestStatus && ttsTestStatus !== 'loading' && (
             <div style={{
               padding: '10px 14px',
@@ -704,20 +992,20 @@ export default function SettingsPage() {
               </span>
             </div>
           )}
+        </SettingsPanel>
 
-        </div>
-
-        {/* Thinking Depth Section */}
-        <div style={{ marginBottom: 8, marginTop: 4 }}>
-          <h2 style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
-            思考深度
-          </h2>
-        </div>
-
-        <div className="bg-white rounded-2xl" style={{ padding: '14px 12px', boxShadow: '0 4px 24px rgba(91,79,233,0.10)', marginBottom: 16 }}>
+        <SettingsPanel
+          panelRef={node => setPanelRef('thinking', node)}
+          title="思考深度"
+          summary={thinkingSummary}
+          tone="#F59E0B"
+          open={isPanelOpen('thinking')}
+          onToggle={() => togglePanel('thinking')}
+        >
           {THINKING_DEPTH_OPTIONS.map((opt, i) => (
             <button
               key={opt.id}
+              type="button"
               className="btn-press"
               onClick={() => setThinkingDepthStore(opt.id)}
               style={{
@@ -769,19 +1057,9 @@ export default function SettingsPage() {
               使用 OpenAI、Google、Anthropic 以外的模型可能不支持 reasoning_effort 推理深度设置。当模型不支持时，会尝试添加 thinking_budget 参数来限制推理预算。如果调用 AI 生成时出错，请切换为深度思考模式。深度思考模式下将不再限制推理预算。
             </p>
           </div>
-        </div>
+        </SettingsPanel>
 
-        {/* Tips */}
-        <div style={{
-          background: '#FFFBEB', border: '1.5px solid #FDE68A',
-          borderRadius: 16, padding: '14px 16px',
-        }}>
-          <p style={{ fontSize: 12, fontWeight: 700, color: '#92400E', marginBottom: 6 }}>提示</p>
-          <p style={{ fontSize: 12, color: '#78350F', lineHeight: 1.6, margin: 0 }}>
-            API 密钥仅保存在本地设备，不会上传至任何服务器。配置完成后即可使用 AI 生成课程内容。
-          </p>
-        </div>
-
+        <AboutAppSection />
       </div>
     </div>
   );
@@ -806,21 +1084,26 @@ function getModelIdPlaceholder(provider) {
 }
 
 function getTtsProviderHint(provider) {
+
+  if (provider === 'aliyun-cosyvoice') {
+    return '访问 https://bailian.console.aliyun.com/ 进行开通';
+  }
+
   if (provider === 'aliyun-qwen-tts') {
-    return 'Qwen-TTS 会固定传入 language_type=Japanese；当前只需配置 Base URL、模型 ID、API 密钥和音色 Voice。';
+    return '访问 https://bailian.console.aliyun.com/ 进行开通';
   }
 
   if (provider === 'aliyun-minimax-tts') {
-    return 'MiniMax 会固定传入 voice_setting.language_boost=Japanese；音色 Voice 会作为 voice_setting.voice_id。';
+    return '访问 https://bailian.console.aliyun.com/ 进行开通';
   }
 
   if (provider === 'minimax-official-tts') {
-    return 'MiniMax 官方 API 会固定传入 voice_setting.language_boost=Japanese；音色 Voice 会作为 voice_setting.voice_id。';
+    return '访问 https://platform.minimaxi.com/console/personal-info 进行开通';
   }
 
   if (provider === 'volcengine-doubao-tts') {
-    return '豆包语音会使用 X-Api-Key 和 X-Api-Resource-Id 鉴权；模型 ID 会作为 X-Api-Resource-Id，音色 Voice 会作为 req_params.speaker，并固定 explicit_language=ja。';
+    return '访问 https://www.volcengine.com/product/tts 进行开通';
   }
 
-  return '默认试音参数：format=mp3（设备兼容最佳），sample_rate=24000（语音清晰且体积适中），rate=1.0，bit_rate=64。';
+  return '未配置 TTS 时，APP 基础功能不受影响，但语音输出相关功能无法使用。';
 }
