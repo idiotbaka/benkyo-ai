@@ -240,6 +240,24 @@ rt {
   min-width: 16px;
 }
 
+.japanese-intro-start-button__shine {
+  position: absolute;
+  top: -45%;
+  left: -34%;
+  width: 34%;
+  height: 190%;
+  transform: skewX(-22deg);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.82), rgba(255,255,255,0.28), transparent);
+  animation: japaneseIntroStartShine 2.4s ease-in-out infinite;
+}
+
+@keyframes japaneseIntroStartShine {
+  0% { left: -38%; opacity: 0; }
+  18% { opacity: 0.92; }
+  48% { left: 108%; opacity: 0; }
+  100% { left: 108%; opacity: 0; }
+}
+
 /* ── Blank slot in sentence ── */
 .blank-slot {
   display: inline-flex;

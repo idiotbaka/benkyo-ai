@@ -1,8 +1,10 @@
-import { useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import { JAPANESE_INTRO_BASICS } from '../data/japaneseIntroBasics';
+import { GOJUON_SECTIONS, toKatakanaText } from '../data/gojuonKana';
+import { createGojuonAudioUrl, getGojuonAudioEntry } from '../lib/gojuon-audio';
 import { useIcon } from '../lib/icons';
 
 gsap.registerPlugin(useGSAP);
@@ -16,7 +18,6 @@ const TABS = [
 export default function JapaneseIntroPage() {
   const navigate = useNavigate();
   const cakeImg = useIcon('sd/sd_cake.png');
-  const sdNoBooksImg = useIcon('sd/sd_no_books.png');
   const [activeTab, setActiveTab] = useState('basics');
   const headerRef = useRef(null);
   const contentRef = useRef(null);
@@ -112,16 +113,14 @@ export default function JapaneseIntroPage() {
         </div>
       </div>
 
-      <div ref={contentRef} style={{ padding: '16px 16px 28px' }}>
+      <div ref={contentRef} style={{ padding: `16px 16px ${activeTab === 'basics' ? 28 : 132}px` }}>
         {activeTab === 'basics' ? (
           <BasicsList onOpenTopic={(topicId) => navigate(`/vocab/japanese-intro/basic/${topicId}`)} />
         ) : (
-          <ComingSoonPanel
-            icon={sdNoBooksImg}
-            title={activeTab === 'hiragana' ? '平假名' : '片假名'}
-          />
+          <KanaStudyPanel script={activeTab} />
         )}
       </div>
+      {activeTab !== 'basics' && <StartStudyButton />}
     </div>
   );
 }
@@ -205,26 +204,286 @@ function BasicsList({ onOpenTopic }) {
   );
 }
 
-function ComingSoonPanel({ icon, title }) {
+function KanaStudyPanel({ script }) {
+  const [loadingAudioKey, setLoadingAudioKey] = useState('');
+  const [playingAudioKey, setPlayingAudioKey] = useState('');
+  const audioRef = useRef(null);
+  const audioUrlRef = useRef('');
+  const playSeqRef = useRef(0);
+
+  const cleanupAudio = useCallback(() => {
+    audioRef.current?.pause();
+    audioRef.current = null;
+    if (audioUrlRef.current) {
+      URL.revokeObjectURL(audioUrlRef.current);
+      audioUrlRef.current = '';
+    }
+  }, []);
+
+  useEffect(() => () => {
+    playSeqRef.current += 1;
+    cleanupAudio();
+  }, [cleanupAudio]);
+
+  const handlePlayKana = useCallback(async (audioKey) => {
+    if (!audioKey || !getGojuonAudioEntry(audioKey)) return;
+
+    if (playingAudioKey === audioKey || loadingAudioKey === audioKey) {
+      playSeqRef.current += 1;
+      cleanupAudio();
+      setPlayingAudioKey('');
+      setLoadingAudioKey('');
+      return;
+    }
+
+    const playSeq = playSeqRef.current + 1;
+    playSeqRef.current = playSeq;
+    cleanupAudio();
+    setPlayingAudioKey('');
+    setLoadingAudioKey(audioKey);
+
+    try {
+      const url = await createGojuonAudioUrl(audioKey);
+      if (playSeqRef.current !== playSeq) {
+        URL.revokeObjectURL(url);
+        return;
+      }
+
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audioUrlRef.current = url;
+
+      const finish = () => {
+        if (playSeqRef.current !== playSeq) return;
+        cleanupAudio();
+        setPlayingAudioKey('');
+        setLoadingAudioKey('');
+      };
+
+      audio.addEventListener('ended', finish, { once: true });
+      audio.addEventListener('error', finish, { once: true });
+
+      await audio.play();
+      if (playSeqRef.current === playSeq) {
+        setPlayingAudioKey(audioKey);
+        setLoadingAudioKey('');
+      }
+    } catch {
+      if (playSeqRef.current === playSeq) {
+        cleanupAudio();
+        setPlayingAudioKey('');
+        setLoadingAudioKey('');
+      }
+    }
+  }, [cleanupAudio, loadingAudioKey, playingAudioKey]);
+
   return (
-    <div
+    <div style={{ maxWidth: 760, margin: '0 auto', display: 'grid', gap: 18 }}>
+      {GOJUON_SECTIONS.map(section => (
+        <KanaSection
+          key={section.id}
+          section={section}
+          script={script}
+          loadingAudioKey={loadingAudioKey}
+          playingAudioKey={playingAudioKey}
+          onPlayKana={handlePlayKana}
+        />
+      ))}
+    </div>
+  );
+}
+
+function KanaSection({ section, script, loadingAudioKey, playingAudioKey, onPlayKana }) {
+  return (
+    <section
       style={{
         background: 'white',
-        border: '1.5px dashed #DDD6FE',
-        borderRadius: 18,
-        padding: '44px 22px',
-        minHeight: 260,
+        borderTop: '1.5px solid #E5E7EB',
+        borderBottom: '1.5px solid #E5E7EB',
+        marginInline: -16,
+        padding: '22px 16px 24px',
+      }}
+    >
+      <div style={{ maxWidth: 760, margin: '0 auto' }}>
+        <h3 style={{ color: '#2F2F35', fontSize: 22, fontWeight: 900, lineHeight: 1.25, margin: '0 0 8px' }}>
+          {section.title}
+        </h3>
+        <p style={{ color: '#8A8A94', fontSize: 15, lineHeight: 1.5, fontWeight: 700, margin: '0 0 18px' }}>
+          {section.subtitle}
+        </p>
+
+        {section.rowLayout ? (
+          <div style={{ display: 'grid', gap: 10 }}>
+            {section.rows.map((row, rowIndex) => (
+              <div
+                key={`${section.id}-${rowIndex}`}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: `repeat(${section.columns}, minmax(0, 1fr))`,
+                  gap: 9,
+                }}
+              >
+                {row.map((item, index) => item ? (
+                  <KanaCard
+                    key={item.kana}
+                    item={item}
+                    script={script}
+                    columns={section.columns}
+                    style={{ gridColumn: `${index + 1}` }}
+                    isLoading={loadingAudioKey === item.kana}
+                    isPlaying={playingAudioKey === item.kana}
+                    onPlay={() => onPlayKana(item.kana)}
+                  />
+                ) : null)}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: `repeat(${section.columns}, minmax(0, 1fr))`,
+              gap: section.columns === 3 ? 12 : 9,
+            }}
+          >
+            {section.rows.flat().map(item => (
+              <KanaCard
+                key={item.kana}
+                item={item}
+                script={script}
+                columns={section.columns}
+                isLoading={loadingAudioKey === item.kana}
+                isPlaying={playingAudioKey === item.kana}
+                onPlay={() => onPlayKana(item.kana)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function KanaCard({ item, script, columns, isLoading, isPlaying, onPlay, style }) {
+  const displayKana = script === 'katakana' ? toKatakanaText(item.kana) : item.kana;
+  const disabled = !getGojuonAudioEntry(item.kana);
+  const isWide = columns === 3;
+  const active = isLoading || isPlaying;
+
+  return (
+    <button
+      type="button"
+      className="btn-press"
+      onClick={onPlay}
+      disabled={disabled}
+      aria-label={disabled ? `暂无「${displayKana}」音频` : `播放「${displayKana}」`}
+      style={{
+        ...style,
+        background: 'white',
+        border: `2px solid ${active ? 'var(--tp-bdr)' : '#E7E7E7'}`,
+        borderRadius: isWide ? 18 : 17,
+        boxShadow: active ? '0 4px 0 var(--tp-bdr)' : '0 4px 0 #E7E7E7',
+        minHeight: isWide ? 90 : 96,
+        padding: isWide ? '13px 11px 12px' : '10px 8px 11px',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
+        justifyContent: 'space-between',
         textAlign: 'center',
-        gap: 12,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.42 : 1,
+        transform: active ? 'translateY(-1px)' : undefined,
+        transition: 'border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease, transform 0.16s ease',
       }}
     >
-      <img src={icon} alt="" width={128} height={128} style={{ objectFit: 'contain' }} />
-      <div style={{ fontSize: 17, fontWeight: 900, color: '#1E1B4B' }}>{title}</div>
-      <div style={{ fontSize: 13, fontWeight: 700, color: '#9CA3AF' }}>内容准备中</div>
+      <span
+        className="jp"
+        style={{
+          color: active ? 'var(--tp-deep)' : '#34343A',
+          fontSize: isWide ? 26 : 27,
+          fontWeight: 800,
+          lineHeight: 1.12,
+          letterSpacing: 0,
+          minHeight: 31,
+        }}
+      >
+        {displayKana}
+      </span>
+      <span
+        style={{
+          color: active ? 'var(--tp)' : '#A3A3A3',
+          fontSize: isWide ? 18 : 17,
+          fontWeight: 800,
+          lineHeight: 1,
+          minHeight: 19,
+        }}
+      >
+        {item.romaji}
+      </span>
+      <span
+        aria-hidden="true"
+        style={{
+          width: '82%',
+          height: isWide ? 8 : 7,
+          borderRadius: 999,
+          background: '#E8E8E8',
+          overflow: 'hidden',
+          display: 'block',
+          marginTop: 4,
+        }}
+      >
+        <span
+          style={{
+            display: 'block',
+            width: 0,
+            height: '100%',
+            borderRadius: 999,
+            background: '#FFCC22',
+          }}
+        />
+      </span>
+    </button>
+  );
+}
+
+function StartStudyButton() {
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        left: 16,
+        right: 16,
+        bottom: 'calc(130px + env(safe-area-inset-bottom))',
+        zIndex: 18,
+        display: 'flex',
+        justifyContent: 'center',
+        pointerEvents: 'none',
+      }}
+    >
+      <button
+        type="button"
+        className="btn-press japanese-intro-start-button"
+        onClick={() => {}}
+        style={{
+          width: 'min(100%, 720px)',
+          height: 58,
+          border: 'none',
+          borderRadius: 18,
+          background: 'linear-gradient(135deg, var(--tp-from), var(--tp))',
+          color: 'white',
+          fontSize: 18,
+          fontWeight: 900,
+          letterSpacing: 0,
+          boxShadow: '0 6px 0 var(--tp-deep), 0 14px 28px color-mix(in srgb, var(--tp) 28%, transparent)',
+          cursor: 'pointer',
+          position: 'relative',
+          overflow: 'hidden',
+          pointerEvents: 'auto',
+        }}
+      >
+        <span className="japanese-intro-start-button__shine" aria-hidden="true" />
+        <span style={{ position: 'relative', zIndex: 1 }}>开始学习~♥</span>
+      </button>
     </div>
   );
 }
