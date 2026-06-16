@@ -1,0 +1,12 @@
+Gojuon Audio Asset Notice
+
+The audio assets in this directory are derived from voice materials by Koharune Ami
+(小春音アミ).
+
+Website: https://amitaro.net/utau/
+
+These audio assets are not covered by this project's root MIT License. Before
+reusing, redistributing, or modifying these assets outside this project, please
+review and follow the original website's terms of use:
+
+https://amitaro.net/utau/licence01.html

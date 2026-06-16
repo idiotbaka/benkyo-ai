@@ -40,4 +40,8 @@ If you reuse these audio files, please refer to the original author's or website
 * **Author:** Kenney
 * **Source URL:** https://kenney.nl/
 
+### 7. gojuon
+* **Author:** 小春音アミ
+* **Source URL:** https://amitaro.net/utau/
+
 ---

@@ -15,6 +15,11 @@ dist-ssr
 # Local original image backups; not imported by Vite icon globs
 /src/assets/original-benkyochan-icons-*/
 
+# Local source WAVs used to regenerate the bundled gojuon audio asset.
+# Commit src/assets/audio/gojuon/gojuon-audio.bin and gojuon-audio-index.json instead.
+/src/assets/audio/gojuon/**/*.wav
+/src/assets/audio/gojuon/manifest.json
+
 # Local AI instructions and repository automation
 .claude/
 .github/*
