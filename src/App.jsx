@@ -11,6 +11,8 @@ import ShopPage from './pages/ShopPage';
 import SettingsPage from './pages/SettingsPage';
 import VocabPage from './pages/VocabPage';
 import VocabBookPage from './pages/VocabBookPage';
+import JapaneseIntroPage from './pages/JapaneseIntroPage';
+import JapaneseIntroTopicPage from './pages/JapaneseIntroTopicPage';
 import ListeningPracticePage from './pages/ListeningPracticePage';
 import CourseReviewPracticePage from './pages/CourseReviewPracticePage';
 import WordReviewPracticePage from './pages/WordReviewPracticePage';
@@ -144,6 +146,8 @@ export default function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/shop" element={<ShopPage />} />
             <Route path="/vocab" element={<VocabPage />} />
+            <Route path="/vocab/japanese-intro" element={<JapaneseIntroPage />} />
+            <Route path="/vocab/japanese-intro/basic/:topicId" element={<JapaneseIntroTopicPage />} />
             <Route path="/vocab/book" element={<VocabBookPage />} />
             <Route path="/profile" element={<ProfilePage />} />
           </Route>

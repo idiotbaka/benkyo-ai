@@ -26,6 +26,12 @@ gsap.registerPlugin(useGSAP);
 
 const PRACTICE_ENTRIES = [
   {
+    id: 'japanese-intro',
+    label: '日语入门',
+    desc: '基础知识和五十音',
+    icon: 'sd/sd_cake.png',
+  },
+  {
     id: 'listening',
     label: '听力练习',
     desc: '日语听辨训练',
@@ -228,6 +234,8 @@ export default function VocabPage() {
                 onClick={
                   entry.id === 'listening'
                     ? handleListeningPractice
+                    : entry.id === 'japanese-intro'
+                    ? () => navigate('/vocab/japanese-intro')
                     : entry.id === 'course-review'
                     ? handleCourseReviewPractice
                     : entry.id === 'word-review'

@@ -1,0 +1,58 @@
+export const JAPANESE_INTRO_BASICS = [
+  {
+    id: 'kana-kanji-origin',
+    title: '假名、汉字的由来',
+    subtitle: '从汉字到平假名、片假名',
+    summary: '先看懂汉字、平假名、片假名的外观和关系，理解假名是记录日语声音的文字，再了解它们的来源。',
+    keywords: ['假名', '汉字来源', '万叶假名'],
+  },
+  {
+    id: 'three-writing-systems',
+    title: '平假名、片假名、汉字怎么分工',
+    subtitle: '看到文字先判断它的角色',
+    summary: '学习现代日语中汉字、平假名、片假名的常见职责，并通过混写例句判断每一块文字的作用。',
+    keywords: ['假名', '汉字', '外来语'],
+  },
+  {
+    id: 'sentence-building',
+    title: '日语句子的组成',
+    subtitle: '词语、助词和谓语',
+    summary: '建立最基础的句子框架：词语提供内容，助词标记角色，谓语在句尾收束整句话。',
+    keywords: ['句子结构', '谓语', '助词'],
+  },
+  {
+    id: 'word-order-particles',
+    title: '语序和助词',
+    subtitle: '日语靠助词标记关系',
+    summary: '理解为什么日语语序比中文更灵活，以及 は、が、を、に、で 这类助词承担什么工作。',
+    keywords: ['语序', 'は', 'が'],
+  },
+  {
+    id: 'mora-rhythm',
+    title: '音拍、长音和促音',
+    subtitle: '日语发音的节奏单位',
+    summary: '认识日语按音拍计时的特点，并区分长音、促音、小ゃゅょ对词义的影响和常见写法。',
+    keywords: ['音拍', '长音', '促音'],
+  },
+  {
+    id: 'pronunciation-basics',
+    title: '清音、浊音、半浊音和拗音',
+    subtitle: '五十音表之外的组合',
+    summary: '先看懂五十音表的行和段，再把基础音、点点圈圈变化和小假名组合放到同一张地图里。',
+    keywords: ['清音', '浊音', '拗音'],
+  },
+  {
+    id: 'polite-and-plain',
+    title: '敬体和普通形',
+    subtitle: '同一句话的不同礼貌层级',
+    summary: '理解 です、ます 形和普通形的区别，知道为什么日语学习会反复切换两套表达。',
+    keywords: ['です', 'ます', '普通形'],
+  },
+  {
+    id: 'onyomi-kunyomi',
+    title: '音读、训读和假名标注',
+    subtitle: '汉字为什么有多个读音',
+    summary: '了解日语汉字常见的音读和训读，以及假名标注如何帮助你读出生词。',
+    keywords: ['音读', '训读', '假名标注'],
+  },
+];
