@@ -36,10 +36,13 @@ src/
 │   ├── LessonPage.jsx                  章节闯关路由入口
 │   ├── VocabPage.jsx                   练习中心
 │   ├── VocabBookPage.jsx               单词本详情
+│   ├── JapaneseIntroPage.jsx           日语入门：基础知识 + 五十音
+│   ├── JapaneseIntroTopicPage.jsx      日语入门基础知识课件
 │   ├── ListeningPracticePage.jsx       听力练习
 │   ├── CourseReviewPracticePage.jsx    课程巩固
 │   ├── WordReviewPracticePage.jsx      单词复习
 │   ├── WrongReviewPracticePage.jsx     错题重练
+│   ├── LevelKnowledgePage.jsx          关卡知识页
 │   ├── GrammarPage.jsx                 语法教程
 │   ├── ShopPage.jsx                    商店
 │   ├── ProfilePage.jsx                 我的
@@ -64,6 +67,7 @@ src/
 │   ├── vocabStore.js                   单词本
 │   ├── wrongQuestionStore.js           错题库
 │   ├── appearanceStore.js              图标皮肤
+│   ├── japaneseIntroProgressStore.js   日语入门基础课件小考点进度
 │   ├── listeningPracticeStore.js       听力练习状态
 │   ├── wordReviewPracticeStore.js      单词复习状态
 │   ├── autoGenStore.js                 后台补齐关卡运行态
@@ -76,11 +80,12 @@ src/
 │   ├── *-practice.js                   练习中心抽题/构题工具
 │   ├── giftbox-rewards.js              礼物盒掉落与开启奖励
 │   ├── judge-answer.js                 AI 误判申诉
+│   ├── gojuon-audio.js                 五十音内置音频 bundle 读取
 │   ├── tts.js                          TTS 请求与 IndexedDB 缓存
 │   ├── japanese-speech-player.js       日语语音播放控制
 │   ├── sound-effects.js                UI 音效类型和播放
 │   └── schemas/course.js               课程 Zod 结构参考
-└── data/                               静态示例、商店与御守数据
+└── data/                               静态示例、日语入门、商店与御守数据
 ```
 
 Android 自定义入口：`src-tauri/gen/android/app/src/main/java/com/benkyo/ai/MainActivity.kt`。
@@ -93,10 +98,13 @@ Android 自定义入口：`src-tauri/gen/android/app/src/main/java/com/benkyo/ai
 /                                  HomePage，MainLayout
 /shop                              ShopPage，MainLayout
 /vocab                             VocabPage，MainLayout，底部导航显示“练习”
+/vocab/japanese-intro              JapaneseIntroPage，MainLayout
+/vocab/japanese-intro/basic/:topicId JapaneseIntroTopicPage，MainLayout
 /vocab/book                        VocabBookPage，MainLayout
 /profile                           ProfilePage，MainLayout
 /setup                             ProfileSetupPage
 /lesson/:chapterId/:levelId        LessonPage
+/level-knowledge/:chapterId/:levelId LevelKnowledgePage
 /practice/listening                ListeningPracticePage
 /practice/course-review            CourseReviewPracticePage
 /practice/word-review              WordReviewPracticePage
@@ -109,7 +117,7 @@ Android 自定义入口：`src-tauri/gen/android/app/src/main/java/com/benkyo/ai
 - `RequireProfile` 在 profile 为空时强制跳转 `/setup`。
 - `AppInit` 启动时同步连续签到、心心、XP 加速和每日任务。
 - `XpBoostWidget`、`SoundEffectProvider`、`DailyTaskToast` 在 `App.jsx` 全局渲染。
-- 练习中心入口在 `VocabPage.jsx`；单词本内容已拆到 `VocabBookPage.jsx`。
+- 练习中心入口在 `VocabPage.jsx`；日语入门和单词本内容分别拆到 `JapaneseIntroPage.jsx` / `VocabBookPage.jsx`。
 
 ---
 
@@ -127,6 +135,7 @@ Android 自定义入口：`src-tauri/gen/android/app/src/main/java/com/benkyo/ai
 | `vocabStore` | `benkyo-ai-vocab` | 单词本 |
 | `wrongQuestionStore` | `benkyo-ai-wrong-questions` | 错题库，按章节+关卡+题目稳定去重 |
 | `appearanceStore` | `benkyo-ai-appearance` | 当前图标皮肤，默认 `benkyochan` |
+| `japaneseIntroProgressStore` | `benkyo-ai-japanese-intro-progress` | 日语入门基础课件小考点答对记录和课件完成状态 |
 | `listeningPracticeStore` | 不持久化 | 听力练习特殊玩法状态、心心、失败/复活、结算 |
 | `wordReviewPracticeStore` | 不持久化 | 单词复习特殊玩法状态、心心、失败/复活、结算 |
 | `autoGenStore` | 不持久化 | 后台批量生成进度与 AbortController |
@@ -238,18 +247,27 @@ word-match 每配对成功一组 +1 金币
 
 ## 练习中心
 
-`VocabPage.jsx` 是“练习中心”，上方四张卡片为 `听力练习`、`课程巩固`、`单词复习`、`错题重练`，下方“我的笔记”进入 `/vocab/book` 单词本。卡片显示当前可用题库数量 tag；错题重练显示错题数量 tag。
+`VocabPage.jsx` 是“练习中心”，上方五张卡片为 `日语入门`、`听力练习`、`课程巩固`、`单词复习`、`错题重练`，下方“我的笔记”进入 `/vocab/book` 单词本。练习玩法卡片显示当前可用题库数量 tag；错题重练显示错题数量 tag；日语入门不消耗心心。
 
 练习构题工具集中在 `src/lib/*-practice.js`：
 
 | 功能 | 数据来源 | 进入条件 | 状态/页面 | 奖励 |
 |------|----------|----------|-----------|------|
+| 日语入门 | `japaneseIntroBasics.js` + `gojuonKana.js` | 无心心门槛 | `JapaneseIntroPage` / `JapaneseIntroTopicPage` + `japaneseIntroProgressStore` | 无金币/XP，记录基础课件完成 |
 | 听力练习 | 全部 `sentence-translate`，取 `sentence` + `translation` | TTS 已配置、可用题 >= 6 且有心心 | `listeningPracticeStore` + `ListeningPracticePage` | 答对 +5 金币，XP = 星数 × 30，可能掉落礼物盒 |
 | 课程巩固 | 全部关卡 `questions` 随机抽 9 题 | 可用题 >= 9 且有心心 | `gameStore.startPracticeLesson` + `CourseReviewPracticePage` | 同章节闯关 |
 | 单词复习 | `word-match.pairs` 去重后构 10 题 | 可用词条 >= 10 且有心心 | `wordReviewPracticeStore` + `WordReviewPracticePage` | 答对 +2 金币，XP = 星数 × 10，可能掉落礼物盒 |
 | 错题重练 | `wrongQuestionStore.questions` 随机抽 9 题 | 错题 >= 9 且有心心 | `gameStore.startPracticeLesson({ practiceType: 'wrong-review' })` + `WrongReviewPracticePage` | 同章节闯关 |
 
-练习中心四个入口都会先 `syncHearts()`，没有心心时弹出生命值耗尽提示并阻止进入。听力练习和单词复习虽使用独立 store，也会从 `userStore.hearts` 初始化本局心心；答错会调用 `userStore.deductHeart()` 扣全局心心；心心归零后进入失败/复活流程。`LessonFailedContent` 和 `ReviveSheet` 支持传入独立 practice session，听力/单词复习复用同一套失败页和蛋糕复活页。失败页只发放按答对比例折算的部分 XP，不套 XP 加成，不触发绘马星级保底；正常完成才按星级结算并受绘马保底影响。
+除日语入门外，练习中心四个玩法入口都会先 `syncHearts()`，没有心心时弹出生命值耗尽提示并阻止进入。听力练习和单词复习虽使用独立 store，也会从 `userStore.hearts` 初始化本局心心；答错会调用 `userStore.deductHeart()` 扣全局心心；心心归零后进入失败/复活流程。`LessonFailedContent` 和 `ReviveSheet` 支持传入独立 practice session，听力/单词复习复用同一套失败页和蛋糕复活页。失败页只发放按答对比例折算的部分 XP，不套 XP 加成，不触发绘马星级保底；正常完成才按星级结算并受绘马保底影响。
+
+日语入门：
+
+- `JapaneseIntroPage.jsx` 有 `基础知识 / 平假名 / 片假名` 三个 tab；基础知识列表读取 `JAPANESE_INTRO_BASICS`，课件进入 `/vocab/japanese-intro/basic/:topicId`。
+- `JapaneseIntroTopicPage.jsx` 当前包含 9 个基础课件；每讲穿插 2 个 `MiniQuizCard` 小考点。题目数据集中在 `JAPANESE_INTRO_BASIC_MINI_QUIZZES`，支持 `layout: 'stack' | 'grid-2' | 'grid-2x2'`。
+- 小考点答对后播放 `ANSWER_CORRECT`、选项变绿并锁定；答错播放 `ANSWER_WRONG`、选项变红晃动后恢复。答对记录写入 `japaneseIntroProgressStore.quizResults`；同一课件全部小考点答对后列表状态变为 `已完成`。
+- 小考点卡片使用淡色背景和 `sd/sd_lc_incorrect.png` 作为右下 SD 图；按钮和 successText 背景保持半透明，避免遮挡 SD 图。
+- 平假名/片假名 tab 读取 `GOJUON_SECTIONS`；片假名通过 `toKatakanaText()` 从平假名映射显示，播放仍使用平假名音频 key。
 
 听力练习：未配置 TTS 时弹出配置引导；句子先删除标点，再优先使用 `Intl.Segmenter('ja-JP', { granularity: 'word' })` 分词，旧运行时回退逐字符；反馈卡片展示中文翻译。
 
@@ -323,10 +341,18 @@ TTS 缓存：
 - 新播放会停止旧请求和旧音频，避免快速点击叠音。
 - 未配置 TTS 时，播放按钮置灰；自动播放静默跳过。
 
+五十音内置音频：
+
+- `lib/gojuon-audio.js` 读取 `assets/audio/gojuon/gojuon-audio.bin` 和 `gojuon-audio-index.json`，按 offset/length 切片生成 Blob URL。
+- `JapaneseIntroPage` 的五十音卡片和 `JapaneseIntroTopicPage` 内的 `KanaAudioButton` 使用 gojuon 内置音频，不依赖 TTS 配置，也不写入 TTS IndexedDB 缓存。
+- 播放前用 `getGojuonAudioEntry(kana)` 判断是否有音频；片假名播放时需转换为对应平假名 key。Object URL 播放结束或出错后必须 revoke，避免泄漏。
+- 更新 gojuon 音频资源时使用 `npm run audio:gojuon` 生成 bundle；保留 `assets/audio/gojuon/NOTICE.txt`。
+
 已接入位置：
 
 - 单词本单词。
 - 语法教程例句与 vocabulary。
+- 日语入门基础课件中的词卡、例句和 gojuon 假名播放（假名播放走内置音频，不走 TTS）。
 - `sentence-translate` 句子按钮与自动播放。
 - 闯关中带假名单词点击播放。
 - `word-fill` 底部日语单词卡片。
@@ -350,6 +376,7 @@ TTS 缓存：
 - 当前支持 `benkyochan` 默认皮肤，缺失资源会回退默认皮肤，未来会增加新皮肤。
 - 徽章图为圆形成品图，不要额外绘制边框；未解锁灰度，已解锁和解锁弹窗使用扫光效果。
 - 御守图标位于当前皮肤 `sd/` 目录，文件名含日文/中文字符；通过 `useIconResolver()` 解析，不要手写 public URL。
+- 日语入门小考点背景 SD 图也通过 `useIcon('sd/sd_lc_incorrect.png')` 读取，保持皮肤回退能力。
 - 品牌 Logo 使用当前皮肤下的 `logo_32.png` 或 `logo.png`。
 
 ---
@@ -360,12 +387,12 @@ TTS 缓存：
 - 全局 `body { overflow: hidden }`。脱离 `MainLayout` 的全屏页面需自行管理滚动。
 - 常规按钮优先复用 `.btn-press`；题型选项按钮优先复用既有题型样式。
 - `GrammarPage`、`SettingsPage` 使用 `height: 100vh; overflowY: auto`。
-- `VocabPage`、`VocabBookPage` 使用与首页/我的一致的 `scroll-y` 滚动条样式。
+- `VocabPage`、`VocabBookPage`、`JapaneseIntroPage`、`JapaneseIntroTopicPage` 使用与首页/我的一致的 `scroll-y` 滚动条样式。
 - 假名注音统一复用 `RubyText`。
 - GSAP 使用 `useGSAP`，并在文件顶层 `gsap.registerPlugin(useGSAP)`。
 - 为避免 FOUC，先 `gsap.set()` 再播放入场动画。
 - Sheet 关闭时先播放退场动画，完成后再卸载。
-- 练习中心卡片右侧 SD 图允许溢出显示；调整卡片时检查移动端文本和图片不要互相遮挡。
+- 练习中心卡片右侧 SD 图允许溢出显示；日语入门小考点卡片右下 SD 图不透明，选项和 successText 用半透明背景，调整时检查移动端文本和图片不要互相遮挡。
 - 复活页 `ReviveSheet` 中蛋糕库存数量使用背包风格胶囊标签，不要退回普通右对齐文字。
 
 ---
@@ -390,11 +417,12 @@ TTS 缓存：
 2. 不要扫描 `src-tauri/target` 或 Android `build` 目录。
 3. 涉及 AI 时确认使用 `maxOutputTokens`；保留当前流式/非流式策略。
 4. 涉及题目切换时考虑跨关卡重复 `q.id` 和组件本地状态。
-5. 涉及练习中心时确认使用对应 `*-practice.js` 里的构题和计数口径，并确认四个入口都有心心检查。
+5. 涉及练习中心玩法时确认使用对应 `*-practice.js` 里的构题和计数口径，并确认听力/课程巩固/单词复习/错题重练都有心心检查；日语入门不设心心门槛。
 6. 涉及错题库时确认只记录章节闯关错误，练习中心错误不入库。
 7. 涉及徽章时区分实时进度和累计计数，解锁只在“我的”页统一检查。
 8. 涉及商店/御守/道具/装备时确认金币扣除、购买条件、背包库存、装备状态、实际特效、收藏计数、已读 New 状态和图标皮肤回退。
-9. 涉及音频时区分 TTS 语音与 UI 音效。
-10. 涉及全屏布局时检查 Android 原生 safe area 与 `body overflow:hidden`。
-11. 涉及护身符特效时优先复用 `lib/equipment-effects.js`，避免 UI 展示和实际扣费/结算逻辑分叉。
-12. 修改后至少运行 `npm run lint`；重要功能或路由变更只需运行 `npm run build` 确认即可，不要启动 Vite 开发服务器或内置浏览器。
+9. 涉及日语入门基础课件时同步检查 `JAPANESE_INTRO_BASICS`、`JAPANESE_INTRO_BASIC_MINI_QUIZZES`、插入位置和 `japaneseIntroProgressStore` 完成状态。
+10. 涉及假名播放时区分 gojuon 内置音频、TTS 语音与 UI 音效；gojuon 播放不依赖 TTS 配置。
+11. 涉及全屏布局时检查 Android 原生 safe area 与 `body overflow:hidden`。
+12. 涉及护身符特效时优先复用 `lib/equipment-effects.js`，避免 UI 展示和实际扣费/结算逻辑分叉。
+13. 修改后至少运行 `npm run lint`；重要功能或路由变更只需运行 `npm run build` 确认即可，不要启动 Vite 开发服务器或内置浏览器。
