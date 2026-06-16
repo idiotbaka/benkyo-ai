@@ -55,4 +55,11 @@ export const JAPANESE_INTRO_BASICS = [
     summary: '了解日语汉字常见的音读和训读，以及假名标注如何帮助你读出生词。',
     keywords: ['音读', '训读', '假名标注'],
   },
+  {
+    id: 'special-yoon-loanwords',
+    title: '选修：现代日语中的特殊拗音',
+    subtitle: '外来语片假名里的声音妥协',
+    summary: '了解 ファ、ティ、ウェ 这类特殊组合为什么常出现在外来语中，以及它们如何帮助现代日语区分更接近原词的声音。',
+    keywords: ['选修', '特殊拗音', '外来语'],
+  },
 ];

@@ -18,6 +18,7 @@ const TOPIC_IDS = {
   pronunciationBasics: 'pronunciation-basics',
   politePlain: 'polite-and-plain',
   onyomiKunyomi: 'onyomi-kunyomi',
+  specialYoonLoanwords: 'special-yoon-loanwords',
 };
 
 const KANA_SOUND_SAMPLES = [
@@ -926,6 +927,102 @@ const KANJI_READING_CHECKS = [
   '初学阶段按“词”记读音最稳，不需要一次背完某个汉字的所有读法。',
 ];
 
+const SPECIAL_YOON_CONTEXTS = [
+  {
+    title: '这是选修，不是入门必背',
+    body: '清音、浊音、半浊音和常见拗音已经足够支撑入门学习。特殊拗音主要帮助你读现代外来语，先了解原理即可。',
+  },
+  {
+    title: '它多出现在片假名外来语里',
+    body: '现代日语借入英语、法语、德语等词时，常用片假名记录大致读音。遇到传统五十音不够贴近的声音，就会用小假名组合来补足。',
+  },
+  {
+    title: '它是“接近原音”的妥协',
+    body: '日语不是直接复制外语发音，而是把外语声音放进日语可发音、可书写的系统里。ファ、ティ、ウェ 这类写法就是这种妥协的结果。',
+  },
+];
+
+const SPECIAL_YOON_PATTERNS = [
+  {
+    label: 'F 音',
+    body: '传统假名里只有 フ（fu）比较接近 f。为了表示 fa、fi、fe、fo，会用 フ + 小ァィェォ。',
+    items: [
+      { kana: 'ファ', audioKana: 'ふぁ', romaji: 'fa' },
+      { kana: 'フィ', audioKana: 'ふぃ', romaji: 'fi' },
+      { kana: 'フェ', audioKana: 'ふぇ', romaji: 'fe' },
+      { kana: 'フォ', audioKana: 'ふぉ', romaji: 'fo' },
+    ],
+  },
+  {
+    label: 'T / D 音',
+    body: '外来语里常见 ti、di、tu、du。现代片假名会用 ティ、ディ、トゥ、ドゥ 来更接近原词。',
+    items: [
+      { kana: 'ティ', audioKana: 'てぃ', romaji: 'ti' },
+      { kana: 'ディ', audioKana: 'でぃ', romaji: 'di' },
+      { kana: 'トゥ', audioKana: 'とぅ', romaji: 'tu' },
+      { kana: 'ドゥ', audioKana: 'どぅ', romaji: 'du' },
+    ],
+  },
+  {
+    label: 'W / E 音',
+    body: 'ウィ、ウェ、ウォ 常用于表示 wi、we、wo；シェ、ジェ、チェ 则常见于 she、je、che 一类外来语音。',
+    items: [
+      { kana: 'ウィ', audioKana: 'うぃ', romaji: 'wi' },
+      { kana: 'ウェ', audioKana: 'うぇ', romaji: 'we' },
+      { kana: 'ウォ', audioKana: 'うぉ', romaji: 'wo' },
+      { kana: 'シェ', audioKana: 'しぇ', romaji: 'she' },
+      { kana: 'ジェ', audioKana: 'じぇ', romaji: 'je' },
+      { kana: 'チェ', audioKana: 'ちぇ', romaji: 'che' },
+    ],
+  },
+];
+
+const SPECIAL_YOON_EXAMPLES = [
+  { jp: 'フェイス', reading: 'フェイス', romaji: 'feisu', cn: 'face；脸、页面/产品里的“面”' },
+  { jp: 'ティー', reading: 'ティー', romaji: 'tii', cn: 'tea / tee；茶、T 形物等语境' },
+  { jp: 'ウェブ', reading: 'ウェブ', romaji: 'webu', cn: 'web；网络' },
+  { jp: 'シェア', reading: 'シェア', romaji: 'shea', cn: 'share；分享、份额' },
+  { jp: 'ジェット', reading: 'ジェット', romaji: 'jetto', cn: 'jet；喷气式、喷射' },
+  { jp: 'フォーク', reading: 'フォーク', romaji: 'foku', cn: 'fork；叉子' },
+];
+
+const SPECIAL_YOON_CONTRASTS = [
+  {
+    title: 'Fight 和 Height 不应该读成一团',
+    body: '如果只能粗略写成 ハイト，fight 和 height 的开头就容易混在一起。ファ 让日语可以更清楚地表现 f 开头的外来语。',
+    left: { jp: 'ファイト', reading: 'ファイト', romaji: 'faito', cn: 'fight；也常表示“加油”' },
+    right: { jp: 'ハイト', reading: 'ハイト', romaji: 'haito', cn: 'height；高度，常见于设计/尺寸语境' },
+  },
+  {
+    title: 'Face 需要 fe，Tea 需要 ti',
+    body: 'フェ、ティ 不是基础五十音里的格子，而是为了让外来语更接近原词声音。看到小ァィゥェォ时，先把它和前一个假名合成一拍读。',
+    left: { jp: 'フェイス', reading: 'フェイス', romaji: 'feisu', cn: 'face' },
+    right: { jp: 'ティー', reading: 'ティー', romaji: 'tii', cn: 'tea / tee' },
+  },
+];
+
+const SPECIAL_YOON_STUDY_GUIDE = [
+  {
+    title: '先会认，不急着全部背',
+    body: '你只要知道“前一个片假名 + 小ァィゥェォ”通常是在模拟外来语声音即可。真正记忆可以放到遇到单词时完成。',
+  },
+  {
+    title: '把它当作一拍或一组声音读',
+    body: 'ファ 是 fa，不是 フ + ア 两个完整音。ティー 里的 ティ 是 ti，后面的 ー 再把声音拉长一拍。',
+  },
+  {
+    title: '外来语仍然是日语读法',
+    body: '即使写得更接近原词，发音仍会服从日语节奏。例如 フェイス 会读成 fe-i-su 的节奏，不会完全等同英语 face。',
+  },
+];
+
+const SPECIAL_YOON_CHECKS = [
+  '特殊拗音是选修知识，入门阶段不需要全部背下来。',
+  '它主要服务于现代片假名外来语，用来更接近原词发音。',
+  'ファ、フィ、フェ、フォ 帮助区分 f 系声音，例如 ファイト 和 ハイト。',
+  '看到小ァィゥェォ时，通常要和前一个片假名合成一组声音读。',
+];
+
 export default function JapaneseIntroTopicPage() {
   const { topicId } = useParams();
   const navigate = useNavigate();
@@ -1003,6 +1100,8 @@ export default function JapaneseIntroTopicPage() {
           <PolitePlainLesson topic={topic} />
         ) : topic?.id === TOPIC_IDS.onyomiKunyomi ? (
           <OnyomiKunyomiLesson topic={topic} />
+        ) : topic?.id === TOPIC_IDS.specialYoonLoanwords ? (
+          <SpecialYoonLoanwordsLesson topic={topic} />
         ) : topic ? (
           <PlaceholderTopic topic={topic} />
         ) : (
@@ -1537,6 +1636,80 @@ function OnyomiKunyomiLesson({ topic }) {
   );
 }
 
+function SpecialYoonLoanwordsLesson({ topic }) {
+  return (
+    <LessonArticle>
+      <LessonHero topic={topic} lessonNumber="09">
+        这一讲是选修课。它不会要求你在入门阶段背完所有特殊组合，而是帮你理解现代片假名外来语为什么会出现
+        ファ、ティ、ウェ 这样的写法。
+      </LessonHero>
+
+      <SectionCard title="为什么这是选修？" eyebrow="OPTIONAL">
+        <div style={{ display: 'grid', gap: 10 }}>
+          {SPECIAL_YOON_CONTEXTS.map(item => (
+            <InfoBlock key={item.title} item={item} />
+          ))}
+        </div>
+      </SectionCard>
+
+      <SectionCard title="为什么现代日语需要这些组合？" eyebrow="BACKGROUND">
+        <p style={paragraphStyle}>
+          日语传统五十音很稳定，但它不是为英语、法语、德语等外语设计的。比如英语里有
+          <strong> fa / fi / fe / fo </strong>这样的声音，传统日语里最接近的是
+          <InlineKana kana="ふ" romaji="fu" />，但只用 フ 很难细分这些外来语声音。
+        </p>
+        <p style={paragraphStyle}>
+          所以现代片假名会使用“小假名”来补足：<strong>フ + ァ = ファ（fa）</strong>，
+          <strong>テ + ィ = ティ（ti）</strong>。这不是新的五十音表，而是外来语书写里常见的扩展写法。
+        </p>
+      </SectionCard>
+
+      <SectionCard title="常见特殊拗音组合" eyebrow="PATTERNS">
+        <p style={paragraphStyle}>
+          点击每个组合可以播放内置 gojuon 音频。先熟悉它们的“形”和“音”，不需要一次全部记牢。
+        </p>
+        <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
+          {SPECIAL_YOON_PATTERNS.map(group => (
+            <SpecialYoonPatternCard key={group.label} group={group} />
+          ))}
+        </div>
+      </SectionCard>
+
+      <SectionCard title="它解决了什么区分问题？" eyebrow="CONTRAST">
+        <p style={paragraphStyle}>
+          特殊拗音的价值，不只是“看起来更像外语”，更重要的是减少混淆。下面两组对比可以先建立直觉。
+        </p>
+        <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
+          {SPECIAL_YOON_CONTRASTS.map(item => (
+            <LoanwordContrastCard key={item.title} item={item} />
+          ))}
+        </div>
+      </SectionCard>
+
+      <SectionCard title="放进现代外来语里看" eyebrow="EXAMPLES">
+        <p style={paragraphStyle}>
+          这些词通常写成片假名。播放时使用你配置的 TTS 模型；读音仍然是日语节奏，不会完全等同英语原音。
+        </p>
+        <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
+          {SPECIAL_YOON_EXAMPLES.map(example => (
+            <WordExampleRow key={example.jp} example={example} color="#DB2777" />
+          ))}
+        </div>
+      </SectionCard>
+
+      <SectionCard title="初学者怎么处理？" eyebrow="GUIDE">
+        <div style={{ display: 'grid', gap: 10 }}>
+          {SPECIAL_YOON_STUDY_GUIDE.map(item => (
+            <InfoBlock key={item.title} item={item} />
+          ))}
+        </div>
+      </SectionCard>
+
+      <ChecklistCard title="第 09 讲（选修）先记住" items={SPECIAL_YOON_CHECKS} />
+    </LessonArticle>
+  );
+}
+
 function LessonArticle({ children }) {
   return (
     <article style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -1943,6 +2116,96 @@ function InfoBlock({ item }) {
     >
       <div style={{ fontSize: 14, fontWeight: 900, color: '#1E1B4B', marginBottom: 5 }}>{item.title}</div>
       <div style={smallBodyStyle}>{item.body}</div>
+    </div>
+  );
+}
+
+function SpecialYoonPatternCard({ group }) {
+  return (
+    <div
+      style={{
+        background: '#F8FAFC',
+        border: '1.5px solid #E5E7EB',
+        borderRadius: 16,
+        padding: '12px',
+      }}
+    >
+      <div style={{ fontSize: 14, fontWeight: 900, color: '#1E1B4B', marginBottom: 5 }}>{group.label}</div>
+      <div style={{ ...smallBodyStyle, marginBottom: 10 }}>{group.body}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+        {group.items.map(item => (
+          <SpecialYoonKanaPill key={item.kana} item={item} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SpecialYoonKanaPill({ item }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        background: 'white',
+        border: '1px solid #EEF2F7',
+        borderRadius: 12,
+        padding: '8px 9px',
+      }}
+    >
+      <KanaAudioButton kana={item.audioKana} />
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div className="jp" style={{ fontSize: 19, fontWeight: 900, color: '#1E1B4B', lineHeight: 1.2 }}>
+          {item.kana}
+        </div>
+        <div style={{ fontSize: 11, fontWeight: 900, color: '#94A3B8', marginTop: 2 }}>{item.romaji}</div>
+      </div>
+    </div>
+  );
+}
+
+function LoanwordContrastCard({ item }) {
+  return (
+    <div
+      style={{
+        background: '#FFF7ED',
+        border: '1.5px solid #FED7AA',
+        borderRadius: 16,
+        padding: '12px',
+      }}
+    >
+      <div style={{ fontSize: 14, fontWeight: 900, color: '#7C2D12', marginBottom: 5 }}>{item.title}</div>
+      <div style={{ ...smallBodyStyle, color: '#9A3412', marginBottom: 10 }}>{item.body}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+        <LoanwordMiniCard item={item.left} />
+        <LoanwordMiniCard item={item.right} />
+      </div>
+    </div>
+  );
+}
+
+function LoanwordMiniCard({ item }) {
+  return (
+    <div
+      style={{
+        background: 'white',
+        border: '1px solid #FED7AA',
+        borderRadius: 12,
+        padding: '9px',
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 8,
+      }}
+    >
+      <JapaneseSpeechButton text={item.jp} spokenText={item.reading} label={`播放「${item.jp}」`} />
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div className="jp" style={{ fontSize: 17, fontWeight: 900, color: '#1E1B4B', lineHeight: 1.3 }}>
+          {item.jp}
+        </div>
+        <div style={{ fontSize: 11, fontWeight: 900, color: '#F97316', marginTop: 1 }}>{item.romaji}</div>
+        <div style={{ fontSize: 11, fontWeight: 750, color: '#64748B', marginTop: 3, lineHeight: 1.35 }}>{item.cn}</div>
+      </div>
     </div>
   );
 }
