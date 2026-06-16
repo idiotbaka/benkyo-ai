@@ -3,9 +3,11 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import JapaneseSpeechButton from '../components/UI/JapaneseSpeechButton';
-import { JAPANESE_INTRO_BASICS } from '../data/japaneseIntroBasics';
+import { JAPANESE_INTRO_BASICS, getJapaneseIntroMiniQuizzes } from '../data/japaneseIntroBasics';
 import { createGojuonAudioUrl, getGojuonAudioEntry } from '../lib/gojuon-audio';
 import { useIcon } from '../lib/icons';
+import { playSoundEffect, SOUND_EFFECT_TYPES } from '../lib/sound-effects';
+import useJapaneseIntroProgressStore from '../store/japaneseIntroProgressStore';
 
 gsap.registerPlugin(useGSAP);
 
@@ -1149,6 +1151,8 @@ function KanaOriginLesson({ topic }) {
         </div>
       </SectionCard>
 
+      <TopicMiniQuiz topicId={topic.id} quizIndex={0} />
+
       <SectionCard title="平假名和片假名：读音相同，写法不同" eyebrow="HIRAGANA / KATAKANA">
         <p style={paragraphStyle}>
           日语有两套假名：<strong>平假名</strong>和<strong>片假名</strong>。很多时候，它们是一一对应的：
@@ -1163,6 +1167,8 @@ function KanaOriginLesson({ topic }) {
           ))}
         </div>
       </SectionCard>
+
+      <TopicMiniQuiz topicId={topic.id} quizIndex={1} />
 
       <SectionCard title="什么时候看到平假名？什么时候看到片假名？" eyebrow="USAGE">
         <div style={{ display: 'grid', gap: 10 }}>
@@ -1242,6 +1248,8 @@ function WritingSystemsLesson({ topic }) {
         </div>
       </SectionCard>
 
+      <TopicMiniQuiz topicId={topic.id} quizIndex={0} />
+
       <SectionCard title="放进句子里看" eyebrow="MIXED WRITING">
         <p style={paragraphStyle}>
           现代日语经常混写。下面的例句可以播放整句 TTS，也可以看每一块文字的作用。
@@ -1252,6 +1260,8 @@ function WritingSystemsLesson({ topic }) {
           ))}
         </div>
       </SectionCard>
+
+      <TopicMiniQuiz topicId={topic.id} quizIndex={1} />
 
       <ChecklistCard title="第 02 讲先记住" items={WRITING_CHECKS} />
     </LessonArticle>
@@ -1277,6 +1287,8 @@ function SentenceBuildingLesson({ topic }) {
         </div>
       </SectionCard>
 
+      <TopicMiniQuiz topicId={topic.id} quizIndex={0} />
+
       <SectionCard title="先认识三个零件" eyebrow="PARTS">
         <div style={{ display: 'grid', gap: 10 }}>
           {SENTENCE_TERMS.map(term => (
@@ -1284,6 +1296,8 @@ function SentenceBuildingLesson({ topic }) {
           ))}
         </div>
       </SectionCard>
+
+      <TopicMiniQuiz topicId={topic.id} quizIndex={1} />
 
       <SectionCard title="把零件拼成句子" eyebrow="EXAMPLES">
         <p style={paragraphStyle}>
@@ -1329,6 +1343,8 @@ function WordOrderParticlesLesson({ topic }) {
         </p>
       </SectionCard>
 
+      <TopicMiniQuiz topicId={topic.id} quizIndex={0} />
+
       <SectionCard title="最先认识的 6 个助词" eyebrow="PARTICLES">
         <div style={{ display: 'grid', gap: 10 }}>
           {PARTICLE_OVERVIEW.map(item => (
@@ -1366,6 +1382,8 @@ function WordOrderParticlesLesson({ topic }) {
         </div>
       </SectionCard>
 
+      <TopicMiniQuiz topicId={topic.id} quizIndex={1} />
+
       <ChecklistCard title="第 04 讲先记住" items={PARTICLE_CHECKS} />
     </LessonArticle>
   );
@@ -1397,6 +1415,8 @@ function MoraRhythmLesson({ topic }) {
         </div>
       </SectionCard>
 
+      <TopicMiniQuiz topicId={topic.id} quizIndex={0} />
+
       <SectionCard title="音拍变了，词义可能变" eyebrow="COMPARE">
         <p style={paragraphStyle}>
           下面这些词看起来很像，但长音或促音多一拍，意思就会变。每个词可以用 TTS 播放整词。
@@ -1407,6 +1427,8 @@ function MoraRhythmLesson({ topic }) {
           ))}
         </div>
       </SectionCard>
+
+      <TopicMiniQuiz topicId={topic.id} quizIndex={1} />
 
       <SectionCard title="长音到底怎么写？" eyebrow="LONG VOWEL">
         <p style={paragraphStyle}>
@@ -1466,6 +1488,8 @@ function PronunciationBasicsLesson({ topic }) {
         </div>
       </SectionCard>
 
+      <TopicMiniQuiz topicId={topic.id} quizIndex={0} />
+
       <SectionCard title="为什么要单独学这些？" eyebrow="MEANING">
         <p style={paragraphStyle}>
           因为这些小变化会直接影响听力和词义。比如 <strong>かき</strong> 和 <strong>かぎ</strong>，
@@ -1496,6 +1520,8 @@ function PronunciationBasicsLesson({ topic }) {
         </div>
       </SectionCard>
 
+      <TopicMiniQuiz topicId={topic.id} quizIndex={1} />
+
       <ChecklistCard title="第 06 讲先记住" items={PRONUNCIATION_CHECKS} />
     </LessonArticle>
   );
@@ -1516,6 +1542,8 @@ function PolitePlainLesson({ topic }) {
         </div>
       </SectionCard>
 
+      <TopicMiniQuiz topicId={topic.id} quizIndex={0} />
+
       <SectionCard title="敬体和普通形怎么对应？" eyebrow="PAIRS">
         <p style={paragraphStyle}>
           先不要急着背所有变化规则。你只需要看出：敬体常用 <strong>です / ます</strong>，
@@ -1527,6 +1555,8 @@ function PolitePlainLesson({ topic }) {
           ))}
         </div>
       </SectionCard>
+
+      <TopicMiniQuiz topicId={topic.id} quizIndex={1} />
 
       <SectionCard title="什么时候用哪一种？" eyebrow="SCENES">
         <div style={{ display: 'grid', gap: 10 }}>
@@ -1580,6 +1610,8 @@ function OnyomiKunyomiLesson({ topic }) {
         </p>
       </SectionCard>
 
+      <TopicMiniQuiz topicId={topic.id} quizIndex={0} />
+
       <SectionCard title="三个关键词" eyebrow="TERMS">
         <div style={{ display: 'grid', gap: 10 }}>
           {KANJI_READING_TERMS.map(term => (
@@ -1610,6 +1642,8 @@ function OnyomiKunyomiLesson({ topic }) {
           ))}
         </div>
       </SectionCard>
+
+      <TopicMiniQuiz topicId={topic.id} quizIndex={1} />
 
       <SectionCard title="放进句子里看" eyebrow="EXAMPLES">
         <div style={{ display: 'grid', gap: 10 }}>
@@ -1652,6 +1686,8 @@ function SpecialYoonLoanwordsLesson({ topic }) {
         </div>
       </SectionCard>
 
+      <TopicMiniQuiz topicId={topic.id} quizIndex={0} />
+
       <SectionCard title="为什么现代日语需要这些组合？" eyebrow="BACKGROUND">
         <p style={paragraphStyle}>
           日语传统五十音很稳定，但它不是为英语、法语、德语等外语设计的。比如英语里有
@@ -1663,6 +1699,8 @@ function SpecialYoonLoanwordsLesson({ topic }) {
           <strong>テ + ィ = ティ（ti）</strong>。这不是新的五十音表，而是外来语书写里常见的扩展写法。
         </p>
       </SectionCard>
+
+      <TopicMiniQuiz topicId={topic.id} quizIndex={1} />
 
       <SectionCard title="常见特殊拗音组合" eyebrow="PATTERNS">
         <p style={paragraphStyle}>
@@ -1777,6 +1815,225 @@ function SectionCard({ eyebrow, title, children }) {
         {title}
       </h3>
       {children}
+    </section>
+  );
+}
+
+function TopicMiniQuiz({ topicId, quizIndex }) {
+  const quizzes = getJapaneseIntroMiniQuizzes(topicId);
+  const quiz = quizzes[quizIndex];
+  if (!quiz) return null;
+
+  return (
+    <MiniQuizCard
+      topicId={topicId}
+      quiz={quiz}
+      requiredQuizIds={quizzes.map(item => item.id)}
+    />
+  );
+}
+
+function MiniQuizCard({ topicId, quiz, requiredQuizIds }) {
+  const bgImg = useIcon('sd/sd_lc_incorrect.png');
+  const isStoredCorrect = useJapaneseIntroProgressStore(s => s.isMiniQuizCorrect(topicId, quiz.id));
+  const markMiniQuizCorrect = useJapaneseIntroProgressStore(s => s.markMiniQuizCorrect);
+  const [wrongOptionId, setWrongOptionId] = useState('');
+  const wrongTimerRef = useRef(null);
+  const layout = quiz.layout ?? 'stack';
+  const isGridLayout = layout === 'grid-2' || layout === 'grid-2x2';
+
+  useEffect(() => () => {
+    if (wrongTimerRef.current) window.clearTimeout(wrongTimerRef.current);
+  }, []);
+
+  const handleOptionClick = (optionId) => {
+    if (isStoredCorrect || wrongOptionId) return;
+
+    if (optionId === quiz.answerId) {
+      if (wrongTimerRef.current) window.clearTimeout(wrongTimerRef.current);
+      setWrongOptionId('');
+      playSoundEffect(SOUND_EFFECT_TYPES.ANSWER_CORRECT);
+      markMiniQuizCorrect(topicId, quiz.id, optionId, requiredQuizIds);
+      return;
+    }
+
+    playSoundEffect(SOUND_EFFECT_TYPES.ANSWER_WRONG);
+    setWrongOptionId(optionId);
+    wrongTimerRef.current = window.setTimeout(() => {
+      setWrongOptionId('');
+      wrongTimerRef.current = null;
+    }, 420);
+  };
+
+  const answeredCorrect = isStoredCorrect;
+
+  return (
+    <section
+      className="japanese-intro-mini-quiz-card"
+      style={{
+        position: 'relative',
+        overflow: 'hidden',
+        borderRadius: 20,
+        border: '2px solid #DDD6FE',
+        background: 'linear-gradient(135deg, #FFF7ED 0%, #F6F3FF 50%, #ECFEFF 100%)',
+        boxShadow: '0 4px 0 #DDD6FE, 0 12px 24px rgba(91,79,233,0.10)',
+        padding: '16px 15px 17px',
+      }}
+    >
+      <img
+        src={bgImg}
+        alt=""
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          right: -20,
+          bottom: -30,
+          width: 158,
+          height: 158,
+          objectFit: 'contain',
+          opacity: 1,
+          pointerEvents: 'none',
+        }}
+      />
+      <div style={{ position: 'relative', zIndex: 1, display: 'grid', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 7,
+              borderRadius: 999,
+              background: 'rgba(255,255,255,0.78)',
+              border: '1.5px solid rgba(196,181,253,0.72)',
+              color: 'var(--tp-deep)',
+              fontSize: 12,
+              fontWeight: 900,
+              padding: '4px 10px',
+              width: 'fit-content',
+            }}
+          >
+            <span
+              aria-hidden="true"
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: 999,
+                background: answeredCorrect ? '#22C55E' : '#F59E0B',
+                boxShadow: answeredCorrect ? '0 0 0 3px #DCFCE7' : '0 0 0 3px #FEF3C7',
+              }}
+            />
+            {quiz.label}
+          </div>
+          {answeredCorrect && (
+            <div
+              style={{
+                borderRadius: 999,
+                background: '#DCFCE7',
+                color: '#15803D',
+                border: '1.5px solid #86EFAC',
+                fontSize: 11,
+                fontWeight: 900,
+                padding: '3px 9px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              已答对
+            </div>
+          )}
+        </div>
+
+        <h3 style={{ fontSize: 17, fontWeight: 900, color: '#1E1B4B', margin: 0, lineHeight: 1.35 }}>
+          {quiz.prompt}
+        </h3>
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: isGridLayout ? 'repeat(2, minmax(0, 1fr))' : '1fr',
+            gap: 8,
+          }}
+        >
+          {quiz.options.map((option, index) => {
+            const isCorrectOption = answeredCorrect && option.id === quiz.answerId;
+            const isWrongOption = wrongOptionId === option.id;
+            const disabled = answeredCorrect || Boolean(wrongOptionId);
+            const color = isCorrectOption ? '#15803D' : isWrongOption ? '#B91C1C' : '#1E1B4B';
+
+            return (
+              <button
+                key={option.id}
+                type="button"
+                className={`btn-press japanese-intro-mini-quiz-option${isWrongOption ? ' japanese-intro-mini-quiz-option--wrong' : ''}`}
+                data-sfx="none"
+                disabled={disabled}
+                onClick={() => handleOptionClick(option.id)}
+                style={{
+                  width: '100%',
+                  minHeight: isGridLayout ? 54 : 46,
+                  borderRadius: 14,
+                  border: `2px solid ${isCorrectOption ? '#22C55E' : isWrongOption ? '#EF4444' : '#DDD6FE'}`,
+                  borderBottomWidth: 4,
+                  borderBottomColor: isCorrectOption ? '#16A34A' : isWrongOption ? '#DC2626' : '#A78BFA',
+                  background: isCorrectOption
+                    ? 'rgba(220,252,231,0.72)'
+                    : isWrongOption
+                      ? 'rgba(254,226,226,0.76)'
+                      : 'rgba(255,255,255,0.64)',
+                  color,
+                  cursor: disabled ? 'default' : 'pointer',
+                  opacity: answeredCorrect && !isCorrectOption ? 0.58 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: isGridLayout ? 'center' : 'flex-start',
+                  gap: isGridLayout ? 7 : 10,
+                  padding: isGridLayout ? '9px 8px' : '9px 11px',
+                  textAlign: isGridLayout ? 'center' : 'left',
+                  fontSize: isGridLayout ? 13 : 14,
+                  fontWeight: 900,
+                  lineHeight: 1.35,
+                  boxShadow: '0 2px 10px rgba(91,79,233,0.06)',
+                }}
+              >
+                <span
+                  aria-hidden="true"
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: '50%',
+                    flex: '0 0 auto',
+                    display: 'grid',
+                    placeItems: 'center',
+                    background: isCorrectOption ? '#22C55E' : isWrongOption ? '#EF4444' : '#F3F2FF',
+                    color: isCorrectOption || isWrongOption ? 'white' : 'var(--tp)',
+                    fontSize: 12,
+                    fontWeight: 900,
+                  }}
+                >
+                  {String.fromCharCode(65 + index)}
+                </span>
+                <span>{option.text}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {answeredCorrect && (
+          <div
+            style={{
+              borderRadius: 14,
+              background: 'rgba(240,253,244,0.68)',
+              border: '1.5px solid #BBF7D0',
+              color: '#166534',
+              fontSize: 12,
+              fontWeight: 800,
+              lineHeight: 1.6,
+              padding: '9px 11px',
+            }}
+          >
+            {quiz.successText}
+          </div>
+        )}
+      </div>
     </section>
   );
 }

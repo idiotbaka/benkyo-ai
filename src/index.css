@@ -258,6 +258,18 @@ rt {
   100% { left: 108%; opacity: 0; }
 }
 
+.japanese-intro-mini-quiz-option--wrong {
+  animation: japaneseIntroMiniQuizShake 0.36s ease both;
+}
+
+@keyframes japaneseIntroMiniQuizShake {
+  0%, 100% { transform: translateX(0); }
+  18% { transform: translateX(-7px); }
+  36% { transform: translateX(6px); }
+  54% { transform: translateX(-5px); }
+  72% { transform: translateX(3px); }
+}
+
 /* ── Blank slot in sentence ── */
 .blank-slot {
   display: inline-flex;

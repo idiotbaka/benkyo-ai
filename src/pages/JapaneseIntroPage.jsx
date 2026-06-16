@@ -2,10 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
-import { JAPANESE_INTRO_BASICS } from '../data/japaneseIntroBasics';
+import { JAPANESE_INTRO_BASICS, getJapaneseIntroMiniQuizzes } from '../data/japaneseIntroBasics';
 import { GOJUON_SECTIONS, toKatakanaText } from '../data/gojuonKana';
 import { createGojuonAudioUrl, getGojuonAudioEntry } from '../lib/gojuon-audio';
 import { useIcon } from '../lib/icons';
+import useJapaneseIntroProgressStore from '../store/japaneseIntroProgressStore';
 
 gsap.registerPlugin(useGSAP);
 
@@ -126,80 +127,114 @@ export default function JapaneseIntroPage() {
 }
 
 function BasicsList({ onOpenTopic }) {
+  const quizResults = useJapaneseIntroProgressStore(s => s.quizResults);
+
   return (
     <div style={{ display: 'grid', gap: 12 }}>
-      {JAPANESE_INTRO_BASICS.map((topic, index) => (
-        <button
-          key={topic.id}
-          type="button"
-          className="btn-press"
-          onClick={() => onOpenTopic(topic.id)}
-          style={{
-            width: '100%',
-            border: '2px solid #E5E7EB',
-            borderRadius: 14,
-            background: 'white',
-            boxShadow: '0 3px 0 #E5E7EB',
-            padding: '14px 14px 15px',
-            textAlign: 'left',
-            cursor: 'pointer',
-            display: 'grid',
-            gap: 9,
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 900, marginBottom: 4 }}>
-                第 {String(index + 1).padStart(2, '0')} 讲
+      {JAPANESE_INTRO_BASICS.map((topic, index) => {
+        const quizzes = getJapaneseIntroMiniQuizzes(topic.id);
+        const isComplete = quizzes.length > 0 && quizzes.every(quiz => quizResults?.[topic.id]?.[quiz.id]?.correct);
+        const statusStyle = isComplete
+          ? {
+              background: '#DCFCE7',
+              borderColor: '#86EFAC',
+              color: '#15803D',
+              boxShadow: '0 2px 0 #BBF7D0',
+            }
+          : {
+              background: '#FFF7ED',
+              borderColor: '#FED7AA',
+              color: '#C2410C',
+              boxShadow: '0 2px 0 #FFEDD5',
+            };
+
+        return (
+          <button
+            key={topic.id}
+            type="button"
+            className="btn-press"
+            onClick={() => onOpenTopic(topic.id)}
+            style={{
+              width: '100%',
+              border: `2px solid ${isComplete ? '#BBF7D0' : '#E5E7EB'}`,
+              borderRadius: 14,
+              background: isComplete ? 'linear-gradient(135deg, #FFFFFF, #F0FDF4)' : 'white',
+              boxShadow: `0 3px 0 ${isComplete ? '#BBF7D0' : '#E5E7EB'}`,
+              padding: '14px 14px 15px',
+              textAlign: 'left',
+              cursor: 'pointer',
+              display: 'grid',
+              gap: 9,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 900, marginBottom: 4 }}>
+                  第 {String(index + 1).padStart(2, '0')} 讲
+                </div>
+                <h2 style={{ fontSize: 16, fontWeight: 900, color: '#1E1B4B', margin: 0, lineHeight: 1.3 }}>
+                  {topic.title}
+                </h2>
               </div>
-              <h2 style={{ fontSize: 16, fontWeight: 900, color: '#1E1B4B', margin: 0, lineHeight: 1.3 }}>
-                {topic.title}
-              </h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
+                <span
+                  style={{
+                    border: `1.5px solid ${statusStyle.borderColor}`,
+                    borderRadius: 999,
+                    padding: '3px 9px',
+                    fontSize: 11,
+                    fontWeight: 900,
+                    whiteSpace: 'nowrap',
+                    ...statusStyle,
+                  }}
+                >
+                  {isComplete ? '已完成' : '待完成'}
+                </span>
+                <span
+                  aria-hidden="true"
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 999,
+                    background: isComplete ? '#DCFCE7' : '#F3F2FF',
+                    color: isComplete ? '#15803D' : 'var(--tp)',
+                    fontSize: 18,
+                    fontWeight: 900,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  ›
+                </span>
+              </div>
             </div>
-            <span
-              aria-hidden="true"
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: 999,
-                background: '#F3F2FF',
-                color: 'var(--tp)',
-                fontSize: 18,
-                fontWeight: 900,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              ›
-            </span>
-          </div>
 
-          <p style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.55, margin: 0, fontWeight: 600 }}>
-            {topic.summary}
-          </p>
+            <p style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.55, margin: 0, fontWeight: 600 }}>
+              {topic.summary}
+            </p>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {topic.keywords.map(keyword => (
-              <span
-                key={keyword}
-                style={{
-                  borderRadius: 999,
-                  background: '#F8FAFC',
-                  border: '1px solid #E5E7EB',
-                  color: '#64748B',
-                  fontSize: 11,
-                  fontWeight: 800,
-                  padding: '2px 8px',
-                }}
-              >
-                {keyword}
-              </span>
-            ))}
-          </div>
-        </button>
-      ))}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {topic.keywords.map(keyword => (
+                <span
+                  key={keyword}
+                  style={{
+                    borderRadius: 999,
+                    background: '#F8FAFC',
+                    border: '1px solid #E5E7EB',
+                    color: '#64748B',
+                    fontSize: 11,
+                    fontWeight: 800,
+                    padding: '2px 8px',
+                  }}
+                >
+                  {keyword}
+                </span>
+              ))}
+            </div>
+          </button>
+        );
+      })}
     </div>
   );
 }
