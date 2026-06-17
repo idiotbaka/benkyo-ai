@@ -11,6 +11,7 @@ import { getModel } from '../lib/ai-providers';
 import { getAiErrorContent, logAiGeneratedContent } from '../lib/ai-debug';
 import { requestTtsAudioBlob } from '../lib/tts';
 import { useIcon } from '../lib/icons';
+import amiVoiceBanner from '../assets/audio/gojuon/bunner_ami_01.webp';
 
 gsap.registerPlugin(useGSAP);
 
@@ -66,6 +67,15 @@ const SOUND_CREDITS = [
   { label: '効果音ラボ', url: 'https://soundeffect-lab.info/' },
   { label: 'Kenney', url: 'https://kenney.nl/' },
 ];
+
+const TEXT_ANALYSIS_CREDITS = [
+  { label: 'daac-tools/vibrato', url: 'https://github.com/daac-tools/vibrato' },
+];
+
+const KANA_VOICE_CREDIT = {
+  label: '小春音アミ',
+  url: 'http://amitaro.net/utau/index.html',
+};
 
 const labelStyle = {
   fontSize: 12,
@@ -325,6 +335,36 @@ function AboutAppSection() {
           {SOUND_CREDITS.map(item => (
             <ExternalInfoLink key={item.url} href={item.url}>{item.label}</ExternalInfoLink>
           ))}
+        </div>
+      </AboutInfoRow>
+
+      <AboutInfoRow label="分词分析">
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 12px' }}>
+          {TEXT_ANALYSIS_CREDITS.map(item => (
+            <ExternalInfoLink key={item.url} href={item.url}>{item.label}</ExternalInfoLink>
+          ))}
+        </div>
+      </AboutInfoRow>
+
+      <AboutInfoRow label="假名声素材">
+        <div style={{ display: 'grid', gap: 8 }}>
+          <ExternalInfoLink href={KANA_VOICE_CREDIT.url}>{KANA_VOICE_CREDIT.label}</ExternalInfoLink>
+          <ExternalInfoLink href={KANA_VOICE_CREDIT.url}>{KANA_VOICE_CREDIT.url}</ExternalInfoLink>
+          <a href={KANA_VOICE_CREDIT.url} target="_blank" rel="noreferrer" aria-label="小春音アミ 官方页面">
+            <img
+              src={amiVoiceBanner}
+              alt="小春音アミ"
+              width={200}
+              height={40}
+              style={{
+                display: 'block',
+                width: 200,
+                height: 40,
+                border: '1.5px solid #E5E7EB',
+                background: '#F8FAFC',
+              }}
+            />
+          </a>
         </div>
       </AboutInfoRow>
     </section>
