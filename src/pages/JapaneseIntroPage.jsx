@@ -423,6 +423,9 @@ function KanaCard({ item, script, columns, isLoading, isPlaying, progressPct = 0
   const normalizedProgress = Math.max(0, Math.min(100, Math.round(progressPct)));
   const progressColor = getKanaDisplayProgressColor(normalizedProgress);
   const showProgress = normalizedProgress < 100;
+  const isComplete = normalizedProgress >= 100;
+  const borderColor = active ? 'var(--tp-bdr)' : isComplete ? '#BBF7D0' : '#E7E7E7';
+  const shadowColor = active ? 'var(--tp-bdr)' : isComplete ? '#BBF7D0' : '#E7E7E7';
 
   return (
     <button
@@ -434,10 +437,10 @@ function KanaCard({ item, script, columns, isLoading, isPlaying, progressPct = 0
       aria-description={`学习进度 ${normalizedProgress}%`}
       style={{
         ...style,
-        background: 'white',
-        border: `2px solid ${active ? 'var(--tp-bdr)' : '#E7E7E7'}`,
+        background: !active && isComplete ? 'linear-gradient(135deg, #FFFFFF, #F0FDF4)' : 'white',
+        border: `2px solid ${borderColor}`,
         borderRadius: isWide ? 18 : 17,
-        boxShadow: active ? '0 4px 0 var(--tp-bdr)' : '0 4px 0 #E7E7E7',
+        boxShadow: `0 4px 0 ${shadowColor}`,
         minHeight: isWide ? 90 : 96,
         padding: isWide ? '13px 11px 12px' : '10px 8px 11px',
         display: 'flex',
