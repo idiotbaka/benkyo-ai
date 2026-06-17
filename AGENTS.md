@@ -277,7 +277,7 @@ word-match 每配对成功一组 +1 金币
 - 小考点卡片使用淡色背景和 `sd/sd_lc_incorrect.png` 作为右下 SD 图；按钮和 successText 背景保持半透明，避免遮挡 SD 图。
 - 平假名/片假名 tab 读取 `GOJUON_SECTIONS`；片假名通过 `toKatakanaText()` 从平假名映射显示，播放仍使用平假名音频 key。假名卡片底部进度条读取 `getKanaDisplayProgress(script, kana)`，平假名和片假名进度分开保存。
 - 点击“开始学习~♥”会调用 `buildKanaPracticeSession(script, progressState)` 现场生成 15~20 题（默认 18 题）并写入 `kanaPracticeStore.start(session)`。若 `session.newKana.length > 0`，先进入 `/practice/kana/:script/preview`；没有新假名则直接进入 `/practice/kana/:script`。
-- 假名课程的长期算法集中在 `lib/kana-practice.js`：清音 -> 浊音/半浊音 -> 拗音分阶段推进；每课最多引入 3 个 `seenCount === 0` 的新假名；低于 40% 的薄弱假名过多时不上新；旧假名按隐藏 recall/due score 混入复习；满格假名也会低频抽查。
+- 假名课程的长期算法集中在 `lib/kana-practice.js`：清音 -> 浊音/半浊音 -> 拗音分阶段推进；每课最多引入 3 个 `seenCount === 0` 的新假名；已展开但未满 100% 的假名超过 8 个时，本课不上新并转为复习；抽题会先覆盖一批未满 100% 的已学假名，避免单个低进度假名挤掉 60%~99% 假名；低于 40% 的薄弱假名过多时不上新；旧假名按隐藏 recall/due score 混入复习；满格假名也会低频抽查。
 - `japaneseIntroProgressStore` 持久化 `kanaProgress`、`kanaMistakes`、`kanaStudyStats`。课程完成时统一 `applyKanaSessionResult()`：单假名单课普通最高 +20%，80% 以上最高 +12%；答错会扣进度并降低复习箱/ease，历史错选会进入后续干扰项。
 - `KanaPreviewPage.jsx` 展示本关首次学习的新假名，每个横栏包含假名、romaji、内置音频播放和清音助记；清音助记数据在 `data/kanaMnemonics.js`，浊音/半浊音/拗音只展示通用提示。页面顶部使用 `sd/sd_learn.png`。
 - `KanaPracticePage.jsx` 不消耗心心，不存在失败/复活流程，不写 `gameStore.levelProgress`，不写 `wrongQuestionStore`。页面复用 `BattleArena`，但传 `showHearts={false}`，角色上方不显示心心。答错弹出 `FeedbackPanel`；答对只播放正确音效、选项变绿和战斗动画，随后自动进入下一题，不弹正确反馈面板。

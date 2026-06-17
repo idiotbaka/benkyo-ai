@@ -422,6 +422,7 @@ function KanaCard({ item, script, columns, isLoading, isPlaying, progressPct = 0
   const active = isLoading || isPlaying;
   const normalizedProgress = Math.max(0, Math.min(100, Math.round(progressPct)));
   const progressColor = getKanaDisplayProgressColor(normalizedProgress);
+  const showProgress = normalizedProgress < 100;
 
   return (
     <button
@@ -484,6 +485,7 @@ function KanaCard({ item, script, columns, isLoading, isPlaying, progressPct = 0
           overflow: 'hidden',
           display: 'block',
           marginTop: 4,
+          visibility: showProgress ? 'visible' : 'hidden',
         }}
       >
         <span

@@ -11,6 +11,8 @@ export const PHASE_UNLOCK_MASTERY = 60;
 export const PHASE_UNLOCK_RATIO = 0.7;
 export const LOW_MASTERY_THRESHOLD = 40;
 export const ACTIVE_MASTERY_THRESHOLD = 80;
+export const MAX_INCOMPLETE_KANA_BEFORE_REVIEW = 8;
+export const INCOMPLETE_COVERAGE_RESERVE_RATIO = 0.8;
 
 export const KANA_SCRIPTS = ['hiragana', 'katakana'];
 
@@ -215,6 +217,10 @@ function getUnlockedPhaseItems(allItems, progressState, script) {
 }
 
 function getNewItemLimit(introducedItems, progressState, script) {
+  const incompleteItems = introducedItems.filter((item) => {
+    const progress = getProgressForKana(progressState, script, item.kana);
+    return progress.masteryPct < 100;
+  });
   const activeLearning = introducedItems.filter((item) => {
     const progress = getProgressForKana(progressState, script, item.kana);
     return progress.masteryPct < ACTIVE_MASTERY_THRESHOLD;
@@ -224,6 +230,7 @@ function getNewItemLimit(introducedItems, progressState, script) {
     return progress.masteryPct < LOW_MASTERY_THRESHOLD;
   });
 
+  if (incompleteItems.length > MAX_INCOMPLETE_KANA_BEFORE_REVIEW) return 0;
   if (fragileItems.length >= 3) return 0;
   if (activeLearning.length >= 6) return 1;
   return Math.min(MAX_NEW_KANA_PER_SESSION, Math.max(0, 6 - activeLearning.length));
@@ -283,6 +290,7 @@ function allocateTargetItems({ allItems, phaseItems, introducedItems, newItems, 
     const progress = getProgressForKana(progressState, script, item.kana);
     return progress.masteryPct >= PHASE_UNLOCK_MASTERY && progress.masteryPct < 100;
   });
+  const incompleteItems = uniqueBy([...weakItems, ...strengtheningItems], item => item.kana);
   const masteredItems = dueItems.filter((item) => {
     const progress = getProgressForKana(progressState, script, item.kana);
     return progress.masteryPct >= 100;
@@ -291,6 +299,16 @@ function allocateTargetItems({ allItems, phaseItems, introducedItems, newItems, 
     ? Math.min(3, Math.max(1, Math.round(count * MASTERED_REVIEW_RATIO)))
     : 0;
   let masteredAdded = 0;
+  const coverageLimit = Math.max(
+    0,
+    Math.min(
+      incompleteItems.length,
+      Math.floor(count * INCOMPLETE_COVERAGE_RESERVE_RATIO),
+      count - targetItems.length - masteredTarget,
+    ),
+  );
+
+  incompleteItems.slice(0, coverageLimit).forEach(item => pushItem(item));
 
   while (targetItems.length < count) {
     const lastKana = targetItems[targetItems.length - 1]?.kana ?? null;
@@ -304,7 +322,7 @@ function allocateTargetItems({ allItems, phaseItems, introducedItems, newItems, 
       pool = masteredItems;
       masteredAdded += 1;
     } else if (weakItems.length > 0) {
-      pool = uniqueBy([...weakItems, ...newItems], item => item.kana);
+      pool = uniqueBy([...weakItems, ...strengtheningItems, ...newItems], item => item.kana);
     } else if (strengtheningItems.length > 0) {
       pool = strengtheningItems;
     } else if (newItems.length > 0) {
@@ -320,6 +338,9 @@ function allocateTargetItems({ allItems, phaseItems, introducedItems, newItems, 
       (item) => {
         const progress = getProgressForKana(progressState, script, item.kana);
         if (newItems.some(newItem => newItem.kana === item.kana)) return 1.3;
+        if (progress.masteryPct < PHASE_UNLOCK_MASTERY || progress.currentWrongStreak > 0) {
+          return getKanaDueScore(progress, now) + 0.35;
+        }
         return getKanaDueScore(progress, now) + 0.15;
       },
       lastKana,
@@ -599,5 +620,5 @@ export function getKanaDisplayProgressColor(progressPct) {
   if (pct < 40) return '#FBBF24';
   if (pct < 80) return '#60A5FA';
   if (pct < 100) return '#34D399';
-  return '#22C55E';
+  return '#FFD700';
 }
