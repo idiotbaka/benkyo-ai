@@ -37,6 +37,21 @@ function KanaChangePill({ change, script }) {
   );
 }
 
+function KanaSummaryGroup({ title, items, script, itemKeyPrefix }) {
+  if (!items?.length) return null;
+
+  return (
+    <div className="mb-3 last:mb-0">
+      <p className="mb-2 text-xs font-extrabold text-[#9CA3AF]">{title}</p>
+      <div className="flex flex-wrap gap-2">
+        {items.map(change => (
+          <KanaChangePill key={`${itemKeyPrefix}-${change.kana}`} change={change} script={script} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function KanaPracticeComplete() {
   const navigate = useNavigate();
   const practice = useKanaPracticeStore(s => s.practice);
@@ -93,9 +108,10 @@ export default function KanaPracticeComplete() {
 
     return { newKana, progressUp, needsReview };
   }, [masteryChanges, session?.newKana]);
+  const hasSummary = summary.newKana.length > 0 || summary.progressUp.length > 0 || summary.needsReview.length > 0;
 
   useGSAP(() => {
-    gsap.set([titleRef.current, xpRef.current, coinRef.current, statsRef.current, summaryRef.current, btnRef.current], { opacity: 0 });
+    gsap.set([titleRef.current, xpRef.current, coinRef.current, statsRef.current, summaryRef.current, btnRef.current].filter(Boolean), { opacity: 0 });
     starsRef.current.filter(Boolean).forEach(el => gsap.set(el, { scale: 0, opacity: 0 }));
   });
 
@@ -111,9 +127,11 @@ export default function KanaPracticeComplete() {
     tl.fromTo(xpRef.current, { y: 14, scale: 0.95, opacity: 0 }, { y: 0, scale: 1, opacity: 1, duration: 0.28, ease: 'back.out(1.8)' }, '-=0.05');
     tl.fromTo(coinRef.current, { y: 14, scale: 0.95, opacity: 0 }, { y: 0, scale: 1, opacity: 1, duration: 0.28, ease: 'back.out(1.8)' }, '-=0.18');
     tl.fromTo(statsRef.current, { y: 14, opacity: 0 }, { y: 0, opacity: 1, duration: 0.28, ease: 'back.out(1.7)' }, '-=0.02');
-    tl.fromTo(summaryRef.current, { y: 14, opacity: 0 }, { y: 0, opacity: 1, duration: 0.28, ease: 'back.out(1.7)' }, '-=0.02');
+    if (summaryRef.current) {
+      tl.fromTo(summaryRef.current, { y: 14, opacity: 0 }, { y: 0, opacity: 1, duration: 0.28, ease: 'back.out(1.7)' }, '-=0.02');
+    }
     tl.fromTo(btnRef.current, { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.28, ease: 'back.out(1.7)' }, '+=0.05');
-  }, [finalStars]);
+  }, [finalStars, hasSummary]);
 
   useGSAP(() => {
     if (finalCoins <= 0) return;
@@ -250,40 +268,13 @@ export default function KanaPracticeComplete() {
           </div>
         </div>
 
-        <div ref={summaryRef} className="mb-6 rounded-2xl bg-white p-4" style={{ boxShadow: '0 2px 10px rgba(91,79,233,0.06)' }}>
-          <div className="mb-3">
-            <p className="mb-2 text-xs font-extrabold text-[#9CA3AF]">新学假名</p>
-            <div className="flex flex-wrap gap-2">
-              {summary.newKana.length > 0 ? summary.newKana.map(change => (
-                <KanaChangePill key={`new-${change.kana}`} change={change} script={script} />
-              )) : (
-                <span className="text-xs font-bold text-[#A3A3A3]">本课以复习为主</span>
-              )}
-            </div>
+        {hasSummary && (
+          <div ref={summaryRef} className="mb-6 rounded-2xl bg-white p-4" style={{ boxShadow: '0 2px 10px rgba(91,79,233,0.06)' }}>
+            <KanaSummaryGroup title="新学假名" items={summary.newKana} script={script} itemKeyPrefix="new" />
+            <KanaSummaryGroup title="进步最多" items={summary.progressUp} script={script} itemKeyPrefix="up" />
+            <KanaSummaryGroup title="需要复习" items={summary.needsReview} script={script} itemKeyPrefix="review" />
           </div>
-
-          <div className="mb-3">
-            <p className="mb-2 text-xs font-extrabold text-[#9CA3AF]">进步最多</p>
-            <div className="flex flex-wrap gap-2">
-              {summary.progressUp.length > 0 ? summary.progressUp.map(change => (
-                <KanaChangePill key={`up-${change.kana}`} change={change} script={script} />
-              )) : (
-                <span className="text-xs font-bold text-[#A3A3A3]">这次主要在查漏补缺</span>
-              )}
-            </div>
-          </div>
-
-          <div>
-            <p className="mb-2 text-xs font-extrabold text-[#9CA3AF]">需要复习</p>
-            <div className="flex flex-wrap gap-2">
-              {summary.needsReview.length > 0 ? summary.needsReview.map(change => (
-                <KanaChangePill key={`review-${change.kana}`} change={change} script={script} />
-              )) : (
-                <span className="text-xs font-bold text-[#A3A3A3]">没有明显薄弱项</span>
-              )}
-            </div>
-          </div>
-        </div>
+        )}
 
         <button
           ref={btnRef}
