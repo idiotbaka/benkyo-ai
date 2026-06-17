@@ -10,6 +10,7 @@ import useUserStore from '../store/userStore';
 import useListeningPracticeStore from '../store/listeningPracticeStore';
 import useWordReviewPracticeStore from '../store/wordReviewPracticeStore';
 import useWrongQuestionStore from '../store/wrongQuestionStore';
+import useJapaneseIntroProgressStore from '../store/japaneseIntroProgressStore';
 import { getTtsConfigError } from '../lib/tts';
 import {
   TAURI_LISTENING_REQUIRED_MESSAGE,
@@ -64,6 +65,8 @@ export default function VocabPage() {
   const startListeningPractice = useListeningPracticeStore(s => s.start);
   const startWordReviewPractice = useWordReviewPracticeStore(s => s.start);
   const startPracticeLesson = useGameStore(s => s.startPracticeLesson);
+  const japaneseIntroCardVisited = useJapaneseIntroProgressStore(s => s.japaneseIntroCardVisited);
+  const markJapaneseIntroCardVisited = useJapaneseIntroProgressStore(s => s.markJapaneseIntroCardVisited);
   const navigate = useNavigate();
   const bookImg = useIcon('ui/book.png');
   const headerRef = useRef(null);
@@ -211,6 +214,11 @@ export default function VocabPage() {
     navigate('/practice/wrong-review');
   };
 
+  const handleJapaneseIntro = () => {
+    markJapaneseIntroCardVisited();
+    navigate('/vocab/japanese-intro');
+  };
+
   return (
     <div
       data-ui-click-sfx
@@ -230,12 +238,12 @@ export default function VocabPage() {
             {PRACTICE_ENTRIES.map(entry => (
               <PracticeEntry
                 key={entry.id}
-                entry={withPracticeEntryBadge(entry, practiceQuestionCounts, wrongQuestionCount)}
+                entry={withPracticeEntryBadge(entry, practiceQuestionCounts, wrongQuestionCount, japaneseIntroCardVisited)}
                 onClick={
                   entry.id === 'listening'
                     ? handleListeningPractice
                     : entry.id === 'japanese-intro'
-                    ? () => navigate('/vocab/japanese-intro')
+                    ? handleJapaneseIntro
                     : entry.id === 'course-review'
                     ? handleCourseReviewPractice
                     : entry.id === 'word-review'
@@ -448,7 +456,15 @@ function PracticeSection({ title, style, children }) {
   );
 }
 
-function withPracticeEntryBadge(entry, practiceQuestionCounts, wrongQuestionCount) {
+function withPracticeEntryBadge(entry, practiceQuestionCounts, wrongQuestionCount, japaneseIntroCardVisited) {
+  if (entry.id === 'japanese-intro' && !japaneseIntroCardVisited) {
+    return {
+      ...entry,
+      badge: 'New!!',
+      badgeTone: 'new',
+    };
+  }
+
   if (entry.id === 'mistakes') {
     return {
       ...entry,
@@ -519,6 +535,7 @@ function PracticeEntry({ entry, iconSrc, onClick, loading = false }) {
             </span>
             {entry.badge && (
               <span
+                className={entry.badgeTone === 'new' ? 'practice-entry-new-badge' : undefined}
                 style={{
                   height: 22,
                   padding: '0 9px',
@@ -531,6 +548,9 @@ function PracticeEntry({ entry, iconSrc, onClick, loading = false }) {
                   lineHeight: '19px',
                   whiteSpace: 'nowrap',
                   boxShadow: badgeStyle.shadow,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
               >
                 {entry.badge}
@@ -639,6 +659,15 @@ function getPracticeBadgeStyle(tone) {
   }
 
   if (tone === 'info') {
+    return {
+      border: 'var(--tp-bdr)',
+      background: 'var(--tp-lite)',
+      color: 'var(--tp)',
+      shadow: '0 2px 0 color-mix(in srgb, var(--tp-bdr) 60%, white)',
+    };
+  }
+
+  if (tone === 'new') {
     return {
       border: 'var(--tp-bdr)',
       background: 'var(--tp-lite)',

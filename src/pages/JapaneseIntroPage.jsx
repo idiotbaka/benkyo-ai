@@ -539,7 +539,7 @@ function StartStudyButton({ onStart }) {
         }}
       >
         <span className="japanese-intro-start-button__shine" aria-hidden="true" />
-        <span style={{ position: 'relative', zIndex: 1 }}>开始学习~♥</span>
+        <span style={{ position: 'relative', zIndex: 1 }}>开始学习～♥</span>
       </button>
     </div>
   );

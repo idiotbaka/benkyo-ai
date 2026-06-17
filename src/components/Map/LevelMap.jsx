@@ -473,6 +473,85 @@ function NoAiConfigModal({ onClose, onGoSettings }) {
   );
 }
 
+// ── Beginner Kana Guide Modal ───────────────────────────────────────────────
+function BeginnerKanaGuideModal({ onClose, onBeginner, onContinue }) {
+  const sdLearnImg = useIcon('sd/sd_learn.png');
+  const overlayRef = useRef(null);
+  const sheetRef = useRef(null);
+
+  useGSAP(() => {
+    gsap.set(overlayRef.current, { opacity: 0 });
+    gsap.set(sheetRef.current, { opacity: 0, y: '100%' });
+  });
+
+  useGSAP(() => {
+    gsap.to(overlayRef.current, { opacity: 1, duration: 0.15 });
+    gsap.to(sheetRef.current, { opacity: 1, y: '0%', duration: 0.2, ease: 'power3.out' });
+  }, []);
+
+  return (
+    <div
+      ref={overlayRef}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 60,
+        background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(3px)',
+        display: 'flex', alignItems: 'flex-end',
+      }}
+      onClick={onClose}
+    >
+      <div
+        ref={sheetRef}
+        style={{
+          width: '100%', background: 'white',
+          borderRadius: '24px 24px 0 0',
+          padding: '0 20px 36px',
+          boxShadow: '0 -8px 40px rgba(0,0,0,0.20)',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div style={{ width: 40, height: 4, borderRadius: 2, background: '#E5E0FF', margin: '12px auto 22px' }} />
+        <div style={{ textAlign: 'center', marginBottom: 20 }}>
+          <img
+            src={sdLearnImg}
+            alt="五十音学习引导"
+            width={148}
+            height={148}
+            style={{ objectFit: 'contain', margin: '0 auto 6px' }}
+          />
+          <h2 style={{ fontSize: 18, fontWeight: 900, color: '#1E1B4B', marginBottom: 8 }}>是否学习过五十音呢～？</h2>
+          <p style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.6, margin: '0 8px' }}>
+            如果还不熟悉，可以先前往 <strong>「练习中心 → 日语入门」</strong>，<br />学习基础知识和平假名、片假名。
+          </p>
+        </div>
+        <button
+          onClick={onBeginner}
+          className="btn-press"
+          style={{
+            width: '100%', padding: '14px',
+            borderRadius: 18, border: 'none',
+            background: 'linear-gradient(135deg, var(--tp-from), var(--tp))',
+            color: 'white', fontSize: 15, fontWeight: 800,
+            cursor: 'pointer', marginBottom: 10,
+          }}
+        >
+          我是初学者
+        </button>
+        <button
+          onClick={onContinue}
+          style={{
+            width: '100%', padding: '12px',
+            borderRadius: 18, border: '1.5px solid #E5E7EB',
+            background: 'white', color: '#6B7280',
+            fontSize: 14, fontWeight: 700, cursor: 'pointer',
+          }}
+        >
+          我已学会
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function LevelMap() {
   const navigate = useNavigate();
   const sdNoBooksImg = useIcon('sd/sd_no_books.png');
@@ -490,6 +569,7 @@ export default function LevelMap() {
   const [showNoHearts,  setShowNoHearts]  = useState(false);
   const [selectedLevel, setSelectedLevel] = useState(null);
   const [showNoAiConfig, setShowNoAiConfig] = useState(false);
+  const [showBeginnerKanaGuide, setShowBeginnerKanaGuide] = useState(false);
   const [showCreateSheet, setShowCreateSheet] = useState(false);
   const [showNextChapterSheet, setShowNextChapterSheet] = useState(false);
 
@@ -635,7 +715,7 @@ export default function LevelMap() {
     return levelProgress[prevLevel.id]?.completed === true;
   };
 
-  const handleCreateFirstCourse = () => {
+  const continueCreateFirstCourse = useCallback(() => {
     const isAiConfigured = aiConfig.provider && aiConfig.apiKey?.trim() && aiConfig.modelId?.trim();
     if (!isAiConfigured) {
       setShowNoAiConfig(true);
@@ -643,6 +723,20 @@ export default function LevelMap() {
     }
     // 等待按压弹回动画结束后再弹出底部弹层
     setTimeout(() => setShowCreateSheet(true), 150);
+  }, [aiConfig]);
+
+  const handleCreateFirstCourse = () => {
+    setShowBeginnerKanaGuide(true);
+  };
+
+  const handleBeginnerKanaContinue = () => {
+    setShowBeginnerKanaGuide(false);
+    setTimeout(() => continueCreateFirstCourse(), 120);
+  };
+
+  const handleBeginnerKanaStart = () => {
+    setShowBeginnerKanaGuide(false);
+    navigate('/vocab');
   };
 
   const latestChapter = chapters[chapters.length - 1];
@@ -688,6 +782,13 @@ export default function LevelMap() {
           <NoAiConfigModal
             onClose={() => setShowNoAiConfig(false)}
             onGoSettings={() => { setShowNoAiConfig(false); navigate('/settings?panel=ai'); }}
+          />
+        )}
+        {showBeginnerKanaGuide && (
+          <BeginnerKanaGuideModal
+            onClose={() => setShowBeginnerKanaGuide(false)}
+            onBeginner={handleBeginnerKanaStart}
+            onContinue={handleBeginnerKanaContinue}
           />
         )}
         {showCreateSheet && (

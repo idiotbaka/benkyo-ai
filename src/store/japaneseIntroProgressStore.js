@@ -121,6 +121,7 @@ const useJapaneseIntroProgressStore = create(
       kanaProgress: createEmptyKanaProgress(),
       kanaMistakes: createEmptyKanaMistakes(),
       kanaStudyStats: createEmptyKanaStudyStats(),
+      japaneseIntroCardVisited: false,
 
       markMiniQuizCorrect(topicId, quizId, answerId, requiredQuizIds = []) {
         const normalizedTopicId = normalizeTopicId(topicId);
@@ -181,6 +182,11 @@ const useJapaneseIntroProgressStore = create(
 
       getKanaStats(script) {
         return getKanaStudyStats(get(), normalizeKanaScript(script));
+      },
+
+      markJapaneseIntroCardVisited() {
+        if (get().japaneseIntroCardVisited) return;
+        set({ japaneseIntroCardVisited: true });
       },
 
       applyKanaSessionResult(sessionResult) {
@@ -332,6 +338,7 @@ const useJapaneseIntroProgressStore = create(
         kanaProgress: state.kanaProgress,
         kanaMistakes: state.kanaMistakes,
         kanaStudyStats: state.kanaStudyStats,
+        japaneseIntroCardVisited: state.japaneseIntroCardVisited,
       }),
     },
   ),

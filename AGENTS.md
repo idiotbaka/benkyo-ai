@@ -141,7 +141,7 @@ Android 自定义入口：`src-tauri/gen/android/app/src/main/java/com/benkyo/ai
 | `vocabStore` | `benkyo-ai-vocab` | 单词本 |
 | `wrongQuestionStore` | `benkyo-ai-wrong-questions` | 错题库，按章节+关卡+题目稳定去重 |
 | `appearanceStore` | `benkyo-ai-appearance` | 当前图标皮肤，默认 `benkyochan` |
-| `japaneseIntroProgressStore` | `benkyo-ai-japanese-intro-progress` | 日语入门基础课件小考点、课件完成状态、假名掌握度、错选记录和学习统计 |
+| `japaneseIntroProgressStore` | `benkyo-ai-japanese-intro-progress` | 日语入门基础课件小考点、课件完成状态、假名掌握度、错选记录、学习统计和日语入门卡片 New 访问状态 |
 | `kanaPracticeStore` | 不持久化 | 假名学习单局 session、答题状态、金币/XP/星级结算和假名进度变更 |
 | `listeningPracticeStore` | 不持久化 | 听力练习特殊玩法状态、心心、失败/复活、结算 |
 | `wordReviewPracticeStore` | 不持久化 | 单词复习特殊玩法状态、心心、失败/复活、结算 |
@@ -153,6 +153,8 @@ Android 自定义入口：`src-tauri/gen/android/app/src/main/java/com/benkyo/ai
 `userStore` 同时管理背包道具、`xpBoost`、`coinBoost`、咖啡每日使用日期和奖励发放。`addBoostedCoins()` 会应用金币加成；XP 加成卡与金币加成卡互斥；`syncXpBoost()` 会清理过期加成。背包只展示已拥有道具，空背包显示居中提示。
 
 `gameStore.lesson` 是临时答题状态，包含当前题目位置、心心、正确数、反馈、金币和最终结算信息。`startPracticeLesson()` 用于课程巩固和错题重练这类复用章节闯关 UI 的练习，`lesson.isPractice` 会阻止写入章节进度。听力练习和单词复习使用独立 store，但心心扣除、失败页、复活页与通用闯关保持同一套体验。
+
+首页无课程状态下点击 `让我们创建第一课吧` 会先弹出五十音学习引导；选择 `我已学会` 才继续走 AI 配置检查和创建课程流程，选择 `我是初学者` 跳转 `/vocab` 练习 Tab。
 
 ---
 
@@ -255,7 +257,7 @@ word-match 每配对成功一组 +1 金币
 
 ## 练习中心
 
-`VocabPage.jsx` 是“练习中心”，上方五张卡片为 `日语入门`、`听力练习`、`课程巩固`、`单词复习`、`错题重练`，下方“我的笔记”进入 `/vocab/book` 单词本。练习玩法卡片显示当前可用题库数量 tag；错题重练显示错题数量 tag；日语入门不消耗心心。
+`VocabPage.jsx` 是“练习中心”，上方五张卡片为 `日语入门`、`听力练习`、`课程巩固`、`单词复习`、`错题重练`，下方“我的笔记”进入 `/vocab/book` 单词本。练习玩法卡片显示当前可用题库数量 tag；错题重练显示错题数量 tag；日语入门不消耗心心。日语入门卡片首次显示 `New!!`，点击过一次后通过 `japaneseIntroProgressStore` 持久化隐藏。
 
 练习构题工具集中在 `src/lib/*-practice.js`：
 

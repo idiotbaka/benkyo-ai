@@ -258,6 +258,19 @@ rt {
   100% { left: 108%; opacity: 0; }
 }
 
+.practice-entry-new-badge {
+  transform-origin: 50% 80%;
+  animation: practiceEntryNewBadgeHop 1.15s ease-in-out infinite;
+}
+
+@keyframes practiceEntryNewBadgeHop {
+  0%, 100% { transform: translateY(0) scale(1); }
+  18% { transform: translateY(-5px) scale(1.08); }
+  34% { transform: translateY(0) scale(0.98); }
+  48% { transform: translateY(-2px) scale(1.03); }
+  64% { transform: translateY(0) scale(1); }
+}
+
 .japanese-intro-mini-quiz-option--wrong {
   animation: japaneseIntroMiniQuizShake 0.36s ease both;
 }
