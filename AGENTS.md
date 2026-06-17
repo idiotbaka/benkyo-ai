@@ -38,6 +38,8 @@ src/
 │   ├── VocabBookPage.jsx               单词本详情
 │   ├── JapaneseIntroPage.jsx           日语入门：基础知识 + 五十音
 │   ├── JapaneseIntroTopicPage.jsx      日语入门基础知识课件
+│   ├── KanaPreviewPage.jsx             假名学习：本关新假名预习
+│   ├── KanaPracticePage.jsx            假名学习：动态假名课程
 │   ├── ListeningPracticePage.jsx       听力练习
 │   ├── CourseReviewPracticePage.jsx    课程巩固
 │   ├── WordReviewPracticePage.jsx      单词复习
@@ -68,6 +70,7 @@ src/
 │   ├── wrongQuestionStore.js           错题库
 │   ├── appearanceStore.js              图标皮肤
 │   ├── japaneseIntroProgressStore.js   日语入门基础课件小考点进度
+│   ├── kanaPracticeStore.js            假名学习单局状态
 │   ├── listeningPracticeStore.js       听力练习状态
 │   ├── wordReviewPracticeStore.js      单词复习状态
 │   ├── autoGenStore.js                 后台补齐关卡运行态
@@ -78,6 +81,7 @@ src/
 │   ├── badge-progress.js               徽章实时进度计算
 │   ├── equipment-effects.js            护身符/装备实际特效入口
 │   ├── *-practice.js                   练习中心抽题/构题工具
+│   ├── kana-practice.js                假名学习选题、调度和掌握度算法
 │   ├── giftbox-rewards.js              礼物盒掉落与开启奖励
 │   ├── judge-answer.js                 AI 误判申诉
 │   ├── gojuon-audio.js                 五十音内置音频 bundle 读取
@@ -85,7 +89,7 @@ src/
 │   ├── japanese-speech-player.js       日语语音播放控制
 │   ├── sound-effects.js                UI 音效类型和播放
 │   └── schemas/course.js               课程 Zod 结构参考
-└── data/                               静态示例、日语入门、商店与御守数据
+└── data/                               静态示例、日语入门、假名助记、商店与御守数据
 ```
 
 Android 自定义入口：`src-tauri/gen/android/app/src/main/java/com/benkyo/ai/MainActivity.kt`。
@@ -109,6 +113,8 @@ Android 自定义入口：`src-tauri/gen/android/app/src/main/java/com/benkyo/ai
 /practice/course-review            CourseReviewPracticePage
 /practice/word-review              WordReviewPracticePage
 /practice/wrong-review             WrongReviewPracticePage
+/practice/kana/:script/preview     KanaPreviewPage，script 为 hiragana/katakana
+/practice/kana/:script             KanaPracticePage，script 为 hiragana/katakana
 /grammar/:chapterId                GrammarPage
 /settings                          SettingsPage
 ```
@@ -135,7 +141,8 @@ Android 自定义入口：`src-tauri/gen/android/app/src/main/java/com/benkyo/ai
 | `vocabStore` | `benkyo-ai-vocab` | 单词本 |
 | `wrongQuestionStore` | `benkyo-ai-wrong-questions` | 错题库，按章节+关卡+题目稳定去重 |
 | `appearanceStore` | `benkyo-ai-appearance` | 当前图标皮肤，默认 `benkyochan` |
-| `japaneseIntroProgressStore` | `benkyo-ai-japanese-intro-progress` | 日语入门基础课件小考点答对记录和课件完成状态 |
+| `japaneseIntroProgressStore` | `benkyo-ai-japanese-intro-progress` | 日语入门基础课件小考点、课件完成状态、假名掌握度、错选记录和学习统计 |
+| `kanaPracticeStore` | 不持久化 | 假名学习单局 session、答题状态、金币/XP/星级结算和假名进度变更 |
 | `listeningPracticeStore` | 不持久化 | 听力练习特殊玩法状态、心心、失败/复活、结算 |
 | `wordReviewPracticeStore` | 不持久化 | 单词复习特殊玩法状态、心心、失败/复活、结算 |
 | `autoGenStore` | 不持久化 | 后台批量生成进度与 AbortController |
@@ -155,6 +162,7 @@ Android 自定义入口：`src-tauri/gen/android/app/src/main/java/com/benkyo/ai
 
 - `dailyTaskStore.ensureToday()` 每天生成小/中/大三个任务。
 - 进度由各玩法调用 `recordEvent()` 推进；任务首次完成会加入 `toastQueue`，由全局 `DailyTaskToast` 顶部弹出。
+- 假名学习完成使用独立事件 `DAILY_TASK_EVENTS.KANA_STUDY_COMPLETE`，不要复用 `WORD_REVIEW_COMPLETE`。
 - 在“我的”页点击已完成任务宝箱会 `claimTask()`，随后 `userStore.grantReward()` 发放金币或道具，并弹出 `RewardModal`。
 - 每日签到成功后可能额外获得金币加成卡；签到奖励、任务奖励、礼物盒开启和扭蛋额外掉落统一通过 `RewardModal` 展示。
 - 徽章静态定义在 `data/badges.js`，进度统一由 `lib/badge-progress.js` 计算，解锁和累计计数在 `badgeStore`。
@@ -253,7 +261,7 @@ word-match 每配对成功一组 +1 金币
 
 | 功能 | 数据来源 | 进入条件 | 状态/页面 | 奖励 |
 |------|----------|----------|-----------|------|
-| 日语入门 | `japaneseIntroBasics.js` + `gojuonKana.js` | 无心心门槛 | `JapaneseIntroPage` / `JapaneseIntroTopicPage` + `japaneseIntroProgressStore` | 无金币/XP，记录基础课件完成 |
+| 日语入门 | `japaneseIntroBasics.js` + `gojuonKana.js` + `kanaMnemonics.js` | 无心心门槛 | `JapaneseIntroPage` / `JapaneseIntroTopicPage` / `KanaPreviewPage` / `KanaPracticePage` + `japaneseIntroProgressStore` + `kanaPracticeStore` | 基础课件无金币/XP；假名学习答对 +2 金币，XP = 星数 × 10，可能掉落礼物盒 |
 | 听力练习 | 全部 `sentence-translate`，取 `sentence` + `translation` | TTS 已配置、可用题 >= 6 且有心心 | `listeningPracticeStore` + `ListeningPracticePage` | 答对 +5 金币，XP = 星数 × 30，可能掉落礼物盒 |
 | 课程巩固 | 全部关卡 `questions` 随机抽 9 题 | 可用题 >= 9 且有心心 | `gameStore.startPracticeLesson` + `CourseReviewPracticePage` | 同章节闯关 |
 | 单词复习 | `word-match.pairs` 去重后构 10 题 | 可用词条 >= 10 且有心心 | `wordReviewPracticeStore` + `WordReviewPracticePage` | 答对 +2 金币，XP = 星数 × 10，可能掉落礼物盒 |
@@ -263,11 +271,17 @@ word-match 每配对成功一组 +1 金币
 
 日语入门：
 
-- `JapaneseIntroPage.jsx` 有 `基础知识 / 平假名 / 片假名` 三个 tab；基础知识列表读取 `JAPANESE_INTRO_BASICS`，课件进入 `/vocab/japanese-intro/basic/:topicId`。
+- `JapaneseIntroPage.jsx` 有 `基础知识 / 平假名 / 片假名` 三个 tab；基础知识列表读取 `JAPANESE_INTRO_BASICS`，课件进入 `/vocab/japanese-intro/basic/:topicId`。基础知识列表未完成项不显示状态标签，完成后才显示 `已完成`。
 - `JapaneseIntroTopicPage.jsx` 当前包含 9 个基础课件；每讲穿插 2 个 `MiniQuizCard` 小考点。题目数据集中在 `JAPANESE_INTRO_BASIC_MINI_QUIZZES`，支持 `layout: 'stack' | 'grid-2' | 'grid-2x2'`。
 - 小考点答对后播放 `ANSWER_CORRECT`、选项变绿并锁定；答错播放 `ANSWER_WRONG`、选项变红晃动后恢复。答对记录写入 `japaneseIntroProgressStore.quizResults`；同一课件全部小考点答对后列表状态变为 `已完成`。
 - 小考点卡片使用淡色背景和 `sd/sd_lc_incorrect.png` 作为右下 SD 图；按钮和 successText 背景保持半透明，避免遮挡 SD 图。
-- 平假名/片假名 tab 读取 `GOJUON_SECTIONS`；片假名通过 `toKatakanaText()` 从平假名映射显示，播放仍使用平假名音频 key。
+- 平假名/片假名 tab 读取 `GOJUON_SECTIONS`；片假名通过 `toKatakanaText()` 从平假名映射显示，播放仍使用平假名音频 key。假名卡片底部进度条读取 `getKanaDisplayProgress(script, kana)`，平假名和片假名进度分开保存。
+- 点击“开始学习~♥”会调用 `buildKanaPracticeSession(script, progressState)` 现场生成 15~20 题（默认 18 题）并写入 `kanaPracticeStore.start(session)`。若 `session.newKana.length > 0`，先进入 `/practice/kana/:script/preview`；没有新假名则直接进入 `/practice/kana/:script`。
+- 假名课程的长期算法集中在 `lib/kana-practice.js`：清音 -> 浊音/半浊音 -> 拗音分阶段推进；每课最多引入 3 个 `seenCount === 0` 的新假名；低于 40% 的薄弱假名过多时不上新；旧假名按隐藏 recall/due score 混入复习；满格假名也会低频抽查。
+- `japaneseIntroProgressStore` 持久化 `kanaProgress`、`kanaMistakes`、`kanaStudyStats`。课程完成时统一 `applyKanaSessionResult()`：单假名单课普通最高 +20%，80% 以上最高 +12%；答错会扣进度并降低复习箱/ease，历史错选会进入后续干扰项。
+- `KanaPreviewPage.jsx` 展示本关首次学习的新假名，每个横栏包含假名、romaji、内置音频播放和清音助记；清音助记数据在 `data/kanaMnemonics.js`，浊音/半浊音/拗音只展示通用提示。页面顶部使用 `sd/sd_learn.png`。
+- `KanaPracticePage.jsx` 不消耗心心，不存在失败/复活流程，不写 `gameStore.levelProgress`，不写 `wrongQuestionStore`。页面复用 `BattleArena`，但传 `showHearts={false}`，角色上方不显示心心。答错弹出 `FeedbackPanel`；答对只播放正确音效、选项变绿和战斗动画，随后自动进入下一题，不弹正确反馈面板。
+- 假名学习奖励口径与单词复习一致：答对每题 `userStore.addBoostedCoins(2)`，完成后 `awardPracticeXp(星数 × 10)`，受 XP/金币加成和 `equipment-effects.js` 中绘马/达摩/招财猫等装备影响，完成页使用 `drawWordReviewGiftboxReward()` 抽礼物盒，并记录 `DAILY_TASK_EVENTS.KANA_STUDY_COMPLETE`。
 
 听力练习：未配置 TTS 时弹出配置引导；句子先删除标点，再优先使用 `Intl.Segmenter('ja-JP', { granularity: 'word' })` 分词，旧运行时回退逐字符；反馈卡片展示中文翻译。
 
@@ -344,7 +358,7 @@ TTS 缓存：
 五十音内置音频：
 
 - `lib/gojuon-audio.js` 读取 `assets/audio/gojuon/gojuon-audio.bin` 和 `gojuon-audio-index.json`，按 offset/length 切片生成 Blob URL。
-- `JapaneseIntroPage` 的五十音卡片和 `JapaneseIntroTopicPage` 内的 `KanaAudioButton` 使用 gojuon 内置音频，不依赖 TTS 配置，也不写入 TTS IndexedDB 缓存。
+- `JapaneseIntroPage` 的五十音卡片、`JapaneseIntroTopicPage` 内的 `KanaAudioButton`、`KanaPreviewPage` 的新假名播放和 `KanaPracticePage` 的假名题目播放都使用 gojuon 内置音频，不依赖 TTS 配置，也不写入 TTS IndexedDB 缓存。
 - 播放前用 `getGojuonAudioEntry(kana)` 判断是否有音频；片假名播放时需转换为对应平假名 key。Object URL 播放结束或出错后必须 revoke，避免泄漏。
 - 更新 gojuon 音频资源时使用 `npm run audio:gojuon` 生成 bundle；保留 `assets/audio/gojuon/NOTICE.txt`。
 
@@ -352,7 +366,7 @@ TTS 缓存：
 
 - 单词本单词。
 - 语法教程例句与 vocabulary。
-- 日语入门基础课件中的词卡、例句和 gojuon 假名播放（假名播放走内置音频，不走 TTS）。
+- 日语入门基础课件中的词卡、例句、gojuon 假名表、假名预习页和假名学习题目播放（假名播放走内置音频，不走 TTS）。
 - `sentence-translate` 句子按钮与自动播放。
 - 闯关中带假名单词点击播放。
 - `word-fill` 底部日语单词卡片。
@@ -422,7 +436,8 @@ TTS 缓存：
 7. 涉及徽章时区分实时进度和累计计数，解锁只在“我的”页统一检查。
 8. 涉及商店/御守/道具/装备时确认金币扣除、购买条件、背包库存、装备状态、实际特效、收藏计数、已读 New 状态和图标皮肤回退。
 9. 涉及日语入门基础课件时同步检查 `JAPANESE_INTRO_BASICS`、`JAPANESE_INTRO_BASIC_MINI_QUIZZES`、插入位置和 `japaneseIntroProgressStore` 完成状态。
-10. 涉及假名播放时区分 gojuon 内置音频、TTS 语音与 UI 音效；gojuon 播放不依赖 TTS 配置。
-11. 涉及全屏布局时检查 Android 原生 safe area 与 `body overflow:hidden`。
-12. 涉及护身符特效时优先复用 `lib/equipment-effects.js`，避免 UI 展示和实际扣费/结算逻辑分叉。
-13. 修改后至少运行 `npm run lint`；重要功能或路由变更只需运行 `npm run build` 确认即可，不要启动 Vite 开发服务器或内置浏览器。
+10. 涉及假名学习时同步检查 `kana-practice.js`、`kanaPracticeStore.js`、`japaneseIntroProgressStore.js`、`KanaPreviewPage.jsx`、`KanaPracticePage.jsx` 和 `kanaMnemonics.js`；假名学习不扣心、不进错题库、不写章节进度，但完成后有金币/XP/礼物盒和独立每日任务事件。
+11. 涉及假名播放时区分 gojuon 内置音频、TTS 语音与 UI 音效；gojuon 播放不依赖 TTS 配置。
+12. 涉及全屏布局时检查 Android 原生 safe area 与 `body overflow:hidden`。
+13. 涉及护身符特效时优先复用 `lib/equipment-effects.js`，避免 UI 展示和实际扣费/结算逻辑分叉。
+14. 修改后至少运行 `npm run lint`；重要功能或路由变更只需运行 `npm run build` 确认即可，不要启动 Vite 开发服务器或内置浏览器。
