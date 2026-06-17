@@ -39,7 +39,7 @@ const FIRST_LESSON_WRITING_SYSTEMS = [
     example: '日本語',
     exampleReading: 'にほんご',
     romaji: 'nihongo',
-    body: '看起来像中文汉字，主要承担“意思”的部分。你会在单词里慢慢学，不需要一开始背很多。',
+    body: '看起来像中文汉字，对吧～它主要负责告诉我们“意思”。不用一开始背很多，我会陪你在单词里慢慢认识它★',
   },
   {
     title: 'ひらがな',
@@ -48,7 +48,7 @@ const FIRST_LESSON_WRITING_SYSTEMS = [
     example: 'あいうえお',
     exampleReading: 'あいうえお',
     romaji: 'a i u e o',
-    body: '圆润柔和，是日语最基础的读写入口。语法、词尾、初学读物里会大量出现。',
+    body: '圆圆软软的，就是日语入门最亲切的入口♪ 语法、词尾、初学读物里都会常常见到它。',
   },
   {
     title: 'カタカナ',
@@ -57,7 +57,7 @@ const FIRST_LESSON_WRITING_SYSTEMS = [
     example: 'アイウエオ',
     exampleReading: 'アイウエオ',
     romaji: 'a i u e o',
-    body: '棱角更明显，读音常和平假名一一对应。外来语、外国人名、拟声词里很常见。',
+    body: '它的线条更有棱角，读音常常能和平假名配成一对。外来语、人名、拟声词里经常轮到它出场～',
   },
 ];
 
@@ -77,7 +77,7 @@ const FIRST_LESSON_USAGE = [
       { jp: 'です', reading: 'です', romaji: 'desu', cn: '礼貌句尾' },
       { jp: 'を', reading: 'を', romaji: 'o', cn: '助词，标记动作对象' },
     ],
-    body: '初学者可以先把平假名当作默认主线：先会读平假名，后面学单词、语法、句子都会轻松很多。',
+    body: '刚开始可以把平假名当作主线哦～先把它读顺，后面学单词、语法和句子都会轻松很多♪',
   },
   {
     title: '片假名常在“外来或特殊强调的部分”出现',
@@ -86,22 +86,22 @@ const FIRST_LESSON_USAGE = [
       { jp: 'コーヒー', reading: 'コーヒー', romaji: 'kohii', cn: '咖啡' },
       { jp: 'ワンワン', reading: 'ワンワン', romaji: 'wanwan', cn: '狗叫声' },
     ],
-    body: '片假名不是更高级的文字，它只是另一套写法。很多音和平假名相同，只是使用场景不同。',
+    body: '片假名不是“更高级”的文字啦，它只是另一套写法。很多音和平假名相同，只是出场场景不一样～',
   },
 ];
 
 const FIRST_LESSON_STUDY_STEPS = [
   {
     title: '先把平假名当作主线',
-    body: '平假名会出现在基础单词、语法和句尾里。以后学五十音时，可以先把平假名读顺。',
+    body: '我建议先把平假名当主线♪ 它会出现在基础单词、语法和句尾里，读顺之后会很有安全感。',
   },
   {
     title: '再把片假名看成“同音的另一套写法”',
-    body: '片假名不是另一套发音系统。看到 ア、イ、ウ、エ、オ 时，先和 あ、い、う、え、お 对上即可。',
+    body: '片假名不是另一套发音系统哦。看到 ア、イ、ウ、エ、オ 时，先把它们和 あ、い、う、え、お 对上就好～',
   },
   {
-    title: '汉字先认意思，不急着背所有读法',
-    body: '日语汉字会有多个读音。现在只需要知道它常常承担核心意思，读法会在单词里慢慢积累。',
+    title: '汉字先认意思，不急着背全部读法',
+    body: '日语汉字会有多个读音，有点调皮。现在先知道它常常负责核心意思，读法之后交给单词一点点积累★',
   },
 ];
 
@@ -111,71 +111,71 @@ const TERM_CARDS = [
     kana: 'にほんご',
     romaji: 'nihongo',
     cn: '日语',
-    body: '你正在学习的语言名称。它有自己的声音、语法和书写习惯。',
+    body: '这是你正在学习的语言名字♪ 它有自己的声音、语法和书写习惯，我会一点点带你认识。',
   },
   {
     jp: '文字',
     kana: 'もじ',
     romaji: 'moji',
     cn: '文字、字符',
-    body: '用来记录语言的符号。学习日语文字时，我们先区分“表示意思”和“表示声音”。',
+    body: '这是用来记录语言的符号。学日语文字时，我会先帮你分清“表示意思”和“表示声音”这两件事～',
   },
   {
     jp: '漢字',
     kana: 'かんじ',
     romaji: 'kanji',
     cn: '汉字',
-    body: '从汉字文化圈传入日本的文字。它本来很适合表示意思，后来也被拿来借音。',
+    body: '这是从汉字文化圈传入日本的文字。本来很适合表示意思，后来也被拿来借声音用哦。',
   },
   {
     jp: '仮名',
     kana: 'かな',
     romaji: 'kana',
     cn: '假名',
-    body: '记录日语声音的文字。先把它理解成“日语自己的音节文字”就可以。',
+    body: '这是记录日语声音的文字。先把它理解成“日语自己的声音小积木”就可以啦♪',
   },
   {
     jp: '万葉仮名',
     kana: 'まんようがな',
     romaji: 'man\'yogana',
     cn: '万叶假名',
-    body: '早期用汉字的声音来记录日语的写法。它是理解假名来源的重要中间阶段。',
+    body: '这是早期借汉字读音来记录日语的写法。它像一座小桥，能帮我们理解假名从哪里来～',
   },
 ];
 
 const ORIGIN_TIMELINE = [
   {
     title: '1. 日本先有口语，后来借来汉字',
-    body: '古代日本已经有人说自己的语言，但没有像今天这样成熟的本土书写系统。后来，汉字随着文书、佛教、制度和学术传入日本。',
+    body: '很久以前，日本已经有人说自己的语言啦，但还没有今天这样成熟的本土书写系统。后来汉字跟着文书、佛教、制度和学术传入日本。',
   },
   {
     title: '2. 汉字可以表意，也可以借音',
-    body: '汉字本来表示意义，例如 山 表示“山”。为了记录日语声音，人们也会借汉字读音来写日语，这就是万叶假名的思路。',
+    body: '汉字本来擅长表示意义，例如 山 表示“山”。但为了记录日语自己的声音，人们也会借汉字读音来写日语，这就是万叶假名的思路♪',
   },
   {
     title: '3. 借音写法越来越简化',
-    body: '反复用复杂汉字记声音很不方便。写得更快、更稳定之后，一部分简化形逐渐固定，成为今天看到的假名。',
+    body: '一直用复杂汉字记声音会很辛苦。大家写得更快、更稳定之后，一些简化形慢慢固定下来，就变成今天看到的假名啦～',
   },
   {
     title: '4. 平假名和片假名从不同简化方式中形成',
-    body: '平假名多来自草书化的汉字形体，片假名多来自取汉字的一部分。这里先知道来源即可，具体用法放到第 02 讲。',
+    body: '平假名多来自草书化的汉字形体，片假名多来自取汉字的一部分。这里先知道“它们有来源”就好，具体分工我放到第 02 讲带你看★',
   },
 ];
 
 const ORIGIN_EXAMPLES = [
-  { kanji: '安', kana: 'あ', romaji: 'a', type: '平假名', note: 'あ 的来源常被解释为 安 的草书化。' },
-  { kanji: '以', kana: 'い', romaji: 'i', type: '平假名', note: 'い 与 以 的草书化来源有关。' },
-  { kanji: '宇', kana: 'う', romaji: 'u', type: '平假名', note: 'う 与 宇 的草书化来源有关。' },
-  { kanji: '阿', kana: 'ア', audioKana: 'あ', romaji: 'a', type: '片假名', note: 'ア 常被解释为取自 阿 的一部分。' },
-  { kanji: '伊', kana: 'イ', audioKana: 'い', romaji: 'i', type: '片假名', note: 'イ 与 伊 的局部形体有关。' },
-  { kanji: '宇', kana: 'ウ', audioKana: 'う', romaji: 'u', type: '片假名', note: 'ウ 与 宇 的局部形体有关。' },
+  { kanji: '安', kana: 'あ', romaji: 'a', type: '平假名', note: 'あ 常被解释为来自 安 的草书化，像把汉字写软了一点～' },
+  { kanji: '以', kana: 'い', romaji: 'i', type: '平假名', note: 'い 和 以 的草书化来源有关，先把它们当成有亲戚关系就好♪' },
+  { kanji: '宇', kana: 'う', romaji: 'u', type: '平假名', note: 'う 和 宇 的草书化来源有关，写法变轻巧之后就留下了现在的样子。' },
+  { kanji: '阿', kana: 'ア', audioKana: 'あ', romaji: 'a', type: '片假名', note: 'ア 常被解释为取自 阿 的一部分，像从汉字里剪出一个小片段★' },
+  { kanji: '伊', kana: 'イ', audioKana: 'い', romaji: 'i', type: '片假名', note: 'イ 与 伊 的局部形体有关，片假名很多就是这样取一部分形成的。' },
+  { kanji: '宇', kana: 'ウ', audioKana: 'う', romaji: 'u', type: '片假名', note: 'ウ 与 宇 的局部形体有关。看到这里，知道“片假名也有来源”就很棒啦～' },
 ];
 
 const ORIGIN_CHECKS = [
-  '假名是日语文字，不是给汉字临时标音的拼音。',
-  '假名的核心作用是记录日语声音。',
-  '平假名和片假名都属于假名，很多音是一一对应的。',
-  '第 01 讲只需要理解“来源”和“概念”，具体分工在第 02 讲学习。',
+  '假名是日语正文里的文字，不是给汉字临时标音的拼音哦。',
+  '假名最核心的工作，是记录日语的声音～',
+  '平假名和片假名都属于假名，很多音可以一一配对。',
+  '第 01 讲先理解“来源”和“概念”就好，具体分工下一讲我继续带你看★',
 ];
 
 const SCRIPT_ROLES = [
@@ -184,7 +184,7 @@ const SCRIPT_ROLES = [
     reading: 'かんじ / kanji',
     label: '表示核心词义',
     color: '#2563EB',
-    body: '汉字通常承担“看一眼就知道大概意思”的工作。比如 日本、学生、見、飲 这些核心词义常用汉字写。',
+    body: '汉字通常负责“看一眼就抓住大概意思”的工作。比如 日本、学生、見、飲 这些核心词义，常常会用汉字写～',
     examples: [
       { jp: '日本', reading: 'にほん', romaji: 'nihon', cn: '日本' },
       { jp: '学生', reading: 'がくせい', romaji: 'gakusei', cn: '学生' },
@@ -196,7 +196,7 @@ const SCRIPT_ROLES = [
     reading: 'ひらがな / hiragana',
     label: '连接语法和读音',
     color: '#16A34A',
-    body: '平假名常用于助词、词尾变化、没有写汉字的日语词，以及给汉字标读音。它让句子的语法关系变清楚。',
+    body: '平假名常负责助词、词尾变化、没有写汉字的日语词，也会帮汉字标读音。它像语法小丝带，让句子关系变清楚♪',
     examples: [
       { jp: 'は', reading: 'は', romaji: 'wa', cn: '主题助词，实际常读 wa' },
       { jp: 'を', reading: 'を', romaji: 'o', cn: '宾语助词' },
@@ -208,7 +208,7 @@ const SCRIPT_ROLES = [
     reading: 'かたかな / katakana',
     label: '外来语、拟声词和强调',
     color: '#DB2777',
-    body: '片假名常用于从外语借来的词、外国地名人名、拟声拟态词，也可以像中文里的引号或加粗一样制造强调感。',
+    body: '片假名常用于外来语、外国地名人名、拟声拟态词，也能像“加粗提示”一样制造强调感。看到它时可以先竖起小耳朵～',
     examples: [
       { jp: 'テレビ', reading: 'テレビ', romaji: 'terebi', cn: '电视' },
       { jp: 'コーヒー', reading: 'コーヒー', romaji: 'kohii', cn: '咖啡' },
@@ -270,10 +270,10 @@ const WRITING_EXAMPLES = [
 ];
 
 const WRITING_CHECKS = [
-  '汉字主要帮你抓住词义。',
-  '平假名经常告诉你语法关系和词尾变化。',
+  '汉字主要帮你先抓住词义。',
+  '平假名经常告诉你语法关系和词尾变化～',
   '片假名常提醒你：这可能是外来语、声音词或强调。',
-  '一句日语里三套文字一起出现是正常现象，不是排版错误。',
+  '一句日语里三套文字一起出现很正常，不是排版出错啦♪',
 ];
 
 const SENTENCE_TERMS = [
@@ -282,21 +282,21 @@ const SENTENCE_TERMS = [
     jp: '単語',
     reading: 'たんご',
     romaji: 'tango',
-    body: '句子的基本材料，例如 私、学生、水、飲む。词语负责提供人、物、动作、状态等内容。',
+    body: '词语是句子的基本材料，比如 私、学生、水、飲む。它们负责提供人、物、动作、状态这些内容～',
   },
   {
     title: '助词',
     jp: '助詞',
     reading: 'じょし',
     romaji: 'joshi',
-    body: '贴在词语后面的小标记，例如 は、が、を、に。它们告诉你前面的词在句子里扮演什么角色。',
+    body: '助词是贴在词语后面的小标记，比如 は、が、を、に。它们会悄悄告诉我：前面的词在句子里扮演什么角色♪',
   },
   {
     title: '谓语',
     jp: '述語',
     reading: 'じゅつご',
     romaji: 'jutsugo',
-    body: '句子的收尾核心。日语句子通常把“是什么、做什么、怎么样”放在句尾。',
+    body: '谓语是句子的收尾核心。日语句子通常会把“是什么、做什么、怎么样”放在句尾，像给句子系上蝴蝶结～',
   },
 ];
 
@@ -362,10 +362,10 @@ const SENTENCE_EXAMPLES = [
 ];
 
 const SENTENCE_CHECKS = [
-  '日语句子最重要的位置通常是句尾。',
-  '助词是贴在词后的小标记，不要把它们随便丢掉。',
-  '先把句子看成“词语 + 助词 + 谓语”的组合，细节以后再慢慢增加。',
-  '第 03 讲先认识零件，具体语序和助词对比放到第 04 讲。',
+  '日语句子最重要的位置通常在句尾。',
+  '助词是贴在词后的小标记，不要随便丢掉它们哦。',
+  '先把句子看成“词语 + 助词 + 谓语”的组合，细节之后再慢慢加★',
+  '第 03 讲先认识零件，语序和助词对比我会放到第 04 讲继续讲。',
 ];
 
 const PARTICLE_OVERVIEW = [
@@ -374,7 +374,7 @@ const PARTICLE_OVERVIEW = [
     audioKana: 'わ',
     romaji: 'wa',
     title: '提示话题',
-    body: '把前面的词拿出来当作这句话要谈的主题。写作 は，但作为助词时常读 wa。',
+    body: '它会把前面的词拿出来，当作这句话要谈的主题。写作 は，但当助词时常读 wa，记得和我一起换读音～',
     example: '私は学生です。',
     reading: 'わたしはがくせいです。',
     exampleRomaji: 'watashi wa gakusei desu',
@@ -384,7 +384,7 @@ const PARTICLE_OVERVIEW = [
     particle: 'が',
     romaji: 'ga',
     title: '标记主语或新信息',
-    body: '常用来标记“谁/什么在做这件事”，也常用于第一次提出的新信息。',
+    body: '它常用来标记“谁/什么在做这件事”，也常在第一次提出新信息时出场。',
     example: '雨が降ります。',
     reading: 'あめがふります。',
     exampleRomaji: 'ame ga furimasu',
@@ -395,7 +395,7 @@ const PARTICLE_OVERVIEW = [
     audioKana: 'を',
     romaji: 'o',
     title: '标记动作对象',
-    body: '放在被动作影响的对象后面。写作 を，现代标准发音通常接近 o。',
+    body: '它会放在被动作影响的对象后面。写作 を，现代标准发音通常接近 o，声音要轻轻换一下♪',
     example: '水を飲みます。',
     reading: 'みずをのみます。',
     exampleRomaji: 'mizu o nomimasu',
@@ -405,7 +405,7 @@ const PARTICLE_OVERVIEW = [
     particle: 'に',
     romaji: 'ni',
     title: '时间、地点、对象',
-    body: '常标记到达点、存在地点、具体时间或动作面向的对象。先记“指向某个点”。',
+    body: '它常标记到达点、存在地点、具体时间，或动作面向的对象。先把它记成“指向某个点”的小箭头吧～',
     example: '七時に起きます。',
     reading: 'しちじにおきます。',
     exampleRomaji: 'shichiji ni okimasu',
@@ -415,7 +415,7 @@ const PARTICLE_OVERVIEW = [
     particle: 'で',
     romaji: 'de',
     title: '动作发生的场所或手段',
-    body: '常表示“在哪里做”或“用什么做”。先把它理解成动作发生的背景工具。',
+    body: '它常表示“在哪里做”或“用什么做”。可以先把它理解成动作发生的场所或工具背景。',
     example: '学校で勉強します。',
     reading: 'がっこうでべんきょうします。',
     exampleRomaji: 'gakko de benkyo shimasu',
@@ -426,7 +426,7 @@ const PARTICLE_OVERVIEW = [
     audioKana: 'え',
     romaji: 'e',
     title: '方向',
-    body: '表示动作朝向哪里。写作 へ，但作为助词时常读 e。',
+    body: '它表示动作朝向哪里。写作 へ，但作为助词时常读 e，又是一个会换读音的小家伙～',
     example: '学校へ行きます。',
     reading: 'がっこうへいきます。',
     exampleRomaji: 'gakko e ikimasu',
@@ -467,10 +467,10 @@ const WORD_ORDER_EXAMPLES = [
 ];
 
 const PARTICLE_CHECKS = [
-  '日语语序可以移动，但助词通常跟着它前面的词一起移动。',
-  '先找句尾谓语，再从前往后看每个“词语 + 助词”。',
+  '日语语序可以移动，但助词通常会跟着它前面的词一起移动。',
+  '先找句尾谓语，再从前往后看每个“词语 + 助词”～',
   'は、が、を、に、で、へ 先记常见功能，不要一开始追求全部用法。',
-  '助词 は、へ、を 的实际读音容易特殊，看到时要特别注意。',
+  '助词 は、へ、を 的实际读音有点特殊，看到时请多看一眼♪',
 ];
 
 const MORA_EXAMPLES = [
@@ -573,7 +573,7 @@ const MORA_SENTENCES = [
 const LONG_VOWEL_WRITING = [
   {
     title: '平假名里常直接写成多一个元音',
-    body: '平假名长音通常不是写横线，而是把声音拉长的元音写出来。先不要急着推导规则，看到词时按词记。',
+    body: '平假名的长音通常不是写横线，而是把被拉长的元音写出来。先别急着推导规则，看到词时跟我按词记就好～',
     examples: [
       { jp: 'おばあさん', reading: 'おばあさん', romaji: 'obaasan', cn: '奶奶、老奶奶' },
       { jp: 'おじいさん', reading: 'おじいさん', romaji: 'ojiisan', cn: '爷爷、老爷爷' },
@@ -582,7 +582,7 @@ const LONG_VOWEL_WRITING = [
   },
   {
     title: '片假名里常用长音符号 ー',
-    body: '片假名外来语里经常用 ー 表示拉长一拍。它不是装饰符号，也要占一拍。',
+    body: '片假名外来语里经常用 ー 表示拉长一拍。它不是装饰线哦，也要稳稳占一拍♪',
     examples: [
       { jp: 'コーヒー', reading: 'コーヒー', romaji: 'kohii', cn: '咖啡' },
       { jp: 'タクシー', reading: 'タクシー', romaji: 'takushii', cn: '出租车' },
@@ -593,16 +593,16 @@ const LONG_VOWEL_WRITING = [
 
 const MORA_CHECKS = [
   '日语节奏按“拍”来数，不是按中文音节来数。',
-  '长音、促音 っ、拨音 ん 都会占时间。',
-  '小ゃゅょ和前面的假名合成一拍，例如 きゃ 是一拍。',
-  '音拍变了，词义可能会变，所以听和读都要重视长度。',
+  '长音、促音 っ、拨音 ん 都会占时间，不可以偷偷省略～',
+  '小ゃゅょ会和前面的假名合成一拍，例如 きゃ 是一拍。',
+  '音拍变了，词义可能会变，所以听和读都要重视长度♪',
 ];
 
 const GOJUON_STRUCTURE_ROWS = [
   {
     title: 'あ行',
     reading: 'a-gyo',
-    body: '没有辅音开头，直接是五个基本元音。',
+    body: '这一行没有辅音开头，直接就是五个基本元音。先把它们当成声音地基吧～',
     items: [
       { kana: 'あ', romaji: 'a' },
       { kana: 'い', romaji: 'i' },
@@ -614,7 +614,7 @@ const GOJUON_STRUCTURE_ROWS = [
   {
     title: 'か行',
     reading: 'ka-gyo',
-    body: 'k 辅音加五个元音，所以是 ka / ki / ku / ke / ko。',
+    body: '这一行是 k 辅音加五个元音，所以会变成 ka / ki / ku / ke / ko。',
     items: [
       { kana: 'か', romaji: 'ka' },
       { kana: 'き', romaji: 'ki' },
@@ -626,7 +626,7 @@ const GOJUON_STRUCTURE_ROWS = [
   {
     title: 'さ行',
     reading: 'sa-gyo',
-    body: '大体是 s 辅音加元音，但 し 常写作 shi，这是常见罗马音习惯。',
+    body: '这一行大体是 s 辅音加元音，不过 し 常写作 shi，这是常见罗马音习惯♪',
     items: [
       { kana: 'さ', romaji: 'sa' },
       { kana: 'し', romaji: 'shi' },
@@ -638,9 +638,9 @@ const GOJUON_STRUCTURE_ROWS = [
 ];
 
 const GOJUON_STRUCTURE_COLUMNS = [
-  { title: 'あ段', reading: 'a-dan', body: '同一列都带 a 的感觉，例如 あ、か、さ、た、な。', items: ['あ', 'か', 'さ', 'た', 'な'] },
-  { title: 'い段', reading: 'i-dan', body: '同一列都带 i 的感觉，例如 い、き、し、ち、に。', items: ['い', 'き', 'し', 'ち', 'に'] },
-  { title: 'う段', reading: 'u-dan', body: '同一列都带 u 的感觉，例如 う、く、す、つ、ぬ。', items: ['う', 'く', 'す', 'つ', 'ぬ'] },
+  { title: 'あ段', reading: 'a-dan', body: '同一列都带 a 的感觉，例如 あ、か、さ、た、な。像排成一列的小队～', items: ['あ', 'か', 'さ', 'た', 'な'] },
+  { title: 'い段', reading: 'i-dan', body: '同一列都带 i 的感觉，例如 い、き、し、ち、に。先听共同的 i 音♪', items: ['い', 'き', 'し', 'ち', 'に'] },
+  { title: 'う段', reading: 'u-dan', body: '同一列都带 u 的感觉，例如 う、く、す、つ、ぬ。抓住 u 音就不容易迷路啦。', items: ['う', 'く', 'す', 'つ', 'ぬ'] },
 ];
 
 const BASIC_KANA_ROMAJI = {
@@ -671,7 +671,7 @@ const SOUND_GROUPS = [
   {
     title: '清音',
     reading: 'せいおん / seion',
-    body: '没有点点或圈圈的基础音，是五十音表的主体。',
+    body: '没有点点或圈圈的基础音，就是五十音表的主体。先把它当作最原本的声音～',
     rows: [
       { base: 'か', romaji: 'ka' },
       { base: 'さ', romaji: 'sa' },
@@ -682,7 +682,7 @@ const SOUND_GROUPS = [
   {
     title: '浊音',
     reading: 'だくおん / dakuon',
-    body: '给部分清音加两个点「゛」，声音会变浊。',
+    body: '给部分清音加两个点「゛」，声音就会变浊。小点点很小，但作用很大哦♪',
     rows: [
       { base: 'か', changed: 'が', romaji: 'ka → ga' },
       { base: 'さ', changed: 'ざ', romaji: 'sa → za' },
@@ -693,7 +693,7 @@ const SOUND_GROUPS = [
   {
     title: '半浊音',
     reading: 'はんだくおん / handakuon',
-    body: '只出现在 は 行，加小圈「゜」后变成 p 音。',
+    body: '半浊音只出现在 は 行，加小圈「゜」后会变成 p 音。看到小圈圈就想到 p～',
     rows: [
       { base: 'は', changed: 'ぱ', romaji: 'ha → pa' },
       { base: 'ひ', changed: 'ぴ', romaji: 'hi → pi' },
@@ -704,7 +704,7 @@ const SOUND_GROUPS = [
   {
     title: '拗音',
     reading: 'ようおん / yoon',
-    body: '由 い 段假名加小ゃ、小ゅ、小ょ组成，读作一拍。',
+    body: '拗音由 い 段假名加小ゃ、小ゅ、小ょ组成，要合起来读作一拍。',
     rows: [
       { base: 'き', changed: 'きゃ', romaji: 'ki + ya → kya' },
       { base: 'し', changed: 'しゅ', romaji: 'shi + yu → shu' },
@@ -725,9 +725,9 @@ const PRONUNCIATION_WORDS = [
 
 const PRONUNCIATION_CHECKS = [
   '清音是基础音，浊音是在部分清音上加两个点。',
-  '半浊音只在 は 行出现，加圈后读 p 音。',
+  '半浊音只在 は 行出现，加圈后读 p 音～',
   '拗音中的小ゃゅょ要和前一个假名合成一拍。',
-  '看到点点、圈圈、小假名时，读音可能已经变了，不要按原来的清音读。',
+  '看到点点、圈圈、小假名时，读音可能已经变了，请不要按原来的清音读♪',
 ];
 
 const POLITENESS_TERMS = [
@@ -736,21 +736,21 @@ const POLITENESS_TERMS = [
     jp: '敬体',
     reading: 'けいたい',
     romaji: 'keitai',
-    body: '礼貌、稳妥的表达方式。初学阶段最常见的是 です、ます 结尾，适合课堂、店员、陌生人和不确定关系的场景。',
+    body: '敬体是礼貌、稳妥的表达方式。初学阶段最常见的是 です、ます 结尾，适合课堂、店员、陌生人和不确定关系的场景。',
   },
   {
     title: '普通形',
     jp: '普通形',
     reading: 'ふつうけい',
     romaji: 'futsukei',
-    body: '更基础、更短的形式。字典里的动词通常以普通形出现，很多语法也会接在普通形后面。',
+    body: '普通形更基础、也更短。字典里的动词通常以普通形出现，很多语法也会接在普通形后面～',
   },
   {
     title: '丁寧',
     jp: '丁寧',
     reading: 'ていねい',
     romaji: 'teinei',
-    body: '意思是“礼貌、郑重”。看到 丁寧体 时，可以先理解为“礼貌体、敬体”。',
+    body: '丁寧的意思是“礼貌、郑重”。看到 丁寧体 时，可以先理解成“礼貌体、敬体”♪',
   },
 ];
 
@@ -795,15 +795,15 @@ const POLITENESS_PAIRS = [
 const POLITENESS_SCENES = [
   {
     title: '先用敬体最安全',
-    body: '当你和老师、店员、陌生人、年长者说话，或者你不确定关系远近时，用 です、ます 形通常更稳妥。',
+    body: '当你和老师、店员、陌生人、年长者说话，或者你不确定关系远近时，我建议先用 です、ます 形，会更稳妥～',
   },
   {
     title: '普通形不是“不礼貌形”',
-    body: '普通形本身不是粗鲁表达。它常出现在字典、语法说明、新闻标题、亲近关系对话和句子内部结构里。',
+    body: '普通形本身不是粗鲁表达哦。它常出现在字典、语法说明、新闻标题、亲近关系对话和句子内部结构里。',
   },
   {
     title: '学习语法离不开普通形',
-    body: '很多后续语法会接普通形，例如 飲むこと、行かないで、静かだと思います。现在先建立“同一句话有两套形态”的概念。',
+    body: '很多后续语法会接普通形，例如 飲むこと、行かないで、静かだと思います。现在先建立“同一句话有两套形态”的概念就好★',
   },
 ];
 
@@ -834,9 +834,9 @@ const POLITENESS_EXAMPLES = [
 
 const POLITENESS_CHECKS = [
   '初学口语先用 です、ます 形，通常最安全。',
-  '普通形不是粗鲁形，它是很多语法和字典形式的基础。',
+  '普通形不是粗鲁形，它是很多语法和字典形式的基础～',
   '名词和な形容词普通形常用 だ，动词普通形常是字典里的样子。',
-  '同一句话换成敬体或普通形，核心意思大致相同，但关系距离和使用场景不同。',
+  '同一句话换成敬体或普通形，核心意思大致相同，但关系距离和使用场景会不同♪',
 ];
 
 const KANJI_READING_TERMS = [
@@ -845,21 +845,21 @@ const KANJI_READING_TERMS = [
     jp: '音読み',
     reading: 'おんよみ',
     romaji: 'onyomi',
-    body: '大致可以理解为“受汉字传入时读音影响的读法”。常出现在两个以上汉字组成的词里，例如 学生、電話、日本語。',
+    body: '可以大致理解成“受汉字传入时读音影响的读法”。它常出现在两个以上汉字组成的词里，例如 学生、電話、日本語。',
   },
   {
     title: '训读',
     jp: '訓読み',
     reading: 'くんよみ',
     romaji: 'kunyomi',
-    body: '大致可以理解为“用日本原本的词来读这个汉字的意思”。常见于单个汉字词、动词和形容词里，例如 山、読む、赤い。',
+    body: '可以大致理解成“用日本原本的词来读这个汉字的意思”。常见于单个汉字词、动词和形容词里，例如 山、読む、赤い。',
   },
   {
     title: '假名标注',
     jp: '振り仮名',
     reading: 'ふりがな',
     romaji: 'furigana',
-    body: '标在汉字上方或旁边的小假名，用来告诉你这个汉字词应该怎么读。儿童读物、教材和学习 App 很常用。',
+    body: '这是标在汉字上方或旁边的小假名，用来告诉你这个汉字词应该怎么读。儿童读物、教材和学习 App 都很爱用它♪',
   },
 ];
 
@@ -925,14 +925,14 @@ const KANJI_READING_EXAMPLES = [
 const KANJI_READING_CHECKS = [
   '汉字有意思，也可能有不止一个读音。',
   '音读常出现在汉字复合词里，训读常出现在日语本土词和带词尾的词里。',
-  '假名标注会直接告诉你读法，不要只凭中文汉字猜音。',
+  '假名标注会直接告诉你读法，不要只凭中文汉字猜音哦～',
   '初学阶段按“词”记读音最稳，不需要一次背完某个汉字的所有读法。',
 ];
 
 const SPECIAL_YOON_CONTEXTS = [
   {
     title: '这是选修，不是入门必背',
-    body: '清音、浊音、半浊音和常见拗音已经足够支撑入门学习。特殊拗音主要帮助你读现代外来语，先了解原理即可。',
+    body: '清音、浊音、半浊音和常见拗音已经足够支撑入门学习啦。特殊拗音主要帮你读现代外来语，先了解原理即可～',
   },
   {
     title: '它多出现在片假名外来语里',
@@ -940,14 +940,14 @@ const SPECIAL_YOON_CONTEXTS = [
   },
   {
     title: '它是“接近原音”的妥协',
-    body: '日语不是直接复制外语发音，而是把外语声音放进日语可发音、可书写的系统里。ファ、ティ、ウェ 这类写法就是这种妥协的结果。',
+    body: '日语不是直接复制外语发音，而是把外语声音放进日语能发音、能书写的系统里。ファ、ティ、ウェ 这类写法就是这样出现的♪',
   },
 ];
 
 const SPECIAL_YOON_PATTERNS = [
   {
     label: 'F 音',
-    body: '传统假名里只有 フ（fu）比较接近 f。为了表示 fa、fi、fe、fo，会用 フ + 小ァィェォ。',
+    body: '传统假名里只有 フ（fu）比较接近 f。为了表示 fa、fi、fe、fo，就会用 フ + 小ァィェォ 来补足～',
     items: [
       { kana: 'ファ', audioKana: 'ふぁ', romaji: 'fa' },
       { kana: 'フィ', audioKana: 'ふぃ', romaji: 'fi' },
@@ -967,7 +967,7 @@ const SPECIAL_YOON_PATTERNS = [
   },
   {
     label: 'W / E 音',
-    body: 'ウィ、ウェ、ウォ 常用于表示 wi、we、wo；シェ、ジェ、チェ 则常见于 she、je、che 一类外来语音。',
+    body: 'ウィ、ウェ、ウォ 常用于表示 wi、we、wo；シェ、ジェ、チェ 则常见于 she、je、che 这一类外来语音♪',
     items: [
       { kana: 'ウィ', audioKana: 'うぃ', romaji: 'wi' },
       { kana: 'ウェ', audioKana: 'うぇ', romaji: 'we' },
@@ -991,13 +991,13 @@ const SPECIAL_YOON_EXAMPLES = [
 const SPECIAL_YOON_CONTRASTS = [
   {
     title: 'Fight 和 Height 不应该读成一团',
-    body: '如果只能粗略写成 ハイト，fight 和 height 的开头就容易混在一起。ファ 让日语可以更清楚地表现 f 开头的外来语。',
+    body: '如果只能粗略写成 ハイト，fight 和 height 的开头就容易混在一起。ファ 能让日语更清楚地表现 f 开头的外来语～',
     left: { jp: 'ファイト', reading: 'ファイト', romaji: 'faito', cn: 'fight；也常表示“加油”' },
     right: { jp: 'ハイト', reading: 'ハイト', romaji: 'haito', cn: 'height；高度，常见于设计/尺寸语境' },
   },
   {
     title: 'Face 需要 fe，Tea 需要 ti',
-    body: 'フェ、ティ 不是基础五十音里的格子，而是为了让外来语更接近原词声音。看到小ァィゥェォ时，先把它和前一个假名合成一拍读。',
+    body: 'フェ、ティ 不是基础五十音里的格子，而是为了让外来语更接近原词声音。看到小ァィゥェォ时，先把它和前一个假名合成一拍读♪',
     left: { jp: 'フェイス', reading: 'フェイス', romaji: 'feisu', cn: 'face' },
     right: { jp: 'ティー', reading: 'ティー', romaji: 'tii', cn: 'tea / tee' },
   },
@@ -1006,7 +1006,7 @@ const SPECIAL_YOON_CONTRASTS = [
 const SPECIAL_YOON_STUDY_GUIDE = [
   {
     title: '先会认，不急着全部背',
-    body: '你只要知道“前一个片假名 + 小ァィゥェォ”通常是在模拟外来语声音即可。真正记忆可以放到遇到单词时完成。',
+    body: '你只要知道“前一个片假名 + 小ァィゥェォ”通常是在模拟外来语声音即可。真正记忆可以等遇到单词时再完成～',
   },
   {
     title: '把它当作一拍或一组声音读',
@@ -1020,9 +1020,9 @@ const SPECIAL_YOON_STUDY_GUIDE = [
 
 const SPECIAL_YOON_CHECKS = [
   '特殊拗音是选修知识，入门阶段不需要全部背下来。',
-  '它主要服务于现代片假名外来语，用来更接近原词发音。',
-  'ファ、フィ、フェ、フォ 帮助区分 f 系声音，例如 ファイト 和 ハイト。',
-  '看到小ァィゥェォ时，通常要和前一个片假名合成一组声音读。',
+  '它主要服务于现代片假名外来语，用来更接近原词发音～',
+  'ファ、フィ、フェ、フォ 能帮助区分 f 系声音，例如 ファイト 和 ハイト。',
+  '看到小ァィゥェォ时，通常要和前一个片假名合成一组声音读♪',
 ];
 
 export default function JapaneseIntroTopicPage() {
@@ -1118,14 +1118,14 @@ function KanaOriginLesson({ topic }) {
   return (
     <LessonArticle>
       <LessonHero topic={topic} lessonNumber="01">
-        这一讲先让你看懂日语文字的第一张地图：日语会同时使用汉字、平假名和片假名。
-        你不需要背完五十音，先知道它们长什么样、读音怎么对应、为什么会出现。
+        我是勉強ちゃん～这一讲先带你看懂日语文字的第一张地图：汉字、平假名和片假名会一起出场。
+        不用急着背完五十音，先知道它们长什么样、读音怎么对应、为什么会出现就好啦★
       </LessonHero>
 
       <SectionCard title="先看一眼：日语有三类常见文字" eyebrow="FIRST LOOK">
         <p style={paragraphStyle}>
-          如果你完全没学过日语，最容易被一件事吓到：一句日语里可能同时出现像中文的字、圆圆的字、方方的字。
-          这不是乱码，而是现代日语的正常写法。
+          如果你完全没学过日语，可能会先被这件事吓一跳：一句日语里会同时出现像中文的字、圆圆的字、方方的字。
+          别担心～这不是乱码，而是现代日语很正常的写法。
         </p>
         <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
           {FIRST_LESSON_WRITING_SYSTEMS.map(item => (
@@ -1136,13 +1136,13 @@ function KanaOriginLesson({ topic }) {
 
       <SectionCard title="什么是假名？先把它理解成“声音文字”" eyebrow="KANA">
         <p style={paragraphStyle}>
-          假名，就是日语用来记录“声音”的文字。每个假名通常代表一个很短的日语发音单位。
+          假名，就是日语用来记录“声音”的文字。你可以把每个假名想成一颗小声音糖，
           例如 <InlineKana kana="あ" romaji="a" /> 读作 <strong>a</strong>，
           <InlineKana kana="か" romaji="ka" /> 读作 <strong>ka</strong>。
         </p>
         <p style={paragraphStyle}>
-          关键点是：<strong>假名不是中文拼音</strong>。拼音通常是用来给汉字标读音的辅助工具；
-          但假名本身就是日语正文里的文字，会直接写在句子中。
+          我想让你先记住一个关键点：<strong>假名不是中文拼音</strong>。拼音通常是给汉字标读音的辅助工具；
+          但假名本身就是日语正文里的文字，会直接写进句子里哦。
         </p>
         <div style={kanaGridStyle}>
           {KANA_SOUND_SAMPLES.map(item => (
@@ -1155,11 +1155,11 @@ function KanaOriginLesson({ topic }) {
 
       <SectionCard title="平假名和片假名：读音相同，写法不同" eyebrow="HIRAGANA / KATAKANA">
         <p style={paragraphStyle}>
-          日语有两套假名：<strong>平假名</strong>和<strong>片假名</strong>。很多时候，它们是一一对应的：
+          日语有两套假名：<strong>平假名</strong>和<strong>片假名</strong>。很多时候，它们像同音的双胞胎：
           <strong> あ </strong>和<strong> ア </strong>都读 a，<strong> か </strong>和<strong> カ </strong>都读 ka。
         </p>
         <p style={paragraphStyle}>
-          你可以先把它理解成“同一种声音，有两套字体”。真正的区别不在读音，而在使用场景。
+          你可以先把它理解成“同一种声音，有两套衣服”。真正的区别不在读音，而在使用场景～
         </p>
         <div style={{ display: 'grid', gap: 8, marginTop: 12 }}>
           {FIRST_LESSON_KANA_PAIRS.map(pair => (
@@ -1178,7 +1178,7 @@ function KanaOriginLesson({ topic }) {
         </div>
       </SectionCard>
 
-      <SectionCard title="这一讲会反复出现的 5 个词" eyebrow="BASIC WORDS">
+      <SectionCard title="这一讲我想让你认识的 5 个词" eyebrow="BASIC WORDS">
         <div style={{ display: 'grid', gap: 10 }}>
           {TERM_CARDS.map(term => (
             <TermCard key={term.jp} term={term} />
@@ -1188,11 +1188,11 @@ function KanaOriginLesson({ topic }) {
 
       <SectionCard title="日语为什么会用汉字？" eyebrow="HISTORY">
         <p style={paragraphStyle}>
-          现在你已经知道“假名是声音文字”。接下来再看来源就容易多了：古代日本有自己的口语，
-          但没有像今天这样成熟的本土书写系统。后来，汉字传入日本，成为记录文书和知识的重要工具。
+          现在你已经知道“假名是声音文字”啦。接下来再看来源就容易多了：古代日本有自己的口语，
+          但还没有像今天这样成熟的本土书写系统。后来汉字传入日本，成为记录文书和知识的重要工具。
         </p>
         <p style={paragraphStyle}>
-          但日语和中文不是同一种语言。只用汉字表示意思还不够，还需要记录日语自己的声音。于是，人们开始借汉字的音来写日语。
+          可是日语和中文不是同一种语言。只用汉字表示意思还不够，还需要记录日语自己的声音。于是，人们开始借汉字的音来写日语♪
         </p>
         <Timeline items={ORIGIN_TIMELINE} />
       </SectionCard>
@@ -1200,7 +1200,7 @@ function KanaOriginLesson({ topic }) {
       <SectionCard title="从汉字到假名" eyebrow="ORIGIN">
         <p style={paragraphStyle}>
           早期借汉字记音的方式，被称为 <strong>万葉仮名（まんようがな / man&apos;yogana）</strong>。
-          后来书写逐渐简化，形成了平假名和片假名。
+          后来大家越写越简化，慢慢形成了平假名和片假名。
         </p>
         <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
           {ORIGIN_EXAMPLES.map(item => (
@@ -1209,7 +1209,7 @@ function KanaOriginLesson({ topic }) {
         </div>
       </SectionCard>
 
-      <SectionCard title="学完这一讲，接下来怎么上手？" eyebrow="NEXT">
+      <SectionCard title="学完这一讲，我建议这样上手" eyebrow="NEXT">
         <div style={{ display: 'grid', gap: 10 }}>
           {FIRST_LESSON_STUDY_STEPS.map((step, index) => (
             <StudyStepCard key={step.title} step={step} index={index} />
@@ -1226,12 +1226,12 @@ function WritingSystemsLesson({ topic }) {
   return (
     <LessonArticle>
       <LessonHero topic={topic} lessonNumber="02">
-        这一讲专门讲现代日语里三套文字怎么分工。看到一句日语时，先判断每一块文字大概在做什么。
+        这一讲我来专门讲现代日语里三套文字怎么分工。看到一句日语时，先跟我判断每一块文字大概在做什么～
       </LessonHero>
 
       <SectionCard title="同一个音，可能有两种假名写法" eyebrow="KANA PAIRS">
         <p style={paragraphStyle}>
-          平假名和片假名是两套不同的假名。它们常常一一对应，读音相同，但形状和使用场景不同。
+          平假名和片假名是两套不同的假名。它们常常一一对应，读音相同，但形状和使用场景不同，像换了衣服的小声音♪
         </p>
         <div style={{ display: 'grid', gap: 8 }}>
           {PAIRED_KANA.map(pair => (
@@ -1252,7 +1252,7 @@ function WritingSystemsLesson({ topic }) {
 
       <SectionCard title="放进句子里看" eyebrow="MIXED WRITING">
         <p style={paragraphStyle}>
-          现代日语经常混写。下面的例句可以播放整句 TTS，也可以看每一块文字的作用。
+          现代日语经常混写。下面的例句可以播放整句 TTS，也可以跟我一起看每一块文字正在做什么。
         </p>
         <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
           {WRITING_EXAMPLES.map(example => (
@@ -1272,13 +1272,13 @@ function SentenceBuildingLesson({ topic }) {
   return (
     <LessonArticle>
       <LessonHero topic={topic} lessonNumber="03">
-        这一讲先认识日语句子的基本零件：词语、助词和谓语。具体助词差异和语序细节，放到第 04 讲。
+        这一讲我先带你认识日语句子的基本零件：词语、助词和谓语。助词差异和语序细节，我们放到第 04 讲慢慢拆♪
       </LessonHero>
 
       <SectionCard title="日语句子最重要的提示：看句尾" eyebrow="PREDICATE">
         <p style={paragraphStyle}>
-          中文常常靠语序帮助理解：“我 喝 水”。日语也有语序，但初学时更应该先注意句尾。
-          日语句子的结尾通常告诉你这句话是在说“是什么、做什么、怎么样”。
+          中文常常靠语序帮助理解：“我 喝 水”。日语也有语序，但刚入门时，我建议你先注意句尾。
+          日语句子的结尾通常会告诉你这句话是在说“是什么、做什么、怎么样”。
         </p>
         <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
           {PREDICATE_TYPES.map(item => (
@@ -1301,7 +1301,7 @@ function SentenceBuildingLesson({ topic }) {
 
       <SectionCard title="把零件拼成句子" eyebrow="EXAMPLES">
         <p style={paragraphStyle}>
-          下面的例句先按“词语 + 助词 + 谓语”拆开。你暂时不需要记住每个助词的全部用法，只要知道它们是角色标记。
+          下面的例句我先按“词语 + 助词 + 谓语”拆开。你暂时不需要记住每个助词的全部用法，只要知道它们是角色标记就好～
         </p>
         <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
           {SENTENCE_EXAMPLES.map(example => (
@@ -1316,7 +1316,7 @@ function SentenceBuildingLesson({ topic }) {
           如果对话里已经知道主语是“我”，就不一定再说 <strong>私は</strong>。
         </p>
         <p style={paragraphStyle}>
-          所以初学时不要急着把每句日语都逐字翻成中文。先找句尾谓语，再看前面的词和助词给了哪些信息。
+          所以刚开始不要急着把每句日语都逐字翻成中文。先找句尾谓语，再看前面的词和助词给了哪些信息♪
         </p>
       </SectionCard>
 
@@ -1329,7 +1329,7 @@ function WordOrderParticlesLesson({ topic }) {
   return (
     <LessonArticle>
       <LessonHero topic={topic} lessonNumber="04">
-        这一讲把第 03 讲提到的“助词”展开一点：日语不是只靠词的顺序，而是靠助词标记前面词语的角色。
+        这一讲我把第 03 讲提到的“助词”展开一点：日语不是只靠词的顺序，而是靠助词标记前面词语的角色。
       </LessonHero>
 
       <SectionCard title="先抓住一个核心规则" eyebrow="RULE">
@@ -1338,8 +1338,8 @@ function WordOrderParticlesLesson({ topic }) {
           但更关键的是 <strong>助词会贴在词语后面，标记这个词在句子里的角色</strong>。
         </p>
         <p style={paragraphStyle}>
-          也就是说，看到 <strong>水を</strong>，你就知道“水”是动作对象；看到 <strong>学校で</strong>，
-          你就知道“学校”是动作发生的场所。助词通常跟着它前面的词一起理解。
+          也就是说，看到 <strong>水を</strong>，我就知道“水”是动作对象；看到 <strong>学校で</strong>，
+          我就知道“学校”是动作发生的场所。助词通常要和它前面的词贴在一起理解～
         </p>
       </SectionCard>
 
@@ -1355,8 +1355,8 @@ function WordOrderParticlesLesson({ topic }) {
 
       <SectionCard title="语序可以动，助词要跟着走" eyebrow="WORD ORDER">
         <p style={paragraphStyle}>
-          初学阶段可以先用一个保守顺序：<strong>话题 / 时间 / 地点 / 对象 / 谓语</strong>。
-          但真正让句子关系清楚的，是每个词后面的助词。
+          刚开始可以先用一个保守顺序：<strong>话题 / 时间 / 地点 / 对象 / 谓语</strong>。
+          但真正让句子关系清楚的，是每个词后面那颗小小的助词♪
         </p>
         <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
           {WORD_ORDER_EXAMPLES.map(example => (
@@ -1369,7 +1369,7 @@ function WordOrderParticlesLesson({ topic }) {
         <p style={paragraphStyle}>
           有几个助词的读音和普通假名读音不完全一样：<InlineKana kana="は" romaji="wa" />、
           <InlineKana kana="へ" romaji="e" />、<InlineKana kana="を" romaji="o" />。
-          它们写法保留历史形式，但在助词位置时要按助词读音读。
+          它们写法保留历史形式，但在助词位置时要按助词读音读，别被外表骗到啦～
         </p>
         <div style={kanaGridStyle}>
           {[
@@ -1393,7 +1393,7 @@ function MoraRhythmLesson({ topic }) {
   return (
     <LessonArticle>
       <LessonHero topic={topic} lessonNumber="05">
-        这一讲学习日语发音的节奏单位：音拍。日语里“短一拍、长一拍、停一拍”都可能改变词义。
+        这一讲我带你学习日语发音的节奏单位：音拍。日语里“短一拍、长一拍、停一拍”都可能改变词义哦。
       </LessonHero>
 
       <SectionCard title="什么是音拍？" eyebrow="MORA">
@@ -1402,8 +1402,8 @@ function MoraRhythmLesson({ topic }) {
           <InlineKana kana="か" romaji="ka" /> 是一拍，<InlineKana kana="な" romaji="na" /> 也是一拍。
         </p>
         <p style={paragraphStyle}>
-          但不是“一个大字就是一拍”。小ゃゅょ会和前面的假名合成一拍；而
-          <strong> ん、长音、促音 っ</strong> 虽然看起来小或不明显，也会占一拍。
+          但不是“一个大字就是一拍”哦。小ゃゅょ会和前面的假名合成一拍；而
+          <strong> ん、长音、促音 っ</strong> 虽然看起来小或不明显，也会占一拍～
         </p>
       </SectionCard>
 
@@ -1419,7 +1419,7 @@ function MoraRhythmLesson({ topic }) {
 
       <SectionCard title="音拍变了，词义可能变" eyebrow="COMPARE">
         <p style={paragraphStyle}>
-          下面这些词看起来很像，但长音或促音多一拍，意思就会变。每个词可以用 TTS 播放整词。
+          下面这些词看起来很像，但长音或促音多一拍，意思就会变。你可以播放整词，和我一起听差别♪
         </p>
         <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
           {MORA_WORDS.map(word => (
@@ -1432,7 +1432,7 @@ function MoraRhythmLesson({ topic }) {
 
       <SectionCard title="长音到底怎么写？" eyebrow="LONG VOWEL">
         <p style={paragraphStyle}>
-          初学者最容易漏掉长音，因为中文里不会用同样方式标记“多一拍”。日语里长音的写法会因平假名、片假名而不同。
+          刚入门最容易漏掉长音，因为中文里不会用同样方式标记“多一拍”。日语里长音的写法会因平假名、片假名而不同。
         </p>
         <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
           {LONG_VOWEL_WRITING.map(group => (
@@ -1458,13 +1458,13 @@ function PronunciationBasicsLesson({ topic }) {
   return (
     <LessonArticle>
       <LessonHero topic={topic} lessonNumber="06">
-        这一讲把五十音表之外最常见的读音变化放到一张地图里：清音、浊音、半浊音和拗音。
+        这一讲我把五十音表之外最常见的读音变化放到一张地图里：清音、浊音、半浊音和拗音。
       </LessonHero>
 
       <SectionCard title="先看懂五十音表的行和段" eyebrow="TABLE">
         <p style={paragraphStyle}>
-          五十音表不是随机排列。横向常叫 <strong>行（ぎょう / gyo）</strong>，
-          纵向常叫 <strong>段（だん / dan）</strong>。先理解这个坐标，后面的浊音和拗音会更好记。
+          五十音表不是随机排列哦。横向常叫 <strong>行（ぎょう / gyo）</strong>，
+          纵向常叫 <strong>段（だん / dan）</strong>。先理解这个坐标，后面的浊音和拗音会更好记♪
         </p>
         <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
           {GOJUON_STRUCTURE_ROWS.map(row => (
@@ -1479,7 +1479,7 @@ function PronunciationBasicsLesson({ topic }) {
       <SectionCard title="先看四组读音变化" eyebrow="SOUNDS">
         <p style={paragraphStyle}>
           清音是基础；加两个点会变成浊音；は 行加圈会变成半浊音；い 段假名加小ゃゅょ会形成拗音。
-          点每个假名可以播放内置 gojuon 音频。
+          点每个假名都可以播放内置 gojuon 音频，听一听会更好记～
         </p>
         <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
           {SOUND_GROUPS.map(group => (
@@ -1493,7 +1493,7 @@ function PronunciationBasicsLesson({ topic }) {
       <SectionCard title="为什么要单独学这些？" eyebrow="MEANING">
         <p style={paragraphStyle}>
           因为这些小变化会直接影响听力和词义。比如 <strong>かき</strong> 和 <strong>かぎ</strong>，
-          只差一个点点，读音和意思就不同；<strong>きや</strong> 和 <strong>きゃ</strong> 的节奏也不同。
+          只差一个点点，读音和意思就不同；<strong>きや</strong> 和 <strong>きゃ</strong> 的节奏也不同。小符号真的很有存在感★
         </p>
         <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
           {PRONUNCIATION_WORDS.map(word => (
@@ -1505,7 +1505,7 @@ function PronunciationBasicsLesson({ topic }) {
       <SectionCard title="拗音要当作一拍读" eyebrow="YOON">
         <p style={paragraphStyle}>
           拗音里的 ゃ、ゅ、ょ 必须写小，和前面的假名合成一个音。例如
-          <InlineKana kana="きゃ" romaji="kya" /> 是一拍，不是 き + や 两拍。
+          <InlineKana kana="きゃ" romaji="kya" /> 是一拍，不是 き + や 两拍。请把它们抱成一组读♪
         </p>
         <div style={kanaGridStyle}>
           {[
@@ -1531,7 +1531,7 @@ function PolitePlainLesson({ topic }) {
   return (
     <LessonArticle>
       <LessonHero topic={topic} lessonNumber="07">
-        这一讲学习同一句话的两种常见表达层级：敬体更礼貌稳妥，普通形更基础，也更常出现在字典和语法连接里。
+        这一讲我带你学习同一句话的两种常见表达层级：敬体更礼貌稳妥，普通形更基础，也更常出现在字典和语法连接里。
       </LessonHero>
 
       <SectionCard title="先认识三个关键词" eyebrow="TERMS">
@@ -1547,7 +1547,7 @@ function PolitePlainLesson({ topic }) {
       <SectionCard title="敬体和普通形怎么对应？" eyebrow="PAIRS">
         <p style={paragraphStyle}>
           先不要急着背所有变化规则。你只需要看出：敬体常用 <strong>です / ます</strong>，
-          普通形更短，也更接近字典或语法书里的基本形。
+          普通形更短，也更接近字典或语法书里的基本形。先认脸就很棒啦～
         </p>
         <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
           {POLITENESS_PAIRS.map(pair => (
@@ -1568,7 +1568,7 @@ function PolitePlainLesson({ topic }) {
 
       <SectionCard title="放进句子里看语气" eyebrow="EXAMPLES">
         <p style={paragraphStyle}>
-          下面两句分别展示敬体和普通形。它们的核心意思不难，但给人的关系距离不同。
+          下面两句分别展示敬体和普通形。它们的核心意思不难，但给人的关系距离会不一样♪
         </p>
         <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
           {POLITENESS_EXAMPLES.map(example => (
@@ -1579,11 +1579,11 @@ function PolitePlainLesson({ topic }) {
 
       <SectionCard title="初学者的使用策略" eyebrow="GUIDE">
         <p style={paragraphStyle}>
-          开口说话时，如果你不知道该用哪一种，先用敬体。学习语法时，不要害怕普通形，因为它会成为后续变化的基础。
+          开口说话时，如果你不知道该用哪一种，我建议先用敬体。学习语法时，也不要害怕普通形，因为它会成为后续变化的基础。
         </p>
         <p style={paragraphStyle}>
-          你可以把两者理解成两条轨道：<strong>敬体轨道负责对人礼貌表达</strong>，
-          <strong>普通形轨道负责语法连接和亲近表达</strong>。两条都重要，只是使用场景不同。
+          我会把两者理解成两条轨道：<strong>敬体轨道负责对人礼貌表达</strong>，
+          <strong>普通形轨道负责语法连接和亲近表达</strong>。两条都重要，只是使用场景不同～
         </p>
       </SectionCard>
 
@@ -1596,16 +1596,16 @@ function OnyomiKunyomiLesson({ topic }) {
   return (
     <LessonArticle>
       <LessonHero topic={topic} lessonNumber="08">
-        这一讲解释为什么日语汉字会有多个读音，以及教材里的假名标注如何帮你读出生词。
+        这一讲我来解释为什么日语汉字会有多个读音，以及教材里的假名标注怎么帮你读出生词。
       </LessonHero>
 
       <SectionCard title="先建立一个重要认知" eyebrow="KANJI">
         <p style={paragraphStyle}>
           日语汉字不像中文那样通常只按一个稳定读音来读。一个汉字有“意思”，但在不同词里可能读不同音。
-          所以看到汉字时，不要只凭中文经验猜读音。
+          所以看到汉字时，不要只凭中文经验猜读音，我会教你更稳的方法～
         </p>
         <p style={paragraphStyle}>
-          初学阶段最稳的方法是：<strong>把汉字放在词里记</strong>。例如 学生 读
+          刚开始最稳的方法是：<strong>把汉字放在词里记</strong>。例如 学生 读
           <strong> がくせい / gakusei</strong>，不是把每个字随便拆开猜。
         </p>
       </SectionCard>
@@ -1622,7 +1622,7 @@ function OnyomiKunyomiLesson({ topic }) {
 
       <SectionCard title="同一个汉字，读法可能不同" eyebrow="ON / KUN">
         <p style={paragraphStyle}>
-          下面每张卡都展示同一个汉字的训读和音读例子。先理解“为什么会有两类读法”，不用一次背完。
+          下面每张卡都展示同一个汉字的训读和音读例子。先理解“为什么会有两类读法”，不用一次背完哦♪
         </p>
         <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
           {KANJI_READING_PAIRS.map(pair => (
@@ -1634,7 +1634,7 @@ function OnyomiKunyomiLesson({ topic }) {
       <SectionCard title="假名标注怎么帮你？" eyebrow="FURIGANA">
         <p style={paragraphStyle}>
           假名标注，也叫 <strong>振り仮名（ふりがな / furigana）</strong>，会把读音写在汉字上方。
-          它的作用不是翻译，而是告诉你“这个词应该怎么读”。
+          它的作用不是翻译，而是告诉你“这个词应该怎么读”，像我递给你的小扶手～
         </p>
         <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
           {FURIGANA_EXAMPLES.map(item => (
@@ -1656,9 +1656,9 @@ function OnyomiKunyomiLesson({ topic }) {
       <SectionCard title="初学者怎么记最有效？" eyebrow="GUIDE">
         <div style={{ display: 'grid', gap: 10 }}>
           {[
-            { title: '按词记，不按单字硬猜', body: '先记 日本語=にほんご、学生=がくせい、山=やま。词读熟了，汉字读音会自然积累。' },
-            { title: '看到假名标注就认真读', body: '假名标注是给你的阅读扶手。多读几次，慢慢就能离开标注。' },
-            { title: '例外以后再处理', body: '日语汉字有不少特殊读法。现在先掌握音读、训读、假名标注这三个基本概念。' },
+            { title: '按词记，不按单字硬猜', body: '先记 日本語=にほんご、学生=がくせい、山=やま。词读熟了，汉字读音会自然积累～' },
+            { title: '看到假名标注就认真读', body: '假名标注是给你的阅读小扶手。多读几次，慢慢就能离开扶手啦。' },
+            { title: '例外以后再处理', body: '日语汉字有不少特殊读法。现在先掌握音读、训读、假名标注这三个基本概念就好★' },
           ].map(item => (
             <InfoBlock key={item.title} item={item} />
           ))}
@@ -1674,7 +1674,7 @@ function SpecialYoonLoanwordsLesson({ topic }) {
   return (
     <LessonArticle>
       <LessonHero topic={topic} lessonNumber="09">
-        这一讲是选修课。它不会要求你在入门阶段背完所有特殊组合，而是帮你理解现代片假名外来语为什么会出现
+        这一讲是选修小课堂～我不会要求你在入门阶段背完所有特殊组合，只会帮你理解现代片假名外来语为什么会出现
         ファ、ティ、ウェ 这样的写法。
       </LessonHero>
 
@@ -1696,7 +1696,7 @@ function SpecialYoonLoanwordsLesson({ topic }) {
         </p>
         <p style={paragraphStyle}>
           所以现代片假名会使用“小假名”来补足：<strong>フ + ァ = ファ（fa）</strong>，
-          <strong>テ + ィ = ティ（ti）</strong>。这不是新的五十音表，而是外来语书写里常见的扩展写法。
+          <strong>テ + ィ = ティ（ti）</strong>。这不是新的五十音表，而是外来语书写里常见的扩展写法哦。
         </p>
       </SectionCard>
 
@@ -1704,7 +1704,7 @@ function SpecialYoonLoanwordsLesson({ topic }) {
 
       <SectionCard title="常见特殊拗音组合" eyebrow="PATTERNS">
         <p style={paragraphStyle}>
-          点击每个组合可以播放内置 gojuon 音频。先熟悉它们的“形”和“音”，不需要一次全部记牢。
+          点击每个组合可以播放内置 gojuon 音频。先熟悉它们的“形”和“音”，不需要一次全部记牢～
         </p>
         <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
           {SPECIAL_YOON_PATTERNS.map(group => (
@@ -1715,7 +1715,7 @@ function SpecialYoonLoanwordsLesson({ topic }) {
 
       <SectionCard title="它解决了什么区分问题？" eyebrow="CONTRAST">
         <p style={paragraphStyle}>
-          特殊拗音的价值，不只是“看起来更像外语”，更重要的是减少混淆。下面两组对比可以先建立直觉。
+          特殊拗音的价值，不只是“看起来更像外语”，更重要的是减少混淆。下面两组对比我先带你建立直觉♪
         </p>
         <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
           {SPECIAL_YOON_CONTRASTS.map(item => (
