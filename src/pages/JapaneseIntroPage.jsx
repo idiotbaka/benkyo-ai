@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import { JAPANESE_INTRO_BASICS, getJapaneseIntroMiniQuizzes } from '../data/japaneseIntroBasics';
 import { GOJUON_SECTIONS, toKatakanaText } from '../data/gojuonKana';
+import { buildKanaPracticeSession, getKanaDisplayProgressColor } from '../lib/kana-practice';
 import { createGojuonAudioUrl, getGojuonAudioEntry } from '../lib/gojuon-audio';
 import { useIcon } from '../lib/icons';
+import useKanaPracticeStore from '../store/kanaPracticeStore';
 import useJapaneseIntroProgressStore from '../store/japaneseIntroProgressStore';
 
 gsap.registerPlugin(useGSAP);
@@ -16,10 +18,16 @@ const TABS = [
   { id: 'katakana', label: '片假名' },
 ];
 
+function getTabFromSearch(search) {
+  const tab = new URLSearchParams(search).get('tab');
+  return TABS.some(item => item.id === tab) ? tab : 'basics';
+}
+
 export default function JapaneseIntroPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const cakeImg = useIcon('sd/sd_cake.png');
-  const [activeTab, setActiveTab] = useState('basics');
+  const activeTab = getTabFromSearch(location.search);
   const headerRef = useRef(null);
   const contentRef = useRef(null);
 
@@ -31,6 +39,18 @@ export default function JapaneseIntroPage() {
     gsap.to(headerRef.current, { opacity: 1, y: 0, duration: 0.38, ease: 'back.out(2)' });
     gsap.to(contentRef.current, { opacity: 1, y: 0, duration: 0.35, ease: 'back.out(1.7)', delay: 0.08 });
   }, []);
+
+  const handleTabChange = useCallback((tabId) => {
+    navigate(tabId === 'basics' ? '/vocab/japanese-intro' : `/vocab/japanese-intro?tab=${tabId}`, { replace: true });
+  }, [navigate]);
+
+  const handleStartKanaPractice = useCallback((script) => {
+    const progressState = useJapaneseIntroProgressStore.getState();
+    const session = buildKanaPracticeSession(script, progressState);
+    const started = useKanaPracticeStore.getState().start(session);
+    if (!started) return;
+    navigate(session.newKana?.length > 0 ? `/practice/kana/${script}/preview` : `/practice/kana/${script}`);
+  }, [navigate]);
 
   return (
     <div data-ui-click-sfx className="h-full overflow-y-auto scroll-y" style={{ background: '#F5F3FF' }}>
@@ -94,7 +114,7 @@ export default function JapaneseIntroPage() {
                 key={tab.id}
                 type="button"
                 className="btn-press"
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => handleTabChange(tab.id)}
                 style={{
                   height: 34,
                   borderRadius: 999,
@@ -121,7 +141,7 @@ export default function JapaneseIntroPage() {
           <KanaStudyPanel script={activeTab} />
         )}
       </div>
-      {activeTab !== 'basics' && <StartStudyButton />}
+      {activeTab !== 'basics' && <StartStudyButton onStart={() => handleStartKanaPractice(activeTab)} />}
     </div>
   );
 }
@@ -134,19 +154,6 @@ function BasicsList({ onOpenTopic }) {
       {JAPANESE_INTRO_BASICS.map((topic, index) => {
         const quizzes = getJapaneseIntroMiniQuizzes(topic.id);
         const isComplete = quizzes.length > 0 && quizzes.every(quiz => quizResults?.[topic.id]?.[quiz.id]?.correct);
-        const statusStyle = isComplete
-          ? {
-              background: '#DCFCE7',
-              borderColor: '#86EFAC',
-              color: '#15803D',
-              boxShadow: '0 2px 0 #BBF7D0',
-            }
-          : {
-              background: '#FFF7ED',
-              borderColor: '#FED7AA',
-              color: '#C2410C',
-              boxShadow: '0 2px 0 #FFEDD5',
-            };
 
         return (
           <button
@@ -177,19 +184,23 @@ function BasicsList({ onOpenTopic }) {
                 </h2>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
-                <span
-                  style={{
-                    border: `1.5px solid ${statusStyle.borderColor}`,
-                    borderRadius: 999,
-                    padding: '3px 9px',
-                    fontSize: 11,
-                    fontWeight: 900,
-                    whiteSpace: 'nowrap',
-                    ...statusStyle,
-                  }}
-                >
-                  {isComplete ? '已完成' : '待完成'}
-                </span>
+                {isComplete && (
+                  <span
+                    style={{
+                      border: '1.5px solid #86EFAC',
+                      borderRadius: 999,
+                      padding: '3px 9px',
+                      fontSize: 11,
+                      fontWeight: 900,
+                      whiteSpace: 'nowrap',
+                      background: '#DCFCE7',
+                      color: '#15803D',
+                      boxShadow: '0 2px 0 #BBF7D0',
+                    }}
+                  >
+                    已完成
+                  </span>
+                )}
                 <span
                   aria-hidden="true"
                   style={{
@@ -240,6 +251,8 @@ function BasicsList({ onOpenTopic }) {
 }
 
 function KanaStudyPanel({ script }) {
+  useJapaneseIntroProgressStore(s => s.kanaProgress?.[script]);
+  const getKanaDisplayProgress = useJapaneseIntroProgressStore(s => s.getKanaDisplayProgress);
   const [loadingAudioKey, setLoadingAudioKey] = useState('');
   const [playingAudioKey, setPlayingAudioKey] = useState('');
   const audioRef = useRef(null);
@@ -321,6 +334,7 @@ function KanaStudyPanel({ script }) {
           script={script}
           loadingAudioKey={loadingAudioKey}
           playingAudioKey={playingAudioKey}
+          getKanaDisplayProgress={getKanaDisplayProgress}
           onPlayKana={handlePlayKana}
         />
       ))}
@@ -328,7 +342,7 @@ function KanaStudyPanel({ script }) {
   );
 }
 
-function KanaSection({ section, script, loadingAudioKey, playingAudioKey, onPlayKana }) {
+function KanaSection({ section, script, loadingAudioKey, playingAudioKey, getKanaDisplayProgress, onPlayKana }) {
   return (
     <section
       style={{
@@ -367,6 +381,7 @@ function KanaSection({ section, script, loadingAudioKey, playingAudioKey, onPlay
                     style={{ gridColumn: `${index + 1}` }}
                     isLoading={loadingAudioKey === item.kana}
                     isPlaying={playingAudioKey === item.kana}
+                    progressPct={getKanaDisplayProgress(script, item.kana)}
                     onPlay={() => onPlayKana(item.kana)}
                   />
                 ) : null)}
@@ -389,6 +404,7 @@ function KanaSection({ section, script, loadingAudioKey, playingAudioKey, onPlay
                 columns={section.columns}
                 isLoading={loadingAudioKey === item.kana}
                 isPlaying={playingAudioKey === item.kana}
+                progressPct={getKanaDisplayProgress(script, item.kana)}
                 onPlay={() => onPlayKana(item.kana)}
               />
             ))}
@@ -399,11 +415,13 @@ function KanaSection({ section, script, loadingAudioKey, playingAudioKey, onPlay
   );
 }
 
-function KanaCard({ item, script, columns, isLoading, isPlaying, onPlay, style }) {
+function KanaCard({ item, script, columns, isLoading, isPlaying, progressPct = 0, onPlay, style }) {
   const displayKana = script === 'katakana' ? toKatakanaText(item.kana) : item.kana;
   const disabled = !getGojuonAudioEntry(item.kana);
   const isWide = columns === 3;
   const active = isLoading || isPlaying;
+  const normalizedProgress = Math.max(0, Math.min(100, Math.round(progressPct)));
+  const progressColor = getKanaDisplayProgressColor(normalizedProgress);
 
   return (
     <button
@@ -412,6 +430,7 @@ function KanaCard({ item, script, columns, isLoading, isPlaying, onPlay, style }
       onClick={onPlay}
       disabled={disabled}
       aria-label={disabled ? `暂无「${displayKana}」音频` : `播放「${displayKana}」`}
+      aria-description={`学习进度 ${normalizedProgress}%`}
       style={{
         ...style,
         background: 'white',
@@ -470,10 +489,11 @@ function KanaCard({ item, script, columns, isLoading, isPlaying, onPlay, style }
         <span
           style={{
             display: 'block',
-            width: 0,
+            width: `${normalizedProgress}%`,
             height: '100%',
             borderRadius: 999,
-            background: '#FFCC22',
+            background: progressColor,
+            transition: 'width 0.26s ease, background-color 0.26s ease',
           }}
         />
       </span>
@@ -481,7 +501,7 @@ function KanaCard({ item, script, columns, isLoading, isPlaying, onPlay, style }
   );
 }
 
-function StartStudyButton() {
+function StartStudyButton({ onStart }) {
   return (
     <div
       style={{
@@ -498,7 +518,7 @@ function StartStudyButton() {
       <button
         type="button"
         className="btn-press japanese-intro-start-button"
-        onClick={() => {}}
+        onClick={onStart}
         style={{
           width: 'min(100%, 720px)',
           height: 58,
