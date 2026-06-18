@@ -5,7 +5,7 @@
 <h1 align="center">日学 (Benkyo AI)</h1>
 
 日学是一款使用 AI 来生成专属定制课程的游戏化日语学习 App，数据完全存储在本地，交互体验参考 Duolingo。
-它搭建了一套学习循环：生成课程，完成关卡，复习薄弱项，收集奖励，继续前进。
+即使是完全零基础也能够上手，它搭建了一套学习循环：生成课程，完成关卡，复习薄弱项，收集奖励，继续前进。
 
 ## 使用前配置
 
@@ -14,9 +14,53 @@
 | 配置 | 是否必需 | 用途 | 支持 |
 | --- | --- | --- | --- |
 | AI 模型 | 必需 | 课程生成、题目生成 | OpenAI、Anthropic、Google Gemini、DeepSeek<br>阿里云百炼 / Qwen、月之暗面 Kimi、智谱 GLM、MiniMax<br>火山引擎 / 豆包、百度千帆 / 文心、腾讯混元<br>自定义 OpenAI-compatible 端点 |
-| TTS 语音模型 | 可选，推荐配置 | 日语句子、单词和语法例句朗读 | CosyVoice、Qwen-TTS<br>MiniMax（阿里云百炼 / 官方 API）<br>豆包语音（火山引擎） |
+| TTS 语音模型 | 可选，推荐配置 | 日语句子、单词和语法例句朗读 | OpenAI TTS、CosyVoice、Qwen-TTS<br>MiniMax（阿里云百炼 / 官方 API）<br>豆包语音（火山引擎） |
 
 ## 截图导览
+
+<details>
+<summary><strong>日语入门与假名学习</strong></summary>
+
+<br>
+
+<table>
+  <tr>
+    <td align="center" width="33%">
+      <img src="images/Screenshot_2026-06-18-14-15-02-653_com.benkyo.ai.jpg" width="220" alt="日语入门课程列表"><br>
+      <strong>日语入门</strong><br>
+      <sub>从基础知识、平假名和片假名开始系统学习。</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="images/Screenshot_2026-06-18-14-15-37-676_com.benkyo.ai.jpg" width="220" alt="日语基础知识课件"><br>
+      <strong>基础知识课件</strong><br>
+      <sub>分章节讲解文字体系、句子结构和实用基础知识。</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="images/Screenshot_2026-06-18-14-15-51-970_com.benkyo.ai.jpg" width="220" alt="平片假名学习列表"><br>
+      <strong>平假名、片假名学习</strong><br>
+      <sub>分阶段学习，算法分配学习进度并记录掌握度。</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="33%">
+      <img src="images/Screenshot_2026-06-18-14-16-05-850_com.benkyo.ai.jpg" width="220" alt="清音浊音拗音学习"><br>
+      <strong>包括清音、浊音、半浊音和拗音</strong><br>
+      <sub>平假名和片假名独立推进，长按卡片可学习写法。</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="images/Screenshot_2026-06-18-14-16-21-538_com.benkyo.ai.jpg" width="220" alt="假名笔顺跟写"><br>
+      <strong>假名跟写</strong><br>
+      <sub>跟随笔顺逐笔书写，实时判定书写是否正确。</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="images/Screenshot_2026-06-18-14-17-39-359_com.benkyo.ai.jpg" width="220" alt="假名学习闯关"><br>
+      <strong>假名闯关</strong><br>
+      <sub>通过听音选字、看字选音等动态题型巩固记忆。</sub>
+    </td>
+  </tr>
+</table>
+
+</details>
 
 <details>
 <summary><strong>AI 生成与章节地图</strong></summary>
