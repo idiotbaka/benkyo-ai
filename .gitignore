@@ -20,6 +20,10 @@ dist-ssr
 /src/assets/audio/gojuon/**/*.wav
 /src/assets/audio/gojuon/manifest.json
 
+# Local KanjiVG source SVG directory used to regenerate kana tracing assets.
+# Commit src/assets/kana-trace instead.
+/kanji/
+
 # Local AI instructions and repository automation
 .claude/
 .github/*

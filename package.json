@@ -9,6 +9,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "audio:gojuon": "node scripts/build-gojuon-audio-bundle.mjs",
+    "kana:trace": "node scripts/extract-kanjivg-kana.mjs",
     "preview": "vite preview",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
