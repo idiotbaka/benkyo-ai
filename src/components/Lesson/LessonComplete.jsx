@@ -125,7 +125,7 @@ export default function LessonComplete() {
 
   const finishNavigation = () => {
     exitLesson();
-    navigate(lesson?.returnPath ?? '/');
+    navigate(-1);
   };
 
   const handleContinue = () => {

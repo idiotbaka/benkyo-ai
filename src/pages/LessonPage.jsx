@@ -23,7 +23,7 @@ export default function LessonPage() {
 
   if (!lesson) {
     // Redirect back if no valid lesson data (e.g. direct URL to empty level)
-    navigate('/');
+    navigate('/', { replace: true });
     return null;
   }
 

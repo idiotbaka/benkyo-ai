@@ -81,7 +81,7 @@ export default function ReviveSheet({ hasCake, cakeCount, canBuyCake, coins, ses
       return;
     }
     exitLesson();
-    navigate(activeSession?.returnPath ?? '/');
+    navigate(-1);
   };
   const targetPath = returnPath ?? activeSession?.returnPath;
   const returnLabel = targetPath === '/vocab' ? '回到练习中心' : '回到首页';

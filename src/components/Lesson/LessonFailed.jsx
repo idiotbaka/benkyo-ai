@@ -16,7 +16,7 @@ export default function LessonFailed() {
       session={lesson}
       onExit={() => {
         exitLesson();
-        navigate(lesson?.returnPath ?? '/');
+        navigate(-1);
       }}
     />
   );

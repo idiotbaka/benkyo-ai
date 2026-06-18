@@ -52,7 +52,7 @@ function WordReviewPracticeScreen() {
   const handleExit = () => {
     stopJapaneseSpeech();
     exit();
-    navigate('/vocab');
+    navigate(-1);
   };
 
   const handleContinue = () => {

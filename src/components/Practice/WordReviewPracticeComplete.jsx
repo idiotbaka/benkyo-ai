@@ -100,7 +100,7 @@ export default function WordReviewPracticeComplete() {
 
   const finishNavigation = () => {
     exit();
-    navigate('/vocab');
+    navigate(-1);
   };
 
   const handleContinue = () => {

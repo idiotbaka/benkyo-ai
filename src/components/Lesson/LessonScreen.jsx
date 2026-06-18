@@ -41,7 +41,7 @@ export default function LessonScreen() {
   const handleExit = () => {
     stopJapaneseSpeech();
     exitLesson();
-    navigate(lesson?.returnPath ?? '/');
+    navigate(-1);
   };
 
   const handleContinue = () => {
