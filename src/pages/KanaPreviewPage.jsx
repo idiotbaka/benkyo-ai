@@ -237,12 +237,12 @@ export default function KanaPreviewPage() {
   const handleExit = () => {
     cleanupAudio();
     exit();
-    navigate(`/vocab/japanese-intro?tab=${script}`);
+    navigate(-1);
   };
 
   const handleEnterPractice = () => {
     cleanupAudio();
-    navigate(`/practice/kana/${script}/trace`);
+    navigate(`/practice/kana/${script}/trace`, { replace: true });
   };
 
   if (!practice || previewItems.length === 0) return null;

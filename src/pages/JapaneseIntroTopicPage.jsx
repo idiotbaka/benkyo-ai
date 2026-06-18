@@ -1060,7 +1060,7 @@ export default function JapaneseIntroTopicPage() {
           <button
             type="button"
             className="btn-press"
-            onClick={() => navigate('/vocab/japanese-intro')}
+            onClick={() => navigate(-1)}
             aria-label="返回日语入门"
             style={{
               width: 36,

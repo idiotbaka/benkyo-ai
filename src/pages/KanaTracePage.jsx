@@ -298,6 +298,7 @@ export default function KanaTracePage() {
   const reviewKana = searchParams.get('kana') || '';
   const isReviewMode = Boolean(reviewKana);
   const practice = useKanaPracticeStore(s => s.practice);
+  const exit = useKanaPracticeStore(s => s.exit);
   const routeScriptNormalized = normalizeKanaScript(routeScript);
   const script = isReviewMode ? routeScriptNormalized : practice?.session?.script ?? routeScriptNormalized;
   const [traceData, setTraceData] = useState(null);
@@ -471,7 +472,8 @@ export default function KanaTracePage() {
 
   const handleBack = () => {
     cleanupAudio();
-    navigate(isReviewMode ? `/vocab/japanese-intro?tab=${script}` : `/practice/kana/${script}/preview`);
+    if (!isReviewMode) exit();
+    navigate(-1);
   };
 
   const handleNext = () => {
@@ -479,7 +481,7 @@ export default function KanaTracePage() {
 
     cleanupAudio();
     if (isReviewMode) {
-      navigate(`/vocab/japanese-intro?tab=${script}`);
+      navigate(-1);
       return;
     }
 
@@ -490,7 +492,7 @@ export default function KanaTracePage() {
       return;
     }
 
-    navigate(`/practice/kana/${script}`);
+    navigate(`/practice/kana/${script}`, { replace: true });
   };
 
   if (!traceData || !currentItem) {
@@ -510,7 +512,7 @@ export default function KanaTracePage() {
               type="button"
               className="btn-press"
               onClick={handleBack}
-              aria-label="返回假名预习"
+              aria-label="返回日语入门"
               style={{
                 width: 38,
                 height: 38,

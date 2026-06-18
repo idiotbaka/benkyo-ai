@@ -110,7 +110,7 @@ export default function JapaneseIntroPage() {
           <button
             type="button"
             className="btn-press"
-            onClick={() => navigate('/vocab')}
+            onClick={() => navigate(-1)}
             aria-label="返回练习中心"
             style={{
               width: 36,

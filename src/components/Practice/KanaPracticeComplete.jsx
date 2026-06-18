@@ -160,7 +160,7 @@ export default function KanaPracticeComplete() {
 
   const finishNavigation = () => {
     exit();
-    navigate(`/vocab/japanese-intro?tab=${script}`);
+    navigate(-1);
   };
 
   const handleContinue = () => {

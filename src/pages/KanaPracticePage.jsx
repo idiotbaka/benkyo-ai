@@ -46,9 +46,8 @@ function KanaPracticeScreen() {
   const [coinDisplay, setCoinDisplay] = useState(0);
 
   const handleExit = () => {
-    const script = practice?.session?.script ?? 'hiragana';
     exit();
-    navigate(`/vocab/japanese-intro?tab=${script}`);
+    navigate(-1);
   };
 
   const handleContinue = () => {
