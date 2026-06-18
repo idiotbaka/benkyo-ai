@@ -58,7 +58,7 @@ const SETTINGS_PANEL_IDS = new Set(['appearance', 'ai', 'tts', 'thinking']);
 
 const APP_INFO = {
   name: tauriConfig.productName || '日学',
-  version: tauriConfig.version || '0.2.3',
+  version: tauriConfig.version || '0.4.0',
   githubLabel: 'idiotbaka/benkyo-ai',
   githubUrl: 'https://github.com/idiotbaka/benkyo-ai',
 };
