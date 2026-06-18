@@ -6,6 +6,7 @@ export const DAILY_TASK_STORE_KEY = 'benkyo-ai-daily-tasks';
 
 export const DAILY_TASK_EVENTS = {
   WORD_REVIEW_COMPLETE: 'word-review-complete',
+  KANA_STUDY_COMPLETE: 'kana-study-complete',
   COURSE_REVIEW_COMPLETE: 'course-review-complete',
   LISTENING_COMPLETE: 'listening-complete',
   CAKE_USED: 'cake-used',
@@ -67,6 +68,12 @@ const TASK_POOLS = {
       id: 'word-review-1',
       title: '完成1次单词复习',
       event: DAILY_TASK_EVENTS.WORD_REVIEW_COMPLETE,
+      target: 1,
+    },
+    {
+      id: 'kana-study-1',
+      title: '完成1次假名学习',
+      event: DAILY_TASK_EVENTS.KANA_STUDY_COMPLETE,
       target: 1,
     },
     {

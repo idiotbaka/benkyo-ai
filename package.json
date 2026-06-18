@@ -1,13 +1,15 @@
 {
   "name": "benkyo-ai",
   "private": true,
-  "version": "0.3.0",
+  "version": "0.4.0",
   "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
+    "audio:gojuon": "node scripts/build-gojuon-audio-bundle.mjs",
+    "kana:trace": "node scripts/extract-kanjivg-kana.mjs",
     "preview": "vite preview",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
@@ -41,6 +43,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@tailwindcss/vite": "^4.3.0",
     "@tauri-apps/cli": "^2.11.2",
     "@types/react": "^19.2.14",

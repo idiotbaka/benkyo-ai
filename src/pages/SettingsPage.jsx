@@ -11,6 +11,7 @@ import { getModel } from '../lib/ai-providers';
 import { getAiErrorContent, logAiGeneratedContent } from '../lib/ai-debug';
 import { requestTtsAudioBlob } from '../lib/tts';
 import { useIcon } from '../lib/icons';
+import amiVoiceBanner from '../assets/audio/gojuon/bunner_ami_01.webp';
 
 gsap.registerPlugin(useGSAP);
 
@@ -57,7 +58,7 @@ const SETTINGS_PANEL_IDS = new Set(['appearance', 'ai', 'tts', 'thinking']);
 
 const APP_INFO = {
   name: tauriConfig.productName || '日学',
-  version: tauriConfig.version || '0.2.3',
+  version: tauriConfig.version || '0.4.0',
   githubLabel: 'idiotbaka/benkyo-ai',
   githubUrl: 'https://github.com/idiotbaka/benkyo-ai',
 };
@@ -66,6 +67,24 @@ const SOUND_CREDITS = [
   { label: '効果音ラボ', url: 'https://soundeffect-lab.info/' },
   { label: 'Kenney', url: 'https://kenney.nl/' },
 ];
+
+const TEXT_ANALYSIS_CREDITS = [
+  { label: 'daac-tools/vibrato', url: 'https://github.com/daac-tools/vibrato' },
+];
+
+const KANA_VOICE_CREDIT = {
+  label: '小春音アミ',
+  url: 'http://amitaro.net/utau/index.html',
+};
+
+const KANA_TRACE_CREDIT = {
+  label: 'KanjiVG',
+  repositoryUrl: 'https://github.com/KanjiVG/kanjivg',
+  websiteUrl: 'http://kanjivg.tagaini.net',
+  author: 'Ulrich Apel',
+  licenseLabel: 'Creative Commons Attribution-Share Alike 3.0',
+  licenseUrl: 'https://creativecommons.org/licenses/by-sa/3.0/',
+};
 
 const labelStyle = {
   fontSize: 12,
@@ -325,6 +344,52 @@ function AboutAppSection() {
           {SOUND_CREDITS.map(item => (
             <ExternalInfoLink key={item.url} href={item.url}>{item.label}</ExternalInfoLink>
           ))}
+        </div>
+      </AboutInfoRow>
+
+      <AboutInfoRow label="分词分析">
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 12px' }}>
+          {TEXT_ANALYSIS_CREDITS.map(item => (
+            <ExternalInfoLink key={item.url} href={item.url}>{item.label}</ExternalInfoLink>
+          ))}
+        </div>
+      </AboutInfoRow>
+
+      <AboutInfoRow label="假名声素材">
+        <div style={{ display: 'grid', gap: 8 }}>
+          <ExternalInfoLink href={KANA_VOICE_CREDIT.url}>{KANA_VOICE_CREDIT.label}</ExternalInfoLink>
+          <ExternalInfoLink href={KANA_VOICE_CREDIT.url}>{KANA_VOICE_CREDIT.url}</ExternalInfoLink>
+          <a href={KANA_VOICE_CREDIT.url} target="_blank" rel="noreferrer" aria-label="小春音アミ 官方页面">
+            <img
+              src={amiVoiceBanner}
+              alt="小春音アミ"
+              width={200}
+              height={40}
+              style={{
+                display: 'block',
+                width: 200,
+                height: 40,
+                border: '1.5px solid #E5E7EB',
+                background: '#F8FAFC',
+              }}
+            />
+          </a>
+        </div>
+      </AboutInfoRow>
+
+      <AboutInfoRow label="假名字形">
+        <div style={{ display: 'grid', gap: 8 }}>
+          <div>
+            假名跟写的字形与笔顺数据基于{' '}
+            <ExternalInfoLink href={KANA_TRACE_CREDIT.repositoryUrl}>{KANA_TRACE_CREDIT.label}</ExternalInfoLink>
+            {' '}的假名子集处理生成，用于 APP 内的轻量跟写练习。
+          </div>
+          <div style={{ color: '#64748B', fontSize: 12, lineHeight: 1.6 }}>
+            KanjiVG copyright (C) 2009/2010/2011 {KANA_TRACE_CREDIT.author}，按{' '}
+            <ExternalInfoLink href={KANA_TRACE_CREDIT.licenseUrl}>{KANA_TRACE_CREDIT.licenseLabel}</ExternalInfoLink>
+            {' '}许可使用。
+          </div>
+          <ExternalInfoLink href={KANA_TRACE_CREDIT.websiteUrl}>{KANA_TRACE_CREDIT.websiteUrl}</ExternalInfoLink>
         </div>
       </AboutInfoRow>
     </section>

@@ -240,6 +240,49 @@ rt {
   min-width: 16px;
 }
 
+.japanese-intro-start-button__shine {
+  position: absolute;
+  top: -45%;
+  left: -34%;
+  width: 34%;
+  height: 190%;
+  transform: skewX(-22deg);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.82), rgba(255,255,255,0.28), transparent);
+  animation: japaneseIntroStartShine 2.4s ease-in-out infinite;
+}
+
+@keyframes japaneseIntroStartShine {
+  0% { left: -38%; opacity: 0; }
+  18% { opacity: 0.92; }
+  48% { left: 108%; opacity: 0; }
+  100% { left: 108%; opacity: 0; }
+}
+
+.practice-entry-new-badge {
+  transform-origin: 50% 80%;
+  animation: practiceEntryNewBadgeHop 1.15s ease-in-out infinite;
+}
+
+@keyframes practiceEntryNewBadgeHop {
+  0%, 100% { transform: translateY(0) scale(1); }
+  18% { transform: translateY(-5px) scale(1.08); }
+  34% { transform: translateY(0) scale(0.98); }
+  48% { transform: translateY(-2px) scale(1.03); }
+  64% { transform: translateY(0) scale(1); }
+}
+
+.japanese-intro-mini-quiz-option--wrong {
+  animation: japaneseIntroMiniQuizShake 0.36s ease both;
+}
+
+@keyframes japaneseIntroMiniQuizShake {
+  0%, 100% { transform: translateX(0); }
+  18% { transform: translateX(-7px); }
+  36% { transform: translateX(6px); }
+  54% { transform: translateX(-5px); }
+  72% { transform: translateX(3px); }
+}
+
 /* ── Blank slot in sentence ── */
 .blank-slot {
   display: inline-flex;

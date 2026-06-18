@@ -58,6 +58,7 @@ export default function BattleArena({
   enemyHp,
   enemyHpRef,
   shouldSlide = true,
+  showHearts = true,
   showUmbrellaShield = false,
   showSakuraPetalShield = false,
 }) {
@@ -94,9 +95,11 @@ export default function BattleArena({
 
   return (
     <div className="relative basis-[29%] min-h-[128px] max-h-[168px] shrink-0 overflow-hidden rounded-2xl border border-[#EDE9FE] bg-gradient-to-b from-[#FAF7FF] to-[#F3EEFF]">
-      <div className="absolute left-[8%] top-3 z-20 drop-shadow-sm">
-        <HeartRow hearts={hearts} />
-      </div>
+      {showHearts && (
+        <div className="absolute left-[8%] top-3 z-20 drop-shadow-sm">
+          <HeartRow hearts={hearts} />
+        </div>
+      )}
       <div className="absolute right-[6%] top-3 z-20 w-[39%]">
         <div className="mb-0.5 text-[0.6rem] font-black italic tracking-wider text-[#DC2626] drop-shadow-sm">HP</div>
         <div className="h-2.5 overflow-hidden rounded-full bg-[#FECACA] shadow-sm ring-1 ring-[#FCA5A5]">

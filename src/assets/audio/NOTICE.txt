@@ -1,0 +1,47 @@
+# Audio Assets License and Attribution
+
+This directory contains third-party audio assets used in this project. These assets are NOT covered by the project's root MIT License, but are instead distributed under their respective licenses detailed below.
+
+If you reuse these audio files, please refer to the original author's or website's usage license.
+
+---
+
+### 1. soundeffect_lab_correct.mp3
+* **Author:** 効果音ラボ
+* **Source URL:** https://soundeffect-lab.info/
+
+---
+
+### 2. soundeffect_lab_level_complete.mp3
+* **Author:** 効果音ラボ
+* **Source URL:** https://soundeffect-lab.info/
+
+---
+
+### 3. soundeffect_lab_wrong.mp3
+* **Author:** 効果音ラボ
+* **Source URL:** https://soundeffect-lab.info/
+
+---
+
+### 4. kenney_ui_click.mp3
+* **Author:** Kenney
+* **Source URL:** https://kenney.nl/
+
+---
+
+### 5. kenney_word_selected.mp3
+* **Author:** Kenney
+* **Source URL:** https://kenney.nl/
+
+---
+
+### 6. kenney_word_unselected.mp3
+* **Author:** Kenney
+* **Source URL:** https://kenney.nl/
+
+### 7. gojuon
+* **Author:** 小春音アミ
+* **Source URL:** https://amitaro.net/utau/
+
+---

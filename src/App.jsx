@@ -11,13 +11,19 @@ import ShopPage from './pages/ShopPage';
 import SettingsPage from './pages/SettingsPage';
 import VocabPage from './pages/VocabPage';
 import VocabBookPage from './pages/VocabBookPage';
+import JapaneseIntroPage from './pages/JapaneseIntroPage';
+import JapaneseIntroTopicPage from './pages/JapaneseIntroTopicPage';
 import ListeningPracticePage from './pages/ListeningPracticePage';
 import CourseReviewPracticePage from './pages/CourseReviewPracticePage';
 import WordReviewPracticePage from './pages/WordReviewPracticePage';
 import WrongReviewPracticePage from './pages/WrongReviewPracticePage';
+import KanaPracticePage from './pages/KanaPracticePage';
+import KanaPreviewPage from './pages/KanaPreviewPage';
+import KanaTracePage from './pages/KanaTracePage';
 import MainLayout from './components/Layout/MainLayout';
 import useUserStore from './store/userStore';
 import useDailyTaskStore from './store/dailyTaskStore';
+import useJapaneseIntroProgressStore from './store/japaneseIntroProgressStore';
 import useNextChapterRecommendationStore from './store/nextChapterRecommendationStore';
 import XpBoostWidget from './components/UI/XpBoostWidget';
 import SoundEffectProvider from './components/UI/SoundEffectProvider';
@@ -100,10 +106,20 @@ function DebugConsoleCommands() {
       };
     };
 
+    window.benkyoDebugKanaProgress = (script = 'hiragana') => (
+      useJapaneseIntroProgressStore.getState().kanaProgress?.[script] ?? {}
+    );
+
+    window.benkyoDebugResetKanaProgress = (script = 'hiragana') => (
+      useJapaneseIntroProgressStore.getState().resetKanaProgress(script)
+    );
+
     return () => {
       delete window.benkyoDebugXpBoost;
       delete window.benkyoDebugAddCoins;
       delete window.benkyoDebugCoinBoost;
+      delete window.benkyoDebugKanaProgress;
+      delete window.benkyoDebugResetKanaProgress;
     };
   }, []);
 
@@ -144,6 +160,8 @@ export default function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/shop" element={<ShopPage />} />
             <Route path="/vocab" element={<VocabPage />} />
+            <Route path="/vocab/japanese-intro" element={<JapaneseIntroPage />} />
+            <Route path="/vocab/japanese-intro/basic/:topicId" element={<JapaneseIntroTopicPage />} />
             <Route path="/vocab/book" element={<VocabBookPage />} />
             <Route path="/profile" element={<ProfilePage />} />
           </Route>
@@ -152,6 +170,9 @@ export default function App() {
           <Route path="/practice/course-review" element={<CourseReviewPracticePage />} />
           <Route path="/practice/word-review" element={<WordReviewPracticePage />} />
           <Route path="/practice/wrong-review" element={<WrongReviewPracticePage />} />
+          <Route path="/practice/kana/:script/preview" element={<KanaPreviewPage />} />
+          <Route path="/practice/kana/:script/trace" element={<KanaTracePage />} />
+          <Route path="/practice/kana/:script" element={<KanaPracticePage />} />
           <Route path="/grammar/:chapterId" element={<GrammarPage />} />
           <Route path="/level-knowledge/:chapterId/:levelId" element={<LevelKnowledgePage />} />
           <Route path="/settings" element={<SettingsPage />} />
