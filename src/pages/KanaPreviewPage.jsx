@@ -242,7 +242,7 @@ export default function KanaPreviewPage() {
 
   const handleEnterPractice = () => {
     cleanupAudio();
-    navigate(`/practice/kana/${script}`);
+    navigate(`/practice/kana/${script}/trace`);
   };
 
   if (!practice || previewItems.length === 0) return null;
@@ -371,7 +371,7 @@ export default function KanaPreviewPage() {
             pointerEvents: 'auto',
           }}
         >
-          进入关卡
+          开始跟写
         </button>
       </div>
     </div>

@@ -18,6 +18,13 @@ const TABS = [
   { id: 'katakana', label: '片假名' },
 ];
 
+const KANA_SCROLL_ATTR = 'data-japanese-intro-scroll';
+const KANA_SCROLL_KEY_PREFIX = 'benkyo-ai:kana-list-scroll';
+
+function getKanaScrollKey(script) {
+  return `${KANA_SCROLL_KEY_PREFIX}:${script}`;
+}
+
 function getTabFromSearch(search) {
   const tab = new URLSearchParams(search).get('tab');
   return TABS.some(item => item.id === tab) ? tab : 'basics';
@@ -30,6 +37,7 @@ export default function JapaneseIntroPage() {
   const activeTab = getTabFromSearch(location.search);
   const headerRef = useRef(null);
   const contentRef = useRef(null);
+  const pageScrollRef = useRef(null);
 
   useGSAP(() => {
     gsap.set([headerRef.current, contentRef.current], { opacity: 0, y: 18 });
@@ -52,8 +60,41 @@ export default function JapaneseIntroPage() {
     navigate(session.newKana?.length > 0 ? `/practice/kana/${script}/preview` : `/practice/kana/${script}`);
   }, [navigate]);
 
+  useEffect(() => {
+    if (activeTab === 'basics') return undefined;
+
+    const scrollKey = getKanaScrollKey(activeTab);
+    const savedScrollTopRaw = sessionStorage.getItem(scrollKey);
+    if (savedScrollTopRaw == null) return undefined;
+
+    const savedScrollTop = Number(savedScrollTopRaw);
+    if (!Number.isFinite(savedScrollTop)) return undefined;
+
+    let frameId = 0;
+    let nextFrameId = 0;
+    frameId = requestAnimationFrame(() => {
+      nextFrameId = requestAnimationFrame(() => {
+        if (pageScrollRef.current) {
+          pageScrollRef.current.scrollTop = savedScrollTop;
+          sessionStorage.removeItem(scrollKey);
+        }
+      });
+    });
+
+    return () => {
+      cancelAnimationFrame(frameId);
+      cancelAnimationFrame(nextFrameId);
+    };
+  }, [activeTab]);
+
   return (
-    <div data-ui-click-sfx className="h-full overflow-y-auto scroll-y" style={{ background: '#F5F3FF' }}>
+    <div
+      ref={pageScrollRef}
+      data-ui-click-sfx
+      data-japanese-intro-scroll
+      className="h-full overflow-y-auto scroll-y"
+      style={{ background: '#F5F3FF' }}
+    >
       <div
         ref={headerRef}
         style={{
@@ -251,6 +292,7 @@ function BasicsList({ onOpenTopic }) {
 }
 
 function KanaStudyPanel({ script }) {
+  const navigate = useNavigate();
   useJapaneseIntroProgressStore(s => s.kanaProgress?.[script]);
   const getKanaDisplayProgress = useJapaneseIntroProgressStore(s => s.getKanaDisplayProgress);
   const [loadingAudioKey, setLoadingAudioKey] = useState('');
@@ -325,6 +367,15 @@ function KanaStudyPanel({ script }) {
     }
   }, [cleanupAudio, loadingAudioKey, playingAudioKey]);
 
+  const handleTraceKana = useCallback((kana) => {
+    cleanupAudio();
+    const scrollElement = document.querySelector(`[${KANA_SCROLL_ATTR}]`);
+    if (scrollElement) {
+      sessionStorage.setItem(getKanaScrollKey(script), String(scrollElement.scrollTop));
+    }
+    navigate(`/practice/kana/${script}/trace?kana=${encodeURIComponent(kana)}`);
+  }, [cleanupAudio, navigate, script]);
+
   return (
     <div style={{ maxWidth: 760, margin: '0 auto', display: 'grid', gap: 18 }}>
       {GOJUON_SECTIONS.map(section => (
@@ -336,13 +387,14 @@ function KanaStudyPanel({ script }) {
           playingAudioKey={playingAudioKey}
           getKanaDisplayProgress={getKanaDisplayProgress}
           onPlayKana={handlePlayKana}
+          onTraceKana={handleTraceKana}
         />
       ))}
     </div>
   );
 }
 
-function KanaSection({ section, script, loadingAudioKey, playingAudioKey, getKanaDisplayProgress, onPlayKana }) {
+function KanaSection({ section, script, loadingAudioKey, playingAudioKey, getKanaDisplayProgress, onPlayKana, onTraceKana }) {
   return (
     <section
       style={{
@@ -358,7 +410,8 @@ function KanaSection({ section, script, loadingAudioKey, playingAudioKey, getKan
           {section.title}
         </h3>
         <p style={{ color: '#8A8A94', fontSize: 15, lineHeight: 1.5, fontWeight: 700, margin: '0 0 18px' }}>
-          {section.subtitle}
+          {section.subtitle}。<br />
+          按住卡片可以学习写法哦～
         </p>
 
         {section.rowLayout ? (
@@ -383,6 +436,7 @@ function KanaSection({ section, script, loadingAudioKey, playingAudioKey, getKan
                     isPlaying={playingAudioKey === item.kana}
                     progressPct={getKanaDisplayProgress(script, item.kana)}
                     onPlay={() => onPlayKana(item.kana)}
+                    onTrace={() => onTraceKana(item.kana)}
                   />
                 ) : null)}
               </div>
@@ -406,6 +460,7 @@ function KanaSection({ section, script, loadingAudioKey, playingAudioKey, getKan
                 isPlaying={playingAudioKey === item.kana}
                 progressPct={getKanaDisplayProgress(script, item.kana)}
                 onPlay={() => onPlayKana(item.kana)}
+                onTrace={() => onTraceKana(item.kana)}
               />
             ))}
           </div>
@@ -415,7 +470,7 @@ function KanaSection({ section, script, loadingAudioKey, playingAudioKey, getKan
   );
 }
 
-function KanaCard({ item, script, columns, isLoading, isPlaying, progressPct = 0, onPlay, style }) {
+function KanaCard({ item, script, columns, isLoading, isPlaying, progressPct = 0, onPlay, onTrace, style }) {
   const displayKana = script === 'katakana' ? toKatakanaText(item.kana) : item.kana;
   const disabled = !getGojuonAudioEntry(item.kana);
   const isWide = columns === 3;
@@ -426,15 +481,68 @@ function KanaCard({ item, script, columns, isLoading, isPlaying, progressPct = 0
   const isComplete = normalizedProgress >= 100;
   const borderColor = active ? 'var(--tp-bdr)' : isComplete ? '#BBF7D0' : '#E7E7E7';
   const shadowColor = active ? 'var(--tp-bdr)' : isComplete ? '#BBF7D0' : '#E7E7E7';
+  const longPressTimerRef = useRef(null);
+  const didLongPressRef = useRef(false);
+  const pointerStartRef = useRef(null);
+
+  const clearLongPressTimer = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }, []);
+
+  const handlePointerDown = useCallback((event) => {
+    if (!onTrace) return;
+
+    didLongPressRef.current = false;
+    pointerStartRef.current = { x: event.clientX, y: event.clientY };
+    clearLongPressTimer();
+    longPressTimerRef.current = setTimeout(() => {
+      didLongPressRef.current = true;
+      onTrace();
+    }, 520);
+  }, [clearLongPressTimer, onTrace]);
+
+  const handlePointerMove = useCallback((event) => {
+    const start = pointerStartRef.current;
+    if (!start) return;
+
+    const moved = Math.hypot(event.clientX - start.x, event.clientY - start.y);
+    if (moved > 12) clearLongPressTimer();
+  }, [clearLongPressTimer]);
+
+  const handlePointerEnd = useCallback(() => {
+    clearLongPressTimer();
+    pointerStartRef.current = null;
+  }, [clearLongPressTimer]);
+
+  const handleClick = useCallback((event) => {
+    if (didLongPressRef.current) {
+      event.preventDefault();
+      didLongPressRef.current = false;
+      return;
+    }
+
+    if (!disabled) onPlay();
+  }, [disabled, onPlay]);
+
+  useEffect(() => () => {
+    clearLongPressTimer();
+  }, [clearLongPressTimer]);
 
   return (
     <button
       type="button"
       className="btn-press"
-      onClick={onPlay}
-      disabled={disabled}
+      onClick={handleClick}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerEnd}
+      onPointerCancel={handlePointerEnd}
+      onPointerLeave={handlePointerEnd}
       aria-label={disabled ? `暂无「${displayKana}」音频` : `播放「${displayKana}」`}
-      aria-description={`学习进度 ${normalizedProgress}%`}
+      aria-description={`学习进度 ${normalizedProgress}%，按住卡片可以学习写法`}
       style={{
         ...style,
         background: !active && isComplete ? 'linear-gradient(135deg, #FFFFFF, #F0FDF4)' : 'white',

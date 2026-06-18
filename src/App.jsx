@@ -19,6 +19,7 @@ import WordReviewPracticePage from './pages/WordReviewPracticePage';
 import WrongReviewPracticePage from './pages/WrongReviewPracticePage';
 import KanaPracticePage from './pages/KanaPracticePage';
 import KanaPreviewPage from './pages/KanaPreviewPage';
+import KanaTracePage from './pages/KanaTracePage';
 import MainLayout from './components/Layout/MainLayout';
 import useUserStore from './store/userStore';
 import useDailyTaskStore from './store/dailyTaskStore';
@@ -170,6 +171,7 @@ export default function App() {
           <Route path="/practice/word-review" element={<WordReviewPracticePage />} />
           <Route path="/practice/wrong-review" element={<WrongReviewPracticePage />} />
           <Route path="/practice/kana/:script/preview" element={<KanaPreviewPage />} />
+          <Route path="/practice/kana/:script/trace" element={<KanaTracePage />} />
           <Route path="/practice/kana/:script" element={<KanaPracticePage />} />
           <Route path="/grammar/:chapterId" element={<GrammarPage />} />
           <Route path="/level-knowledge/:chapterId/:levelId" element={<LevelKnowledgePage />} />
