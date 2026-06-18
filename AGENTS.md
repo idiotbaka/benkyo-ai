@@ -39,6 +39,7 @@ src/
 │   ├── JapaneseIntroPage.jsx           日语入门：基础知识 + 五十音
 │   ├── JapaneseIntroTopicPage.jsx      日语入门基础知识课件
 │   ├── KanaPreviewPage.jsx             假名学习：本关新假名预习
+│   ├── KanaTracePage.jsx               假名跟写：课程新假名 + 列表长按复习
 │   ├── KanaPracticePage.jsx            假名学习：动态假名课程
 │   ├── ListeningPracticePage.jsx       听力练习
 │   ├── CourseReviewPracticePage.jsx    课程巩固
@@ -82,6 +83,7 @@ src/
 │   ├── equipment-effects.js            护身符/装备实际特效入口
 │   ├── *-practice.js                   练习中心抽题/构题工具
 │   ├── kana-practice.js                假名学习选题、调度和掌握度算法
+│   ├── kana-trace.js                   假名跟写数据加载、路径采样和相似度评分
 │   ├── giftbox-rewards.js              礼物盒掉落与开启奖励
 │   ├── judge-answer.js                 AI 误判申诉
 │   ├── gojuon-audio.js                 五十音内置音频 bundle 读取
@@ -89,10 +91,14 @@ src/
 │   ├── japanese-speech-player.js       日语语音播放控制
 │   ├── sound-effects.js                UI 音效类型和播放
 │   └── schemas/course.js               课程 Zod 结构参考
+├── assets/
+│   ├── audio/gojuon/                   五十音内置音频 bundle 与 NOTICE
+│   └── kana-trace/                     KanjiVG 假名子集跟写数据、SVG 与 NOTICE
 └── data/                               静态示例、日语入门、假名助记、商店与御守数据
 ```
 
 Android 自定义入口：`src-tauri/gen/android/app/src/main/java/com/benkyo/ai/MainActivity.kt`。
+假名跟写资源由 `scripts/extract-kanjivg-kana.mjs` 从本地 `kanji/` SVG 源生成；`kanji/` 是临时源目录，不应提交。
 
 ---
 
@@ -114,6 +120,7 @@ Android 自定义入口：`src-tauri/gen/android/app/src/main/java/com/benkyo/ai
 /practice/word-review              WordReviewPracticePage
 /practice/wrong-review             WrongReviewPracticePage
 /practice/kana/:script/preview     KanaPreviewPage，script 为 hiragana/katakana
+/practice/kana/:script/trace       KanaTracePage，课程跟写或 `?kana=` 列表复习
 /practice/kana/:script             KanaPracticePage，script 为 hiragana/katakana
 /grammar/:chapterId                GrammarPage
 /settings                          SettingsPage
@@ -278,10 +285,13 @@ word-match 每配对成功一组 +1 金币
 - 小考点答对后播放 `ANSWER_CORRECT`、选项变绿并锁定；答错播放 `ANSWER_WRONG`、选项变红晃动后恢复。答对记录写入 `japaneseIntroProgressStore.quizResults`；同一课件全部小考点答对后列表状态变为 `已完成`。
 - 小考点卡片使用淡色背景和 `sd/sd_lc_incorrect.png` 作为右下 SD 图；按钮和 successText 背景保持半透明，避免遮挡 SD 图。
 - 平假名/片假名 tab 读取 `GOJUON_SECTIONS`；片假名通过 `toKatakanaText()` 从平假名映射显示，播放仍使用平假名音频 key。假名卡片底部进度条读取 `getKanaDisplayProgress(script, kana)`，平假名和片假名进度分开保存。
-- 点击“开始学习~♥”会调用 `buildKanaPracticeSession(script, progressState)` 现场生成 15~20 题（默认 18 题）并写入 `kanaPracticeStore.start(session)`。若 `session.newKana.length > 0`，先进入 `/practice/kana/:script/preview`；没有新假名则直接进入 `/practice/kana/:script`。
+- 长按假名卡片进入 `/practice/kana/:script/trace?kana=...` 的单假名复习跟写；`JapaneseIntroPage` 会用 `sessionStorage` 记录并恢复列表滚动位置，避免返回时回到顶部。
+- 点击“开始学习~♥”会调用 `buildKanaPracticeSession(script, progressState)` 现场生成 15~20 题（默认 18 题）并写入 `kanaPracticeStore.start(session)`。若 `session.newKana.length > 0`，先进入 `/practice/kana/:script/preview`，再进入 `/practice/kana/:script/trace` 跟写新假名；没有新假名则直接进入 `/practice/kana/:script`。
 - 假名课程的长期算法集中在 `lib/kana-practice.js`：清音 -> 浊音/半浊音 -> 拗音分阶段推进；每课最多引入 3 个 `seenCount === 0` 的新假名；已展开但未满 100% 的假名超过 8 个时，本课不上新并转为复习；抽题会先覆盖一批未满 100% 的已学假名，避免单个低进度假名挤掉 60%~99% 假名；低于 40% 的薄弱假名过多时不上新；旧假名按隐藏 recall/due score 混入复习；满格假名也会低频抽查。
 - `japaneseIntroProgressStore` 持久化 `kanaProgress`、`kanaMistakes`、`kanaStudyStats`。课程完成时统一 `applyKanaSessionResult()`：单假名单课普通最高 +20%，80% 以上最高 +12%；答错会扣进度并降低复习箱/ease，历史错选会进入后续干扰项。
 - `KanaPreviewPage.jsx` 展示本关首次学习的新假名，每个横栏包含假名、romaji、内置音频播放和清音助记；清音助记数据在 `data/kanaMnemonics.js`，浊音/半浊音/拗音只展示通用提示。页面顶部使用 `sd/sd_learn.png`。
+- `KanaTracePage.jsx` 支持课程模式和 `?kana=` 复习模式；复习模式底部按钮为“完成”并返回五十音列表，课程模式全部新假名写完后进入 `KanaPracticePage`。跟写数据由 `assets/kana-trace/kana-trace-data.json` 动态加载，路径采样和相似度判定在 `lib/kana-trace.js`；判定需保持宽容，避免用户视觉上写对但频繁失败。
+- 跟写区用 SVG/pointer events 绘制，当前笔画只显示主题色虚线和起笔圆点，用户笔画达标后清除并将原笔画变黑；拗音/复合假名在同一个正方形格子内横向排布，两个组件分别按笔顺完成。
 - `KanaPracticePage.jsx` 不消耗心心，不存在失败/复活流程，不写 `gameStore.levelProgress`，不写 `wrongQuestionStore`。页面复用 `BattleArena`，但传 `showHearts={false}`，角色上方不显示心心。答错弹出 `FeedbackPanel`；答对只播放正确音效、选项变绿和战斗动画，随后自动进入下一题，不弹正确反馈面板。
 - 假名学习奖励口径与单词复习一致：答对每题 `userStore.addBoostedCoins(2)`，完成后 `awardPracticeXp(星数 × 10)`，受 XP/金币加成和 `equipment-effects.js` 中绘马/达摩/招财猫等装备影响，完成页使用 `drawWordReviewGiftboxReward()` 抽礼物盒，并记录 `DAILY_TASK_EVENTS.KANA_STUDY_COMPLETE`。
 
@@ -393,6 +403,7 @@ TTS 缓存：
 - 徽章图为圆形成品图，不要额外绘制边框；未解锁灰度，已解锁和解锁弹窗使用扫光效果。
 - 御守图标位于当前皮肤 `sd/` 目录，文件名含日文/中文字符；通过 `useIconResolver()` 解析，不要手写 public URL。
 - 日语入门小考点背景 SD 图也通过 `useIcon('sd/sd_lc_incorrect.png')` 读取，保持皮肤回退能力。
+- 假名跟写数据位于 `assets/kana-trace/`，来源为 KanjiVG 假名子集，保留 `NOTICE.txt`；重新生成时运行 `npm run kana:trace`，不要把全量 KanjiVG SVG 或临时 `kanji/` 源目录打进应用。
 - 品牌 Logo 使用当前皮肤下的 `logo_32.png` 或 `logo.png`。
 
 ---
@@ -438,7 +449,7 @@ TTS 缓存：
 7. 涉及徽章时区分实时进度和累计计数，解锁只在“我的”页统一检查。
 8. 涉及商店/御守/道具/装备时确认金币扣除、购买条件、背包库存、装备状态、实际特效、收藏计数、已读 New 状态和图标皮肤回退。
 9. 涉及日语入门基础课件时同步检查 `JAPANESE_INTRO_BASICS`、`JAPANESE_INTRO_BASIC_MINI_QUIZZES`、插入位置和 `japaneseIntroProgressStore` 完成状态。
-10. 涉及假名学习时同步检查 `kana-practice.js`、`kanaPracticeStore.js`、`japaneseIntroProgressStore.js`、`KanaPreviewPage.jsx`、`KanaPracticePage.jsx` 和 `kanaMnemonics.js`；假名学习不扣心、不进错题库、不写章节进度，但完成后有金币/XP/礼物盒和独立每日任务事件。
+10. 涉及假名学习时同步检查 `kana-practice.js`、`kanaPracticeStore.js`、`japaneseIntroProgressStore.js`、`KanaPreviewPage.jsx`、`KanaTracePage.jsx`、`KanaPracticePage.jsx`、`kana-trace.js`、`assets/kana-trace/` 和 `kanaMnemonics.js`；假名学习不扣心、不进错题库、不写章节进度，但完成后有金币/XP/礼物盒和独立每日任务事件。
 11. 涉及假名播放时区分 gojuon 内置音频、TTS 语音与 UI 音效；gojuon 播放不依赖 TTS 配置。
 12. 涉及全屏布局时检查 Android 原生 safe area 与 `body overflow:hidden`。
 13. 涉及护身符特效时优先复用 `lib/equipment-effects.js`，避免 UI 展示和实际扣费/结算逻辑分叉。

@@ -77,6 +77,15 @@ const KANA_VOICE_CREDIT = {
   url: 'http://amitaro.net/utau/index.html',
 };
 
+const KANA_TRACE_CREDIT = {
+  label: 'KanjiVG',
+  repositoryUrl: 'https://github.com/KanjiVG/kanjivg',
+  websiteUrl: 'http://kanjivg.tagaini.net',
+  author: 'Ulrich Apel',
+  licenseLabel: 'Creative Commons Attribution-Share Alike 3.0',
+  licenseUrl: 'https://creativecommons.org/licenses/by-sa/3.0/',
+};
+
 const labelStyle = {
   fontSize: 12,
   fontWeight: 700,
@@ -365,6 +374,22 @@ function AboutAppSection() {
               }}
             />
           </a>
+        </div>
+      </AboutInfoRow>
+
+      <AboutInfoRow label="假名字形">
+        <div style={{ display: 'grid', gap: 8 }}>
+          <div>
+            假名跟写的字形与笔顺数据基于{' '}
+            <ExternalInfoLink href={KANA_TRACE_CREDIT.repositoryUrl}>{KANA_TRACE_CREDIT.label}</ExternalInfoLink>
+            {' '}的假名子集处理生成，用于 APP 内的轻量跟写练习。
+          </div>
+          <div style={{ color: '#64748B', fontSize: 12, lineHeight: 1.6 }}>
+            KanjiVG copyright (C) 2009/2010/2011 {KANA_TRACE_CREDIT.author}，按{' '}
+            <ExternalInfoLink href={KANA_TRACE_CREDIT.licenseUrl}>{KANA_TRACE_CREDIT.licenseLabel}</ExternalInfoLink>
+            {' '}许可使用。
+          </div>
+          <ExternalInfoLink href={KANA_TRACE_CREDIT.websiteUrl}>{KANA_TRACE_CREDIT.websiteUrl}</ExternalInfoLink>
         </div>
       </AboutInfoRow>
     </section>
