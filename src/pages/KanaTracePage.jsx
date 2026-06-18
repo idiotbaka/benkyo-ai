@@ -365,6 +365,12 @@ export default function KanaTracePage() {
   }, [cleanupAudio]);
 
   useEffect(() => {
+    if (isKanaComplete) {
+      playSoundEffect(SOUND_EFFECT_TYPES.ANSWER_CORRECT);
+    }
+  }, [isKanaComplete, currentItemKey]);
+
+  useEffect(() => {
     if (isReviewMode) return;
 
     if (!practice) {
@@ -399,7 +405,6 @@ export default function KanaTracePage() {
   }, []);
 
   const handleStrokeAccepted = useCallback((componentIndex) => {
-    playSoundEffect(SOUND_EFFECT_TYPES.ANSWER_CORRECT);
     setTraceProgress((current) => {
       const base = current.key === currentItemKey && current.values.length === currentItem.glyphs.length
         ? current.values
