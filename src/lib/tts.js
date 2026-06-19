@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import { SYSTEM_SPEECH_PROVIDER, isSystemSpeechSupported } from './system-speech';
 
 const CACHE_DB_NAME = 'benkyo-ai-tts-cache';
 const CACHE_DB_VERSION = 1;
@@ -31,6 +32,10 @@ export function getTtsCacheKey(text, config) {
 
 export function getTtsConfigError(config) {
   const profile = normalizeConfig(config);
+
+  if (profile.provider === SYSTEM_SPEECH_PROVIDER) {
+    return isSystemSpeechSupported() ? '' : '当前 WebView 不支持系统内置语音';
+  }
 
   if (!profile.baseUrl) return '请先在设置中填写语音模型 Base URL';
   if (!profile.apiKey) return '请先在设置中填写语音模型 API 密钥';
@@ -66,6 +71,9 @@ export async function requestTtsAudioBlob(text, config, { signal } = {}) {
 
   if (!normalizedText) throw new Error('播放文本不能为空');
   if (configError) throw new Error(configError);
+  if (profile.provider === SYSTEM_SPEECH_PROVIDER) {
+    throw new Error('系统内置语音不生成音频文件，请直接使用系统播放接口');
+  }
   if (!isSupportedTtsProvider(profile.provider)) {
     throw new Error(`暂不支持语音提供商：${profile.provider}`);
   }

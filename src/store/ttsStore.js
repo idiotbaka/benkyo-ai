@@ -1,7 +1,14 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { SYSTEM_SPEECH_AUTO_VOICE, SYSTEM_SPEECH_PROVIDER } from '../lib/system-speech';
 
 export const TTS_PROVIDER_PRESETS = {
+  [SYSTEM_SPEECH_PROVIDER]: {
+    label: '系统内置语音',
+    baseUrl: '',
+    modelId: '',
+    voice: SYSTEM_SPEECH_AUTO_VOICE,
+  },
   'openai-tts': {
     label: 'OpenAI TTS',
     baseUrl: 'https://api.openai.com/v1/audio/speech',
@@ -43,11 +50,11 @@ export const TTS_PROVIDER_PRESETS = {
 const useTtsStore = create(
   persist(
     (set, get) => ({
-      provider: 'aliyun-cosyvoice',
-      baseUrl: TTS_PROVIDER_PRESETS['aliyun-cosyvoice'].baseUrl,
-      modelId: TTS_PROVIDER_PRESETS['aliyun-cosyvoice'].modelId,
+      provider: SYSTEM_SPEECH_PROVIDER,
+      baseUrl: TTS_PROVIDER_PRESETS[SYSTEM_SPEECH_PROVIDER].baseUrl,
+      modelId: TTS_PROVIDER_PRESETS[SYSTEM_SPEECH_PROVIDER].modelId,
       apiKey: '',
-      voice: TTS_PROVIDER_PRESETS['aliyun-cosyvoice'].voice,
+      voice: TTS_PROVIDER_PRESETS[SYSTEM_SPEECH_PROVIDER].voice,
 
       // Runtime defaults tuned for compatibility and latency:
       // mp3: most device-compatible codec, 24kHz for clear speech at low payload.

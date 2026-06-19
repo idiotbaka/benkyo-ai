@@ -388,8 +388,8 @@ function PracticeNoticeSheet({ type, onClose, onGoSettings }) {
           <p style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.6, margin: '0 8px' }}>
             {isTts ? (
               <>
-                听力练习需要先配置音频模型。<br />
-                请前往 <strong>「我的」→「设置」</strong> 中填写 TTS 配置。
+                听力练习需要可用的语音播放方式。<br />
+                请前往 <strong>「我的」→「设置」</strong> 中检查 TTS 配置。
               </>
             ) : isTauriRequired ? (
               '需要在 Tauri 客户端中使用'

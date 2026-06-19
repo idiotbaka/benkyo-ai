@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
@@ -9,6 +9,16 @@ import useTtsStore, { TTS_PROVIDER_PRESETS } from '../store/ttsStore';
 import useAppearanceStore, { DEFAULT_ICON_SKIN, DEFAULT_WORD_CHIP_MOTION, ICON_SKINS, WORD_CHIP_MOTION_OPTIONS, isIconSkin, isWordChipMotion } from '../store/appearanceStore';
 import { getModel } from '../lib/ai-providers';
 import { getAiErrorContent, logAiGeneratedContent } from '../lib/ai-debug';
+import { playJapaneseSpeech } from '../lib/japanese-speech-player';
+import {
+  SYSTEM_SPEECH_AUTO_VOICE,
+  SYSTEM_SPEECH_PROVIDER,
+  getSystemSpeechVoiceId,
+  getSystemSpeechVoiceLabel,
+  hasJapaneseSystemVoice,
+  isSystemSpeechSupported,
+  loadSystemSpeechVoices,
+} from '../lib/system-speech';
 import { requestTtsAudioBlob } from '../lib/tts';
 import { useIcon } from '../lib/icons';
 import amiVoiceBanner from '../assets/audio/gojuon/bunner_ami_01.webp';
@@ -415,7 +425,7 @@ export default function SettingsPage() {
   const activeWordChipMotion = isWordChipMotion(wordChipMotion) ? wordChipMotion : DEFAULT_WORD_CHIP_MOTION;
   const savedTtsProvider = TTS_PROVIDER_PRESETS[savedTtsConfig.provider]
     ? savedTtsConfig.provider
-    : 'aliyun-cosyvoice';
+    : SYSTEM_SPEECH_PROVIDER;
   const savedTtsPreset = TTS_PROVIDER_PRESETS[savedTtsProvider];
 
   const [provider, setProvider] = useState(savedConfig.provider || 'openai');
@@ -436,12 +446,29 @@ export default function SettingsPage() {
   const [testMessage, setTestMessage] = useState('');
   const [ttsTestStatus, setTtsTestStatus] = useState(null); // null | 'loading' | 'ok' | 'error'
   const [ttsTestMessage, setTtsTestMessage] = useState('');
+  const [systemSpeechVoices, setSystemSpeechVoices] = useState([]);
+  const [systemSpeechVoicesLoaded, setSystemSpeechVoicesLoaded] = useState(false);
 
   const pageRef = useRef(null);
   const backBtnRef = useRef(null);
   const panelRefs = useRef({});
   const ttsAudioRef = useRef(null);
   const ttsAudioUrlRef = useRef(null);
+  const ttsPlaybackRef = useRef(null);
+
+  const cleanupTtsPreview = useCallback(() => {
+    ttsPlaybackRef.current?.stop();
+    ttsPlaybackRef.current = null;
+
+    if (ttsAudioRef.current) {
+      ttsAudioRef.current.pause();
+      ttsAudioRef.current = null;
+    }
+    if (ttsAudioUrlRef.current) {
+      URL.revokeObjectURL(ttsAudioUrlRef.current);
+      ttsAudioUrlRef.current = null;
+    }
+  }, []);
 
   useGSAP(() => {
     gsap.set(pageRef.current, { opacity: 0, y: 16 });
@@ -452,8 +479,15 @@ export default function SettingsPage() {
 
   const currentPreset = PROVIDER_PRESETS[provider];
   const currentTtsPreset = TTS_PROVIDER_PRESETS[ttsProvider];
+  const isSystemTtsProvider = ttsProvider === SYSTEM_SPEECH_PROVIDER;
+  const systemSpeechAvailable = isSystemSpeechSupported();
+  const systemSpeechHasJapaneseVoice = systemSpeechVoicesLoaded && hasJapaneseSystemVoice(systemSpeechVoices);
+  const systemVoiceSelectValue = getSystemVoiceSelectValue(ttsVoice, systemSpeechVoices);
   const providerLabel = currentPreset?.label || provider || '未选择';
   const ttsProviderLabel = currentTtsPreset?.label || ttsProvider || '未选择';
+  const ttsVoiceLabel = isSystemTtsProvider
+    ? getSystemVoiceSummaryLabel(ttsVoice, systemSpeechVoices)
+    : ttsVoice.trim();
   const activeIconSkinLabel = ICON_SKINS.find(opt => opt.id === activeIconSkin)?.label || activeIconSkin;
   const activeWordChipMotionLabel = WORD_CHIP_MOTION_OPTIONS.find(opt => opt.id === activeWordChipMotion)?.label || activeWordChipMotion;
   const activeThinkingDepthLabel = THINKING_DEPTH_OPTIONS.find(opt => opt.id === thinkingDepth)?.label || '深度思考';
@@ -463,13 +497,15 @@ export default function SettingsPage() {
     modelId.trim() &&
     (provider !== 'openai-compatible' || baseUrl.trim()),
   );
-  const isTtsConfigured = Boolean(
-    ttsProvider &&
-    ttsBaseUrl.trim() &&
-    ttsModelId.trim() &&
-    ttsApiKey.trim() &&
-    ttsVoice.trim(),
-  );
+  const isTtsConfigured = isSystemTtsProvider
+    ? systemSpeechAvailable
+    : Boolean(
+        ttsProvider &&
+        ttsBaseUrl.trim() &&
+        ttsModelId.trim() &&
+        ttsApiKey.trim() &&
+        ttsVoice.trim(),
+      );
 
   function isPanelOpen(panelId) {
     return openPanels.has(panelId);
@@ -517,6 +553,34 @@ export default function SettingsPage() {
   }, [targetPanel]);
 
   useEffect(() => {
+    if (!isSystemTtsProvider || !systemSpeechAvailable) {
+      return undefined;
+    }
+
+    let cancelled = false;
+    const synth = window.speechSynthesis;
+
+    async function refreshVoices() {
+      const voices = await loadSystemSpeechVoices();
+      if (cancelled) return;
+      setSystemSpeechVoices(voices);
+      setSystemSpeechVoicesLoaded(true);
+    }
+
+    void refreshVoices();
+    synth.addEventListener?.('voiceschanged', refreshVoices);
+
+    return () => {
+      cancelled = true;
+      synth.removeEventListener?.('voiceschanged', refreshVoices);
+    };
+  }, [isSystemTtsProvider, systemSpeechAvailable]);
+
+  useEffect(() => () => {
+    cleanupTtsPreview();
+  }, [cleanupTtsPreview]);
+
+  useEffect(() => {
     setConfig({
       provider,
       apiKey: apiKey.trim(),
@@ -539,9 +603,16 @@ export default function SettingsPage() {
   function handleTtsProviderChange(newProvider) {
     setTtsProvider(newProvider);
     const preset = TTS_PROVIDER_PRESETS[newProvider];
-    if (preset?.baseUrl) setTtsBaseUrl(preset.baseUrl);
-    if (preset?.modelId) setTtsModelId(preset.modelId);
-    if (preset?.voice) setTtsVoice(preset.voice);
+    setTtsBaseUrl(preset?.baseUrl || '');
+    setTtsModelId(preset?.modelId || '');
+    if (newProvider === SYSTEM_SPEECH_PROVIDER) {
+      setTtsApiKey('');
+      setTtsVoice(SYSTEM_SPEECH_AUTO_VOICE);
+      setSystemSpeechVoices([]);
+      setSystemSpeechVoicesLoaded(false);
+    } else if (preset?.voice) {
+      setTtsVoice(preset.voice);
+    }
     setTtsTestStatus(null);
     setTtsTestMessage('');
   }
@@ -636,6 +707,40 @@ export default function SettingsPage() {
   async function handleTtsTest() {
     setTtsTestStatus('loading');
     setTtsTestMessage('');
+    cleanupTtsPreview();
+
+    if (isSystemTtsProvider) {
+      if (!systemSpeechAvailable) {
+        setTtsTestStatus('error');
+        setTtsTestMessage('当前 WebView 不支持系统内置语音');
+        return;
+      }
+
+      try {
+        const voices = systemSpeechVoicesLoaded ? systemSpeechVoices : await loadSystemSpeechVoices();
+        setSystemSpeechVoices(voices);
+        setSystemSpeechVoicesLoaded(true);
+
+        const playback = await playJapaneseSpeech('こんにちは！', {
+          provider: SYSTEM_SPEECH_PROVIDER,
+          voice: ttsVoice || SYSTEM_SPEECH_AUTO_VOICE,
+          rate: 1.0,
+        });
+        ttsPlaybackRef.current = playback;
+
+        setTtsTestStatus('ok');
+        setTtsTestMessage(
+          hasJapaneseSystemVoice(voices)
+            ? '试音成功，已使用系统内置语音播放「こんにちは！」'
+            : '试音成功，但您的设备未预置日语音色，发音效果可能不稳定'
+        );
+      } catch (err) {
+        setTtsTestStatus('error');
+        const msg = err?.message || String(err);
+        setTtsTestMessage(`试音失败：${msg.slice(0, 160)}`);
+      }
+      return;
+    }
 
     const endpoint = ttsBaseUrl.trim();
     const apiKeyTrimmed = ttsApiKey.trim();
@@ -676,15 +781,6 @@ export default function SettingsPage() {
         bitRate: 64,
       });
 
-      if (ttsAudioRef.current) {
-        ttsAudioRef.current.pause();
-        ttsAudioRef.current = null;
-      }
-      if (ttsAudioUrlRef.current) {
-        URL.revokeObjectURL(ttsAudioUrlRef.current);
-        ttsAudioUrlRef.current = null;
-      }
-
       const audioUrl = URL.createObjectURL(audioBlob);
       ttsAudioUrlRef.current = audioUrl;
 
@@ -710,7 +806,7 @@ export default function SettingsPage() {
   const showRequiredHint = provider === 'openai-compatible';
   const appearanceSummary = `${activeIconSkinLabel} · ${activeWordChipMotionLabel}`;
   const aiSummary = isAiConfigured ? `${providerLabel} · ${modelId.trim()}` : '尚未配置模型或密钥';
-  const ttsSummary = isTtsConfigured ? `${ttsProviderLabel} · ${ttsVoice.trim()}` : '尚未配置音频模型';
+  const ttsSummary = isTtsConfigured ? `${ttsProviderLabel} · ${ttsVoiceLabel || '自动选择'}` : '尚未配置音频模型';
   const thinkingSummary = `当前：${activeThinkingDepthLabel}`;
 
   return (
@@ -962,65 +1058,126 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div style={{ marginBottom: 18 }}>
-            <label style={labelStyle}>Base URL</label>
-            <input
-              type="text"
-              value={ttsBaseUrl}
-              onChange={e => setTtsBaseUrl(e.target.value)}
-              placeholder={currentTtsPreset?.baseUrl || ''}
-              style={inputStyle}
-            />
-          </div>
+          {!isSystemTtsProvider && (
+            <>
+              <div style={{ marginBottom: 18 }}>
+                <label style={labelStyle}>Base URL</label>
+                <input
+                  type="text"
+                  value={ttsBaseUrl}
+                  onChange={e => setTtsBaseUrl(e.target.value)}
+                  placeholder={currentTtsPreset?.baseUrl || ''}
+                  style={inputStyle}
+                />
+              </div>
 
-          <div style={{ marginBottom: 18 }}>
-            <label style={labelStyle}>模型 ID</label>
-            <input
-              type="text"
-              value={ttsModelId}
-              onChange={e => setTtsModelId(e.target.value)}
-              placeholder={currentTtsPreset?.modelId || '模型 ID'}
-              style={inputStyle}
-            />
-          </div>
+              <div style={{ marginBottom: 18 }}>
+                <label style={labelStyle}>模型 ID</label>
+                <input
+                  type="text"
+                  value={ttsModelId}
+                  onChange={e => setTtsModelId(e.target.value)}
+                  placeholder={currentTtsPreset?.modelId || '模型 ID'}
+                  style={inputStyle}
+                />
+              </div>
 
-          <div style={{ marginBottom: 18 }}>
-            <label style={labelStyle}>TTS API 密钥</label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type={showTtsKey ? 'text' : 'password'}
-                value={ttsApiKey}
-                onChange={e => setTtsApiKey(e.target.value)}
-                placeholder="sk-..."
-                autoComplete="off"
-                style={{ ...inputStyle, padding: '11px 44px 11px 14px' }}
-              />
-              <button
-                type="button"
-                onClick={() => setShowTtsKey(v => !v)}
-                aria-label={showTtsKey ? '隐藏 TTS API 密钥' : '显示 TTS API 密钥'}
-                title={showTtsKey ? '隐藏 TTS API 密钥' : '显示 TTS API 密钥'}
-                style={{
-                  position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  color: '#9CA3AF', padding: 2,
-                }}
-              >
-                <VisibilityIcon visible={showTtsKey} />
-              </button>
-            </div>
-          </div>
+              <div style={{ marginBottom: 18 }}>
+                <label style={labelStyle}>TTS API 密钥</label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showTtsKey ? 'text' : 'password'}
+                    value={ttsApiKey}
+                    onChange={e => setTtsApiKey(e.target.value)}
+                    placeholder="sk-..."
+                    autoComplete="off"
+                    style={{ ...inputStyle, padding: '11px 44px 11px 14px' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowTtsKey(v => !v)}
+                    aria-label={showTtsKey ? '隐藏 TTS API 密钥' : '显示 TTS API 密钥'}
+                    title={showTtsKey ? '隐藏 TTS API 密钥' : '显示 TTS API 密钥'}
+                    style={{
+                      position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      color: '#9CA3AF', padding: 2,
+                    }}
+                  >
+                    <VisibilityIcon visible={showTtsKey} />
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
 
           <div style={{ marginBottom: 16 }}>
             <label style={labelStyle}>音色 Voice</label>
-            <input
-              type="text"
-              value={ttsVoice}
-              onChange={e => setTtsVoice(e.target.value)}
-              placeholder={currentTtsPreset?.voice || '音色 Voice'}
-              style={inputStyle}
-            />
+            {isSystemTtsProvider ? (
+              <div style={selectShellStyle}>
+                <select
+                  value={systemVoiceSelectValue}
+                  onChange={e => setTtsVoice(e.target.value)}
+                  disabled={!systemSpeechAvailable}
+                  style={{
+                    ...selectStyle,
+                    color: systemSpeechAvailable ? selectStyle.color : '#9CA3AF',
+                    cursor: systemSpeechAvailable ? 'pointer' : 'not-allowed',
+                  }}
+                >
+                  <option value={SYSTEM_SPEECH_AUTO_VOICE}>自动选择日语音色</option>
+                  {systemSpeechVoices.map(voice => (
+                    <option key={getSystemSpeechVoiceId(voice)} value={getSystemSpeechVoiceId(voice)}>
+                      {getSystemSpeechVoiceOptionLabel(voice)}
+                    </option>
+                  ))}
+                </select>
+                <SelectChevron />
+              </div>
+            ) : (
+              <input
+                type="text"
+                value={ttsVoice}
+                onChange={e => setTtsVoice(e.target.value)}
+                placeholder={currentTtsPreset?.voice || '音色 Voice'}
+                style={inputStyle}
+              />
+            )}
           </div>
+
+          {isSystemTtsProvider && systemSpeechAvailable && !systemSpeechVoicesLoaded && (
+            <p style={{ fontSize: 11, color: '#6B7280', margin: '0 0 14px 0', lineHeight: 1.55 }}>
+              正在读取设备内置音色...
+            </p>
+          )}
+
+          {isSystemTtsProvider && systemSpeechAvailable && systemSpeechVoicesLoaded && !systemSpeechHasJapaneseVoice && (
+            <div style={{
+              padding: '10px 12px',
+              borderRadius: 10,
+              background: '#FFFBEB',
+              border: '1.5px solid #FCD34D',
+              margin: '0 0 14px',
+            }}>
+              <p style={{ fontSize: 12, color: '#92400E', margin: 0, lineHeight: 1.55, fontWeight: 700 }}>
+                您的设备未预置日语音色，发音效果可能不稳定
+              </p>
+            </div>
+          )}
+
+          {isSystemTtsProvider && !systemSpeechAvailable && (
+            <div style={{
+              padding: '10px 12px',
+              borderRadius: 10,
+              background: '#FEF2F2',
+              border: '1.5px solid #FECACA',
+              margin: '0 0 14px',
+            }}>
+              <p style={{ fontSize: 12, color: '#DC2626', margin: 0, lineHeight: 1.55, fontWeight: 700 }}>
+                当前 WebView 不支持系统内置语音，请切换为其他 TTS 提供商。
+              </p>
+            </div>
+          )}
 
           <p style={{ fontSize: 11, color: '#6B7280', margin: '0 0 14px 0', lineHeight: 1.55 }}>
             {getTtsProviderHint(ttsProvider)}
@@ -1148,7 +1305,28 @@ function getModelIdPlaceholder(provider) {
   return map[provider] || '模型 ID';
 }
 
+function getSystemVoiceSelectValue(voiceId, voices) {
+  if (!voiceId || voiceId === SYSTEM_SPEECH_AUTO_VOICE) return SYSTEM_SPEECH_AUTO_VOICE;
+  const voiceIds = new Set(voices.map(voice => getSystemSpeechVoiceId(voice)));
+  return voiceIds.has(voiceId) ? voiceId : SYSTEM_SPEECH_AUTO_VOICE;
+}
+
+function getSystemVoiceSummaryLabel(voiceId, voices) {
+  if (!voiceId || voiceId === SYSTEM_SPEECH_AUTO_VOICE) return '自动选择';
+  const selectedVoice = voices.find(voice => getSystemSpeechVoiceId(voice) === voiceId);
+  return selectedVoice ? getSystemSpeechVoiceLabel(selectedVoice) : '自动选择';
+}
+
+function getSystemSpeechVoiceOptionLabel(voice) {
+  const prefix = /^ja(?:[-_]|$)/i.test(voice?.lang || '') ? '日语 · ' : '';
+  return `${prefix}${getSystemSpeechVoiceLabel(voice)}`;
+}
+
 function getTtsProviderHint(provider) {
+  if (provider === SYSTEM_SPEECH_PROVIDER) {
+    return '使用系统设备的内置语音，不需要 API 密钥，但是语音质量会降低。不同设备的音色数量和发音效果会有所不同。';
+  }
+
   if (provider === 'openai-tts') {
     return '访问 https://platform.openai.com/ 获取 API Key；推荐模型 gpt-4o-mini-tts，推荐音色 marin 或 cedar。';
   }
