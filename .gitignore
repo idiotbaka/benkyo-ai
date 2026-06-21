@@ -26,6 +26,7 @@ dist-ssr
 
 # Local AI instructions and repository automation
 .claude/
+/.codex/config.toml
 .github/*
 !.github/workflows/
 !.github/workflows/*.yml
