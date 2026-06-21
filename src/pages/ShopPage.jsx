@@ -445,6 +445,7 @@ export default function ShopPage() {
 
   const headerRef = useRef(null);
   const contentRef = useRef(null);
+  const pageScrollRef = useRef(null);
   const stripeRef  = useRef(null);
   const contentSwitchRef = useRef({ rafIds: [], tween: null });
   const hasAnimatedContentSwitchRef = useRef(false);
@@ -537,6 +538,8 @@ export default function ShopPage() {
   const handleViewChange = (nextView) => {
     if (nextView === activeView && nextView === renderedView) return;
 
+    pageScrollRef.current?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+
     contentSwitchRef.current.rafIds.forEach(id => window.cancelAnimationFrame(id));
     contentSwitchRef.current.rafIds = [];
     contentSwitchRef.current.tween?.kill();
@@ -621,7 +624,7 @@ export default function ShopPage() {
         overflow: 'hidden',
       }}
     >
-      <div className="shop-page-scroll scroll-y">
+      <div ref={pageScrollRef} className="shop-page-scroll scroll-y">
         {/* Header */}
         <div
           ref={headerRef}
